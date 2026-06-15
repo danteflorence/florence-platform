@@ -207,41 +207,13 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: PRICING_API_URL         # Workforce Economist pricing-api — see note below.
+        sync: false                  # Set to the hosted pricing-api URL; blank → ATS fallback fee.
 
-  # ── Pricing — Streamlit Workforce Economist (1 GB disk; existing Dockerfile) ─
-  - type: web
-    name: florence-economist
-    runtime: docker
-    rootDir: labor-economics-agent
-    dockerfilePath: ./Dockerfile
-    region: oregon
-    plan: starter
-    healthCheckPath: /_stcore/health
-    disk:
-      name: florence-data
-      mountPath: /app/data
-      sizeGB: 1
-    envVars:
-      - fromGroup: florence-shared
-      - key: FLORENCE_INTERNAL_AUTH
-        value: "1"
-      - key: PUBLIC_PRICING_URL
-        value: https://pricing.florenceeducation.com
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: BLS_REGISTRATION_KEY
-        sync: false
-
-  # ── Pricing API — stateless FastAPI quote engine ──────────────────────────
-  - type: web
-    name: florence-pricing-api
-    runtime: python
-    rootDir: labor-economics-agent
-    buildCommand: pip install -r requirements-api.txt
-    startCommand: uvicorn pricing_api:app --host 0.0.0.0 --port $PORT
-    region: oregon
-    plan: starter
-    healthCheckPath: /health
-    envVars:
-      - key: PRICING_API_CORS_ORIGINS
-        value: https://pricing.florenceeducation.com
+  # ── Pricing (Workforce Economist) — DEPLOYED FROM A SEPARATE REPO ─────────
+  # `florence-economist` (Streamlit) + `florence-pricing-api` (FastAPI) build from the
+  # `labor-economics-agent` GitHub repo, which is NOT part of this monorepo (gitignored).
+  # A Blueprint sourced from THIS repo cannot build them (no rootDir on a clean clone),
+  # so they are intentionally NOT defined here. Deploy them from that repo's own
+  # Blueprint, then set `PRICING_API_URL` (above, on florence-ats) to the hosted
+  # pricing-api URL. ATS degrades to a standard fallback fee when it's unset/unreachable.

@@ -21,6 +21,7 @@ jobs:
       - name: Core typecheck + verify suite
         working-directory: florence-core
         run: |
+          npm ci
           npm run typecheck
           npm run verify-security
           npm run verify-control-tower
@@ -36,6 +37,7 @@ jobs:
       - name: ATS typecheck + build + all smokes (sqlite AND postgres)
         working-directory: florence-ats-connect
         run: |
+          npm ci
           npm run typecheck
           npm run build
           for s in platform-api-smoke application-gate-smoke demand-smoke opportunity-smoke longtail-smoke program-smoke reservations-smoke onboarding-risk-smoke component-sdk-smoke pii-url-smoke; do
@@ -49,9 +51,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "24" }
-      - run: cd florence-pathway-agent && npm run typecheck && npm run pathway-v1-smoke
-      - run: cd florence-academy/api && npm run typecheck
-      - run: cd florence-academy && npm run typecheck
+      - run: cd florence-pathway-agent && npm ci && npm run typecheck && npm run pathway-v1-smoke
+      - run: cd florence-academy/api && npm ci && npm run typecheck
+      - run: cd florence-academy && npm ci && npm run typecheck
 
   infra:
     runs-on: ubuntu-latest

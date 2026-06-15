@@ -26,7 +26,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
-    depends_on: [core, academy-web, academy-api, academy-live, pathway, ats, economist, pricing-api]
+    # economist + pricing-api live in the separate `labor-economics-agent` repo (gitignored here)
+    # and only start under the `pricing` compose profile — see those services below.
+    depends_on: [core, academy-web, academy-api, academy-live, pathway, ats]
 
   # ── databases (Core and Academy keep separate DBs) ───────────────────────
   core-pg:
@@ -194,7 +196,15 @@ services:
     volumes: [ats-data:/app/data]
 
   # ── Pricing — Streamlit Workforce Economist (persistent volume) ──────────
+  # NOTE: `economist` + `pricing-api` build from the SEPARATE `labor-economics-agent`
+  # GitHub repo, which is intentionally NOT in this monorepo (it's gitignored). They
+  # are gated behind the `pricing` profile so a clean clone runs `docker compose up`
+  # WITHOUT that directory present. To include pricing, check out that repo alongside
+  # this one and run `docker compose --profile pricing up`. ATS degrades to a standard
+  # fallback fee when PRICING_API_URL is unreachable, so the stack is fully functional
+  # without it.
   economist:
+    profiles: ["pricing"]
     build: { context: ./labor-economics-agent, dockerfile: Dockerfile }
     restart: unless-stopped
     environment:
@@ -209,8 +219,9 @@ services:
       BLS_REGISTRATION_KEY: ${BLS_REGISTRATION_KEY:-}
     volumes: [economist-data:/app/data]
 
-  # ── Pricing API — stateless FastAPI quote engine ─────────────────────────
+  # ── Pricing API — stateless FastAPI quote engine (separate repo; `pricing` profile) ─
   pricing-api:
+    profiles: ["pricing"]
     build: { context: ./labor-economics-agent, dockerfile: Dockerfile.api }
     restart: unless-stopped
     environment:
