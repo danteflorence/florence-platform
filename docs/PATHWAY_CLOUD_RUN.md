@@ -1,5 +1,11 @@
 # Pathway on Cloud Run — the store constraint (DEP3)
 
+## Wave-1 status (2026-06-15)
+Pathway is **excluded from the Cloud Run services map** in `infra/envs/*.tfvars` (no Cloud Run
+service, job, or domain mapping is created for it) until the async-Postgres refactor below
+(path 1) lands. CI still **builds** the pathway image so it's ready to wire in. This does NOT
+block external API access or the lender flow — both run through Core (Postgres-ready).
+
 ## The constraint
 Cloud Run is **stateless** (no persistent disk). `florence-pathway-agent` uses a **synchronous**
 `node:sqlite` store (`server/db.ts` — `DatabaseSync`, file `data/pathway.db`), and the whole app is built
