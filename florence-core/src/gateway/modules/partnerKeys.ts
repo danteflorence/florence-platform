@@ -40,10 +40,13 @@ export function partnerKeysModule(store: Store, audit: Audit): GwRoute[] {
         const requested = Array.isArray(b.scopes) ? (b.scopes as unknown[]).filter((x): x is string => typeof x === "string") : [];
         const granted = requested.filter((s) => PARTNER_SAFE_SCOPES.has(s) || LENDER_SAFE_SCOPES.has(s));
         if (granted.length === 0) return { status: 400, body: { error: "at least one partner-safe scope required", allowed: [...PARTNER_SAFE_SCOPES, ...LENDER_SAFE_SCOPES] } };
-        // A lender key (any lender scope) MUST be bound to the bank's org — the read is
-        // org-matched + consent-gated, so an unbound lender key could never read anything.
         const isLender = granted.some((s) => LENDER_SAFE_SCOPES.has(s));
-        if (isLender && !orgId) return { status: 400, body: { error: "org_id required for a lender key (the read is org-matched + consent-gated)" } };
+        // EVERY partner key MUST be org-bound. A partner M2M token is a restricted,
+        // org-matched + consent-gated consumer — NOT a trusted internal proxy. Its org is
+        // the tenant boundary: without it a partner could neither be scoped to its own
+        // nurses/programs nor pass the consent gate. (Internal app clients are never
+        // org-bound, so org_id presence is what distinguishes a partner downstream.)
+        if (!orgId) return { status: 400, body: { error: "org_id required for a partner key (reads are org-matched + consent-gated)" } };
         const secret = randomBytes(28).toString("base64url");
         const client: ApiClient = {
           client_id: id(isLender ? "lk" : "pk"),

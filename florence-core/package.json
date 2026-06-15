@@ -19,6 +19,7 @@
     "verify-university-investor": "node scripts/verify-university-investor.ts",
     "verify-gateway": "node scripts/verify-gateway.ts",
     "verify-lender": "node scripts/verify-lender.ts",
+    "verify-tenant-binding": "node scripts/verify-tenant-binding.ts",
     "rotate-key": "node scripts/rotate-key.ts",
     "checkpoint": "node scripts/mint-test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

@@ -151,14 +151,15 @@ async function main() {
   ok("webhooks: non-matching event type is NOT delivered to this sub", !delivs.some((d) => d.sub_id === sub.body.id && d.event_type !== "demand.tile_viewed"));
 
   // ── Developer Portal v1: partner API keys (partner-safe scopes only) ──────
-  const pk = await callBody("POST", "/v1/partner-keys", opsToken, { name: "AMN", scopes: ["opportunities:read", "passport:read:employer", "passport:read:internal", "model:run"] }, { "Idempotency-Key": `pk-${EMP_ORG}` });
+  const pk = await callBody("POST", "/v1/partner-keys", opsToken, { name: "AMN", org_id: EMP_ORG, scopes: ["opportunities:read", "passport:read:employer", "passport:read:internal", "model:run"] }, { "Idempotency-Key": `pk-${EMP_ORG}` });
   ok("partner-keys: create ⇒ 201 + client_id + secret once", pk.status === 201 && !!pk.body.client_id && typeof pk.body.client_secret === "string");
   ok("partner-keys: internal/model scopes DROPPED (partner-safe only)", Array.isArray(pk.body.scopes) && pk.body.scopes.includes("opportunities:read") && pk.body.scopes.includes("passport:read:employer") && !pk.body.scopes.includes("passport:read:internal") && !pk.body.scopes.includes("model:run"));
+  ok("partner-keys: WITHOUT org_id ⇒ 400 (every partner key is org-bound)", (await callBody("POST", "/v1/partner-keys", opsToken, { name: "NoOrg", scopes: ["opportunities:read"] }, {})).status === 400);
   const pkList = await call("GET", "/v1/partner-keys", opsToken);
   ok("partner-keys: list shows the key WITHOUT its secret", pkList.status === 200 && pkList.body.keys.some((k: { client_id: string; client_secret?: string }) => k.client_id === pk.body.client_id && k.client_secret === undefined));
-  ok("partner-keys: employer token lacks clients:manage ⇒ 403", (await callBody("POST", "/v1/partner-keys", empToken, { name: "x", scopes: ["opportunities:read"] }, {})).status === 403);
+  ok("partner-keys: employer token lacks clients:manage ⇒ 403", (await callBody("POST", "/v1/partner-keys", empToken, { name: "x", org_id: EMP_ORG, scopes: ["opportunities:read"] }, {})).status === 403);
   // Partner SANDBOX key (data-minimized, read-only) — the safe external-partner on-ramp.
-  const sandboxKey = await callBody("POST", "/v1/partner-keys", opsToken, { name: "AMN-sandbox", scopes: ["opportunities:read", "passport:read:employer"], sandbox: true }, {});
+  const sandboxKey = await callBody("POST", "/v1/partner-keys", opsToken, { name: "AMN-sandbox", org_id: EMP_ORG, scopes: ["opportunities:read", "passport:read:employer"], sandbox: true }, {});
   ok("partner-keys: sandbox key provisions with partner-safe read scopes", sandboxKey.status === 201 && sandboxKey.body.scopes.includes("passport:read:employer") && !sandboxKey.body.scopes.includes("passport:read:internal"));
   // Data-minimized partner read: the employer-audience view a partner is limited to NEVER carries visa/financing (re-proven end-to-end).
   ok("partner read is data-minimized (employer view omits visa/financing)", !/visa|financ/i.test(JSON.stringify(emp.body)));

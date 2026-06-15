@@ -24,6 +24,11 @@ const VIEW_TO_AUDIENCE: Record<string, Audience> = {
   instructor: "instructor",
 };
 
+// The ONLY passport audiences an external (org-bound) partner may request. Each is
+// consent-gated + org-matched in policy.ts; partners can NEVER request internal_ops/
+// self/investor/instructor. Lender follows this same path (it was the original template).
+const PARTNER_AUDIENCES = new Set<string>(["employer", "university", "lender"]);
+
 export function nursesModule(store: Store, audit: Audit): GwRoute[] {
   return [
     compileGw({
@@ -37,10 +42,19 @@ export function nursesModule(store: Store, audit: Audit): GwRoute[] {
         let role: Role = isRole(String(claims.role ?? "")) ? (claims.role as Role) : "candidate";
         const viewParam = ctx.query.get("view") ?? ctx.query.get("audience") ?? undefined;
         const requestedAudience = viewParam ? VIEW_TO_AUDIENCE[viewParam] ?? viewParam : undefined;
-        // An org-bound M2M partner (a bank) presenting the lender view acts AS a lender:
-        // pin to the lender audience so relationship=org_matched + the consent gate applies.
-        // It still needs the passport:read:lender scope + a live underwriting consent.
-        if (role === "service" && requestedAudience === "lender" && claims.org_id) role = "lender";
+        // An ORG-BOUND M2M partner (bank / AMN / Kaiser / university) is a restricted,
+        // consent-gated consumer — NOT a trusted internal proxy (our own app/service tokens
+        // are never org-bound). It may read ONLY its org-scoped partner audiences; pinning
+        // role → that partner role routes it through policy's org_matched + consent gate (it
+        // still needs the matching passport:read:<audience> scope + a live consent). Any other
+        // view (internal_ops/self/investor/instructor) is refused HERE — defense-in-depth
+        // beyond the scope gate, which already withholds the broad passport:read scope.
+        if (role === "service" && claims.org_id) {
+          if (!requestedAudience || !PARTNER_AUDIENCES.has(requestedAudience)) {
+            return { status: 403, body: { error: "audience_not_allowed", detail: "partner tokens may read only employer/university/lender views" } };
+          }
+          role = requestedAudience as Role;
+        }
         return readPassportView(store, audit, {
           selector: { nurseId: ctx.params.id },
           role,

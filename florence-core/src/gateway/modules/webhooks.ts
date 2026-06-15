@@ -27,6 +27,13 @@ export function webhooksModule(store: Store, audit: Audit): GwRoute[] {
         // are delivered only for nurses with a live consent for that (purpose, org).
         const orgId = typeof b.org_id === "string" && b.org_id.trim() ? b.org_id.trim() : undefined;
         const consentPurpose = typeof b.consent_purpose === "string" && b.consent_purpose.trim() ? b.consent_purpose.trim() : undefined;
+        // Tenant boundary: an org-bound partner caller may only subscribe to ITS OWN org's
+        // (consent-scoped) stream — never another tenant's. (Partners don't hold
+        // webhooks:manage today; enforce regardless, defense-in-depth.)
+        const callerOrg = typeof ctx.claims?.org_id === "string" ? ctx.claims.org_id : undefined;
+        if (ctx.claims?.role === "service" && callerOrg && orgId && orgId !== callerOrg) {
+          return { status: 403, body: { error: "webhook org_id must match the caller's org" } };
+        }
         const sub = { id: id("whk"), url, secret, event_types: eventTypes.length ? eventTypes : ["*"], ...(orgId ? { org_id: orgId } : {}), ...(consentPurpose ? { consent_purpose: consentPurpose } : {}), active: true, created_at: nowIso() };
         await store.insertWebhookSub(sub);
         await audit(String(ctx.claims?.email ?? ctx.claims?.sub ?? "service"), "webhook.subscribe", "webhook", sub.id, { url, event_types: sub.event_types });

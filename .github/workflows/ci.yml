@@ -27,6 +27,7 @@ jobs:
           npm run verify-control-tower
           npm run verify-gateway
           npm run verify-lender
+          npm run verify-tenant-binding
 
   ats:
     runs-on: ubuntu-latest
