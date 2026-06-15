@@ -1,0 +1,30 @@
+{
+  "name": "@florence/academy-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Florence Academy data API — enrollment, performance, and financial records for CRM sync and (later) underwriting. Reference service: Node + TypeScript, zero runtime dependencies (Node built-ins only).",
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch src/index.ts",
+    "migrate": "node db/migrate.mjs",
+    "audio:extract": "node scripts/extract-content.ts",
+    "audio:budget": "node scripts/audio-budget.ts",
+    "audio:generate": "node scripts/generate-audio.ts",
+    "audio:dict": "node scripts/setup-pronunciation.ts",
+    "audio:tutor": "node scripts/setup-tutor.ts",
+    "walkthroughs:generate": "node scripts/generate-walkthroughs.ts",
+    "walkthroughs:verify": "node scripts/verify-walkthroughs.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node test/smoke.ts && node test/integration.ts && node test/hubspot.ts && node test/tls.ts && node test/walkthroughs.ts"
+  },
+  "dependencies": {
+    "agora-token": "^2.0.5"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

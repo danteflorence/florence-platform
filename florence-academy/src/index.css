@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* offset anchored scroll for the sticky sub-nav */
+    scroll-padding-top: 96px;
+  }
+
+  body {
+    @apply bg-florence-mist text-florence-ink font-sans antialiased;
+    margin: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif text-florence-ink;
+    letter-spacing: -0.01em;
+  }
+
+  /* Respect reduced-motion for all our animations / smooth scroll */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid #2a2a8c;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .fl-card {
+    @apply rounded-2xl border border-florence-line bg-white shadow-card;
+  }
+
+  .fl-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-florence-teal-dark;
+  }
+
+  .fl-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-florence-line bg-white px-3 py-1 text-xs font-medium text-florence-slate;
+  }
+
+  .fl-input {
+    @apply w-full rounded-xl border border-florence-line bg-white px-3.5 py-2.5 text-sm text-florence-ink shadow-sm transition-colors placeholder:text-florence-slate/50 focus:border-florence-teal focus:outline-none focus:ring-2 focus:ring-florence-teal/30;
+  }
+
+  /* Dark input for the internal Ops console */
+  .ops-input {
+    @apply w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-florence-teal focus:outline-none focus:ring-2 focus:ring-florence-teal/30;
+  }
+
+  .fl-prose p {
+    @apply mb-3 leading-relaxed text-florence-ink/90;
+  }
+  .fl-prose strong {
+    @apply font-semibold text-florence-ink;
+  }
+
+  /* "Skip to content" — visible only on keyboard focus */
+  .fl-skip {
+    @apply absolute left-4 -top-12 z-50 rounded-md bg-florence-indigo px-4 py-2 text-sm font-semibold text-white transition-all focus:top-4;
+  }
+}

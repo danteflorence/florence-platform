@@ -1,0 +1,4 @@
+# Drop a heart model here as `heart.glb` to enable the 3D viewer.
+# See MORNING_REPORT.md → "Heart 3D model" for sourcing/licensing notes.
+# Until a file named heart.glb exists here, HeartViewer shows the labelled
+# SVG schematic fallback automatically (no code changes needed).

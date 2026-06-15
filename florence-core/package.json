@@ -1,0 +1,36 @@
+{
+  "name": "@florence/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "FlorenceRN Core — the central identity / SSO service. Issues one RS256 token (verified everywhere via JWKS) carrying a unified role + identity, so Academy, Pathway, ATS Connect, and Pricing become surfaces of one platform. Reference service: Node + TypeScript, zero runtime deps (pg optional for Postgres).",
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch src/index.ts",
+    "migrate": "node db/migrate.mjs",
+    "seed-admin": "node scripts/seed-admin.ts",
+    "seed-app-clients": "node scripts/seed-app-clients.ts",
+    "verify-spine": "node scripts/verify-spine.ts",
+    "verify-audit": "node scripts/verify-audit.ts",
+    "verify-security": "node scripts/verify-security-spine.ts",
+    "verify-control-tower": "node scripts/verify-control-tower.ts",
+    "verify-retention": "node scripts/verify-retention.ts",
+    "verify-onboarding-risk": "node scripts/verify-onboarding-risk.ts",
+    "verify-university-investor": "node scripts/verify-university-investor.ts",
+    "verify-gateway": "node scripts/verify-gateway.ts",
+    "verify-lender": "node scripts/verify-lender.ts",
+    "rotate-key": "node scripts/rotate-key.ts",
+    "checkpoint": "node scripts/mint-test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.20",
+    "typescript": "^5.6.2"
+  }
+}

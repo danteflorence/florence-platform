@@ -1,0 +1,67 @@
+# FlorenceRN deploy — build container images, push to Artifact Registry, deploy to
+# Cloud Run. staging is automatic on main; production is gated on a manual approval
+# (GitHub Environment protection). The API is never hand-copied to a server.
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # Workload Identity Federation → GCP (no long-lived keys)
+
+jobs:
+  build-and-deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build + push images (one per service)
+        run: |
+          REG="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_STAGING }}/florencern"
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+          for svc in core:florence-core ats:florence-ats-connect pathway:florence-pathway-agent academy-api:florence-academy/api; do
+            name="${svc%%:*}"; dir="${svc##*:}"
+            docker build -t "$REG/$name:${{ github.sha }}" "$dir"
+            docker push "$REG/$name:${{ github.sha }}"
+          done
+      - name: Terraform apply (staging) with the new image tags
+        working-directory: infra
+        run: |
+          terraform init
+          terraform apply -auto-approve -var-file=envs/staging.tfvars \
+            -var="image_tag=${{ github.sha }}"
+
+  deploy-production:
+    needs: build-and-deploy-staging
+    runs-on: ubuntu-latest
+    environment: production   # requires a manual reviewer approval (configured in GitHub)
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Promote the same images to production
+        run: |
+          SRC="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_STAGING }}/florencern"
+          DST="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_PROD }}/florencern"
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+          for name in core ats pathway academy-api; do
+            gcloud artifacts docker tags add "$SRC/$name:${{ github.sha }}" "$DST/$name:${{ github.sha }}" || true
+          done
+      - name: Terraform apply (production)
+        working-directory: infra
+        run: |
+          terraform init
+          terraform apply -auto-approve -var-file=envs/production.tfvars \
+            -var="image_tag=${{ github.sha }}"

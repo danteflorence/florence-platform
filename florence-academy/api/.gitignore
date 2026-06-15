@@ -1,0 +1,9 @@
+# API package — local-only artifacts
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+# Local NDJSON audit sink (never commit — may contain PII references)
+audit-*.ndjson

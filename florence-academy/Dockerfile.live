@@ -1,0 +1,10 @@
+# Florence Academy — live cohort server (Socket.IO). Stateless, in-memory; its
+# own Render service so WebSockets + scaling are independent of the SPA and API.
+FROM node:24-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY server ./server
+ENV NODE_ENV=production LIVE_PORT=5179
+EXPOSE 5179
+CMD ["node", "server/liveServer.mjs"]

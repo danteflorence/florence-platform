@@ -1,0 +1,228 @@
+# ════════════════════════════════════════════════════════════════════════════
+# FlorenceRN platform — single-VPS test stack.
+#
+#   cp .env.testserver.example .env   # then edit BASE_DOMAIN, ACME_EMAIL, secrets
+#   docker compose up -d --build
+#
+# Caddy terminates TLS (Let's Encrypt) and reverse-proxies each subdomain to a
+# container. All apps live under *.${BASE_DOMAIN}, so the fl_session cookie
+# (Domain=.${BASE_DOMAIN}) is shared → one login works everywhere.
+#
+# Point DNS (A/AAAA, or a wildcard *.${BASE_DOMAIN}) at the server, open 80+443,
+# then browse https://id.${BASE_DOMAIN}.
+# ════════════════════════════════════════════════════════════════════════════
+
+x-core-env: &core-issuer "https://id.${BASE_DOMAIN}"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [core, academy-web, academy-api, academy-live, pathway, ats, economist, pricing-api]
+
+  # ── databases (Core and Academy keep separate DBs) ───────────────────────
+  core-pg:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: florence
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: florence_core
+    volumes: [core-pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U florence -d florence_core"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  academy-pg:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: florence
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: florence_academy
+    volumes: [academy-pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U florence -d florence_academy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # ── FlorenceRN Core — the identity service ───────────────────────────────
+  core:
+    build: { context: ./florence-core, dockerfile: Dockerfile }
+    restart: unless-stopped
+    command: sh -c "node db/migrate.mjs && node src/index.ts"
+    environment:
+      PORT: "8080"
+      PUBLIC_CORE_URL: *core-issuer
+      TOKEN_ISS: florence-auth
+      TOKEN_AUD: florence
+      COOKIE_DOMAIN: ".${BASE_DOMAIN}"
+      COOKIE_SECURE: "1"
+      FLORENCE_ALLOWED_DOMAIN: ${STAFF_DOMAIN:-florenceeducation.com}
+      FLORENCE_REDIRECT_HOSTS: ".${BASE_DOMAIN}"
+      HUMAN_SESSION_TTL_SEC: "3600"
+      REFRESH_TTL_SEC: "2592000"
+      DATABASE_URL: postgres://florence:${PG_PASSWORD}@core-pg:5432/florence_core
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: "https://id.${BASE_DOMAIN}/auth/google/callback"
+      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE}
+      DEMO_CLIENT_ID: florence-core-demo
+      DEMO_CLIENT_SECRET: ${DEMO_CLIENT_SECRET}
+    depends_on:
+      core-pg: { condition: service_healthy }
+
+  # ── Academy — SPA (static) + API + live (Socket.IO) ──────────────────────
+  academy-web:
+    build:
+      context: ./florence-academy
+      dockerfile: Dockerfile.web
+      args:
+        VITE_CORE_URL: "https://id.${BASE_DOMAIN}"
+        VITE_API_URL: "https://api.academy.${BASE_DOMAIN}"
+        VITE_LIVE_URL: "https://live.academy.${BASE_DOMAIN}"
+    restart: unless-stopped
+
+  academy-api:
+    build: { context: ./florence-academy/api, dockerfile: Dockerfile }
+    restart: unless-stopped
+    command: sh -c "node db/migrate.mjs && node src/index.ts"
+    environment:
+      PORT: "8088"
+      CORE_ISSUER_URL: *core-issuer
+      TOKEN_ISS: florence-auth
+      TOKEN_AUD: florence
+      API_JWT_ISSUER: florence-auth
+      API_JWT_AUDIENCE: florence
+      CORS_ALLOWED_ORIGINS: "https://academy.${BASE_DOMAIN},https://id.${BASE_DOMAIN}"
+      PUBLIC_APP_URL: "https://academy.${BASE_DOMAIN}"
+      DATABASE_URL: postgres://florence:${PG_PASSWORD}@academy-pg:5432/florence_academy
+      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE}
+      WEBHOOK_SECRET: ${FIELD_ENC_PASSPHRASE}
+      # Live classroom A/V (Agora). Blank → live page runs slides-only (no video).
+      AGORA_APP_ID: ${AGORA_APP_ID:-}
+      AGORA_APP_CERTIFICATE: ${AGORA_APP_CERTIFICATE:-}
+      # Cloud recording → your storage bucket (optional; blank → Record button hidden).
+      AGORA_CUSTOMER_ID: ${AGORA_CUSTOMER_ID:-}
+      AGORA_CUSTOMER_SECRET: ${AGORA_CUSTOMER_SECRET:-}
+      AGORA_REC_VENDOR: ${AGORA_REC_VENDOR:-1}
+      AGORA_REC_REGION: ${AGORA_REC_REGION:-0}
+      AGORA_REC_BUCKET: ${AGORA_REC_BUCKET:-}
+      AGORA_REC_ACCESS_KEY: ${AGORA_REC_ACCESS_KEY:-}
+      AGORA_REC_SECRET_KEY: ${AGORA_REC_SECRET_KEY:-}
+      AGORA_REC_PREFIX: ${AGORA_REC_PREFIX:-florence-academy}
+      AGORA_REC_PUBLIC_BASE: ${AGORA_REC_PUBLIC_BASE:-}  # CDN in front of the bucket → replay playback
+      # Pre-recorded narration + voice tutor (ElevenLabs). Blank → audio players
+      # hidden + tutor FAB hidden; the app works exactly as before.
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
+      ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID:-eleven_multilingual_v2}
+      ELEVENLABS_DICTIONARY_ID: ${ELEVENLABS_DICTIONARY_ID:-}          # from `npm run audio:dict`
+      ELEVENLABS_DICTIONARY_VERSION_ID: ${ELEVENLABS_DICTIONARY_VERSION_ID:-}
+      ELEVENLABS_AGENT_ID: ${ELEVENLABS_AGENT_ID:-}                    # from `npm run audio:tutor` → voice tutor
+      AUDIO_DIR: /app/data/audio
+      AUDIO_PUBLIC_BASE: ${AUDIO_PUBLIC_BASE:-}                        # CDN in front of the audio bucket (optional)
+      # Nurse Passport spine: emit readiness events to Core. Blank → no-op.
+      # Provision with `docker compose exec core npm run seed-app-clients`.
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ACADEMY_CLIENT_ID:-florence-academy}
+      FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_ACADEMY_CLIENT_SECRET:-}
+    volumes:
+      - academy-audio:/app/data/audio  # generated narration MP3s + manifest (generate once, serve forever)
+    depends_on:
+      academy-pg: { condition: service_healthy }
+
+  academy-live:
+    build: { context: ./florence-academy, dockerfile: Dockerfile.live }
+    restart: unless-stopped
+    environment:
+      PORT: "5179"
+      LIVE_PORT: "5179"
+
+  # ── Pathway — SPA + Express + node:sqlite (persistent volume) ────────────
+  pathway:
+    build:
+      context: ./florence-pathway-agent
+      dockerfile: Dockerfile
+      args: { VITE_CORE_URL: "https://id.${BASE_DOMAIN}" }
+    restart: unless-stopped
+    environment:
+      PORT: "8787"
+      CORE_ISSUER_URL: *core-issuer
+      TOKEN_ISS: florence-auth
+      TOKEN_AUD: florence
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Nurse Passport spine: emit licensure/visa/NCLEX/doc events to Core. Blank → no-op.
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_PATHWAY_CLIENT_ID:-florence-pathway}
+      FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_PATHWAY_CLIENT_SECRET:-}
+    volumes: [pathway-data:/app/data]
+
+  # ── ATS Connect — SPA + Express + node:sqlite (persistent volume) ────────
+  ats:
+    build:
+      context: ./florence-ats-connect
+      dockerfile: Dockerfile
+      args: { VITE_CORE_URL: "https://id.${BASE_DOMAIN}" }
+    restart: unless-stopped
+    environment:
+      PORT: "8788"
+      ATS_DB: "postgres"            # embedded PGlite at /app/data/ats-connect-pg (on the volume)
+      CORE_ISSUER_URL: *core-issuer
+      TOKEN_ISS: florence-auth
+      TOKEN_AUD: florence
+      ATS_CONNECT_BASE_URL: "https://ats.${BASE_DOMAIN}"
+      ATS_CONNECT_VAULT_KEY: ${ATS_CONNECT_VAULT_KEY}
+      STATUS_SYNC_INTERVAL_MS: "600000" # poll employer ATSs for status changes every 10 min (0 = off)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Nurse Passport spine: emit funnel events (matched→started→retained) to Core. Blank → no-op.
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ATS_CLIENT_ID:-florence-ats}
+      FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_ATS_CLIENT_SECRET:-}
+      # Demand Radar economics → Workforce Economist pricing-api (in-cluster).
+      PRICING_API_URL: ${PRICING_API_URL:-http://pricing-api:8000}
+      # Public base for Demand Radar tracked links (go.<domain> or a /l path).
+      LINK_BASE_URL: ${LINK_BASE_URL:-https://ats.${BASE_DOMAIN}}
+    volumes: [ats-data:/app/data]
+
+  # ── Pricing — Streamlit Workforce Economist (persistent volume) ──────────
+  economist:
+    build: { context: ./labor-economics-agent, dockerfile: Dockerfile }
+    restart: unless-stopped
+    environment:
+      PORT: "8501"
+      CORE_ISSUER_URL: *core-issuer
+      TOKEN_ISS: florence-auth
+      TOKEN_AUD: florence
+      COOKIE_NAME: fl_session
+      FLORENCE_INTERNAL_AUTH: "1"
+      PUBLIC_PRICING_URL: "https://pricing.${BASE_DOMAIN}"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BLS_REGISTRATION_KEY: ${BLS_REGISTRATION_KEY:-}
+    volumes: [economist-data:/app/data]
+
+  # ── Pricing API — stateless FastAPI quote engine ─────────────────────────
+  pricing-api:
+    build: { context: ./labor-economics-agent, dockerfile: Dockerfile.api }
+    restart: unless-stopped
+    environment:
+      PORT: "8000"
+      PRICING_API_CORS_ORIGINS: "https://pricing.${BASE_DOMAIN}"
+
+volumes:
+  caddy-data:
+  caddy-config:
+  core-pg-data:
+  academy-pg-data:
+  academy-audio:
+  pathway-data:
+  ats-data:
+  economist-data:

@@ -1,0 +1,45 @@
+# ── deps + build artifacts ───────────────────────────────────────────────────
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+coverage/
+
+# ── local data + sqlite (never commit databases) ─────────────────────────────
+**/data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# ── secrets / local env — commit ONLY *.example templates ────────────────────
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.production
+**/.env.staging
+**/.env.sandbox
+*.pem
+*.key
+*.p8
+*-key.json
+service-account*.json
+**/secrets/
+
+# ── excluded trees ───────────────────────────────────────────────────────────
+# Local Node 24 toolchain (194M, machine-local), the orphaned extracted/ platforms
+# (contain their own .env), and the Workforce Economist (its OWN GitHub repo).
+.toolchain/
+extracted/
+labor-economics-agent/
+
+# ── os / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+*.log
+.idea/
+.vscode/
+*.tsbuildinfo
+
+# internal session/workflow stash
+.florence_workflow_stash

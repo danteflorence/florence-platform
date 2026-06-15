@@ -1,0 +1,3902 @@
+[
+ {
+  "id": "case-001",
+  "title": "Acute Coronary Syndrome After Yard Work",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n58-year-old client with hypertension and type 2 diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports crushing substernal chest pressure that began while raking leaves and is not relieved by rest."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• chest pressure radiating to left jaw\n• diaphoresis with nausea\n• ST depression in leads II, III, aVF\n• pain rated 2/10 after nitroglycerin\n• oriented and able to describe symptoms"
+   }
+  ],
+  "questionIds": [
+   "case-001-q1",
+   "case-001-q2",
+   "case-001-q3",
+   "case-001-q4",
+   "case-001-q5",
+   "case-001-q6"
+  ]
+ },
+ {
+  "id": "case-002",
+  "title": "Pulmonary Edema in Heart Failure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical telemetry unit\n72-year-old client with heart failure and chronic kidney disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Admitted for shortness of breath after missing two doses of furosemide."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• SpO2 86% on room air\n• pink frothy sputum with crackles\n• new S3 heart sound and orthopnea\n• trace ankle edema unchanged from baseline\n• temperature 98.6 F"
+   }
+  ],
+  "questionIds": [
+   "case-002-q1",
+   "case-002-q2",
+   "case-002-q3",
+   "case-002-q4",
+   "case-002-q5",
+   "case-002-q6"
+  ]
+ },
+ {
+  "id": "case-003",
+  "title": "Atrial Fibrillation With Rapid Ventricular Response",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Telemetry unit\n81-year-old client with history of hypertension."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports palpitations and lightheadedness beginning 2 hours ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• irregularly irregular rhythm at 148/min\n• blood pressure 88/54 mm Hg\n• new dizziness and cool clammy skin\n• oxygen saturation 96% on 2 L nasal cannula\n• urine output 35 mL/hr"
+   }
+  ],
+  "questionIds": [
+   "case-003-q1",
+   "case-003-q2",
+   "case-003-q3",
+   "case-003-q4",
+   "case-003-q5",
+   "case-003-q6"
+  ]
+ },
+ {
+  "id": "case-004",
+  "title": "Digoxin Toxicity in Heart Failure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Clinic/triage\n76-year-old client taking digoxin and furosemide."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Calls the clinic reporting nausea, poor appetite, and seeing yellow halos."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• apical pulse 48/min\n• potassium 3.1 mEq/L\n• yellow-green visual halos\n• mild ankle edema at baseline\n• blood pressure 128/72 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-004-q1",
+   "case-004-q2",
+   "case-004-q3",
+   "case-004-q4",
+   "case-004-q5",
+   "case-004-q6"
+  ]
+ },
+ {
+  "id": "case-005",
+  "title": "Hypertensive Crisis With Neurologic Symptoms",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n64-year-old client with uncontrolled hypertension."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives with severe headache, blurred vision, and chest tightness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 226/124 mm Hg\n• new confusion\n• creatinine elevated from baseline\n• reports taking multivitamin\n• temperature 98.8 F"
+   }
+  ],
+  "questionIds": [
+   "case-005-q1",
+   "case-005-q2",
+   "case-005-q3",
+   "case-005-q4",
+   "case-005-q5",
+   "case-005-q6"
+  ]
+ },
+ {
+  "id": "case-006",
+  "title": "Urosepsis With Hypotension",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n79-year-old client from home with indwelling urinary catheter."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family reports fever, weakness, and new confusion over 24 hours."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• temperature 102.7 F\n• blood pressure 82/48 mm Hg\n• lactate 4.2 mmol/L\n• reports chronic knee pain\n• hearing aids at bedside"
+   }
+  ],
+  "questionIds": [
+   "case-006-q1",
+   "case-006-q2",
+   "case-006-q3",
+   "case-006-q4",
+   "case-006-q5",
+   "case-006-q6"
+  ]
+ },
+ {
+  "id": "case-007",
+  "title": "Pneumonia With Worsening Hypoxia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n67-year-old client admitted with community-acquired pneumonia."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Now reports increased shortness of breath and chills."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• SpO2 88% on 4 L nasal cannula\n• respiratory rate 32/min with accessory muscle use\n• coarse crackles over right lower lobe\n• productive cough with prescribed sputum specimen pending\n• appetite reduced"
+   }
+  ],
+  "questionIds": [
+   "case-007-q1",
+   "case-007-q2",
+   "case-007-q3",
+   "case-007-q4",
+   "case-007-q5",
+   "case-007-q6"
+  ]
+ },
+ {
+  "id": "case-008",
+  "title": "COPD Exacerbation With CO2 Retention",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n69-year-old client with severe COPD."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives with worsening dyspnea after several days of increased sputum."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• drowsiness and headache\n• PaCO2 68 mm Hg\n• pH 7.29 with wheezes\n• barrel chest present for years\n• uses pursed-lip breathing"
+   }
+  ],
+  "questionIds": [
+   "case-008-q1",
+   "case-008-q2",
+   "case-008-q3",
+   "case-008-q4",
+   "case-008-q5",
+   "case-008-q6"
+  ]
+ },
+ {
+  "id": "case-009",
+  "title": "Acute Asthma Exacerbation",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Urgent care\n24-year-old client with asthma."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports chest tightness after exposure to a cat and has used albuterol six times today."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• speaks in one-word phrases\n• silent chest areas on auscultation\n• SpO2 89% on room air\n• heart rate 112/min after albuterol\n• mild anxiety"
+   }
+  ],
+  "questionIds": [
+   "case-009-q1",
+   "case-009-q2",
+   "case-009-q3",
+   "case-009-q4",
+   "case-009-q5",
+   "case-009-q6"
+  ]
+ },
+ {
+  "id": "case-010",
+  "title": "Pulmonary Embolism After Knee Surgery",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postoperative orthopedic unit\n54-year-old client 2 days after knee arthroplasty."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Suddenly reports sharp chest pain and shortness of breath when getting out of bed."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sudden pleuritic chest pain\n• SpO2 87% on room air\n• heart rate 126/min with unilateral calf swelling\n• incision dressing dry\n• reports expected knee soreness"
+   }
+  ],
+  "questionIds": [
+   "case-010-q1",
+   "case-010-q2",
+   "case-010-q3",
+   "case-010-q4",
+   "case-010-q5",
+   "case-010-q6"
+  ]
+ },
+ {
+  "id": "case-011",
+  "title": "Tension Pneumothorax After Central Line Attempt",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: ICU step-down\n48-year-old client after attempted subclavian central line insertion."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops sudden respiratory distress 10 minutes after the procedure."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• tracheal deviation away from affected side\n• absent breath sounds on left\n• hypotension with distended neck veins\n• dry dressing over insertion site\n• client is anxious"
+   }
+  ],
+  "questionIds": [
+   "case-011-q1",
+   "case-011-q2",
+   "case-011-q3",
+   "case-011-q4",
+   "case-011-q5",
+   "case-011-q6"
+  ]
+ },
+ {
+  "id": "case-012",
+  "title": "Postoperative Atelectasis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Surgical unit\n62-year-old client 18 hours after abdominal surgery."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has low-grade fever and reports shallow breathing because of incisional pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• diminished bases\n• SpO2 91% on room air\n• poor incentive spirometer effort due to pain\n• incision edges approximated\n• bowel sounds hypoactive"
+   }
+  ],
+  "questionIds": [
+   "case-012-q1",
+   "case-012-q2",
+   "case-012-q3",
+   "case-012-q4",
+   "case-012-q5",
+   "case-012-q6"
+  ]
+ },
+ {
+  "id": "case-013",
+  "title": "Upper Gastrointestinal Bleed",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n61-year-old client taking ibuprofen daily for arthritis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports vomiting coffee-ground material and feeling faint."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• coffee-ground emesis\n• blood pressure 86/50 mm Hg\n• hemoglobin 7.2 g/dL\n• last bowel movement yesterday\n• mild epigastric burning for months"
+   }
+  ],
+  "questionIds": [
+   "case-013-q1",
+   "case-013-q2",
+   "case-013-q3",
+   "case-013-q4",
+   "case-013-q5",
+   "case-013-q6"
+  ]
+ },
+ {
+  "id": "case-014",
+  "title": "Acute Pancreatitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n45-year-old client with history of alcohol use disorder."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports severe epigastric pain radiating to the back after a binge episode."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• severe epigastric pain radiating to back\n• lipase markedly elevated\n• rigid abdomen with vomiting\n• reports last meal was spicy\n• skin intact"
+   }
+  ],
+  "questionIds": [
+   "case-014-q1",
+   "case-014-q2",
+   "case-014-q3",
+   "case-014-q4",
+   "case-014-q5",
+   "case-014-q6"
+  ]
+ },
+ {
+  "id": "case-015",
+  "title": "Acute Cholecystitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n38-year-old client who is postpartum 6 weeks."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports right upper quadrant pain after eating fried food."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• right upper quadrant pain radiating to right shoulder\n• positive Murphy sign\n• fever with leukocytosis\n• normal bowel sounds\n• mild nausea"
+   }
+  ],
+  "questionIds": [
+   "case-015-q1",
+   "case-015-q2",
+   "case-015-q3",
+   "case-015-q4",
+   "case-015-q5",
+   "case-015-q6"
+  ]
+ },
+ {
+  "id": "case-016",
+  "title": "Appendicitis With Perforation Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n19-year-old client with abdominal pain."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Pain began near umbilicus and migrated to right lower quadrant."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• right lower quadrant rebound tenderness\n• fever 101.8 F\n• white blood cells 16,000/mm3\n• reports anorexia\n• last menstrual period 2 weeks ago"
+   }
+  ],
+  "questionIds": [
+   "case-016-q1",
+   "case-016-q2",
+   "case-016-q3",
+   "case-016-q4",
+   "case-016-q5",
+   "case-016-q6"
+  ]
+ },
+ {
+  "id": "case-017",
+  "title": "Small Bowel Obstruction",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n70-year-old client with prior abdominal surgeries."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports cramping abdominal pain, vomiting, and no flatus for 24 hours."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• high-pitched bowel sounds\n• abdominal distention\n• persistent vomiting with metabolic alkalosis\n• surgical scar healed\n• reports thirst"
+   }
+  ],
+  "questionIds": [
+   "case-017-q1",
+   "case-017-q2",
+   "case-017-q3",
+   "case-017-q4",
+   "case-017-q5",
+   "case-017-q6"
+  ]
+ },
+ {
+  "id": "case-018",
+  "title": "Perforated Peptic Ulcer",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n52-year-old client with untreated peptic ulcer disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops sudden severe abdominal pain and arrives pale and guarding."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sudden knife-like epigastric pain\n• rigid board-like abdomen\n• free air under diaphragm on x-ray\n• reports chronic heartburn\n• last antacid taken yesterday"
+   }
+  ],
+  "questionIds": [
+   "case-018-q1",
+   "case-018-q2",
+   "case-018-q3",
+   "case-018-q4",
+   "case-018-q5",
+   "case-018-q6"
+  ]
+ },
+ {
+  "id": "case-019",
+  "title": "Diabetic Ketoacidosis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n22-year-old client with type 1 diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports vomiting and missed insulin after viral illness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 486 mg/dL\n• Kussmaul respirations with fruity breath\n• pH 7.21 and positive serum ketones\n• dry mucous membranes\n• abdominal pain"
+   }
+  ],
+  "questionIds": [
+   "case-019-q1",
+   "case-019-q2",
+   "case-019-q3",
+   "case-019-q4",
+   "case-019-q5",
+   "case-019-q6"
+  ]
+ },
+ {
+  "id": "case-020",
+  "title": "Hyperosmolar Hyperglycemic State",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n78-year-old client with type 2 diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family reports progressive confusion and extreme thirst after pneumonia."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 835 mg/dL\n• serum osmolality elevated\n• profound dehydration without significant ketones\n• respiratory rate 18/min\n• reports dry mouth"
+   }
+  ],
+  "questionIds": [
+   "case-020-q1",
+   "case-020-q2",
+   "case-020-q3",
+   "case-020-q4",
+   "case-020-q5",
+   "case-020-q6"
+  ]
+ },
+ {
+  "id": "case-021",
+  "title": "Hypoglycemia in Insulin-Treated Client",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n65-year-old client with type 2 diabetes receiving insulin."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Becomes shaky and diaphoretic 2 hours after breakfast."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 48 mg/dL\n• diaphoresis and tremors\n• new confusion\n• skin intact\n• blood pressure 138/76 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-021-q1",
+   "case-021-q2",
+   "case-021-q3",
+   "case-021-q4",
+   "case-021-q5",
+   "case-021-q6"
+  ]
+ },
+ {
+  "id": "case-022",
+  "title": "SIADH With Severe Hyponatremia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n59-year-old client with small cell lung cancer."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops headache, nausea, and increasing confusion."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• serum sodium 118 mEq/L\n• low serum osmolality\n• concentrated urine with decreased urine output\n• blood glucose 102 mg/dL\n• skin warm and dry"
+   }
+  ],
+  "questionIds": [
+   "case-022-q1",
+   "case-022-q2",
+   "case-022-q3",
+   "case-022-q4",
+   "case-022-q5",
+   "case-022-q6"
+  ]
+ },
+ {
+  "id": "case-023",
+  "title": "Diabetes Insipidus After Head Injury",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Neuro ICU\n33-year-old client after traumatic brain injury."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has sudden high urine output and intense thirst."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• urine output 600 mL/hr\n• serum sodium 154 mEq/L\n• urine specific gravity 1.002\n• temperature 99.1 F\n• pupils unchanged"
+   }
+  ],
+  "questionIds": [
+   "case-023-q1",
+   "case-023-q2",
+   "case-023-q3",
+   "case-023-q4",
+   "case-023-q5",
+   "case-023-q6"
+  ]
+ },
+ {
+  "id": "case-024",
+  "title": "Hyponatremia With Seizure Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n70-year-old client taking thiazide diuretic."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports fatigue and nausea; spouse says the client is more confused."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• serum sodium 120 mEq/L\n• new confusion\n• muscle cramps and headache\n• blood glucose 96 mg/dL\n• oxygen saturation 97%"
+   }
+  ],
+  "questionIds": [
+   "case-024-q1",
+   "case-024-q2",
+   "case-024-q3",
+   "case-024-q4",
+   "case-024-q5",
+   "case-024-q6"
+  ]
+ },
+ {
+  "id": "case-025",
+  "title": "Hyperkalemia in Chronic Kidney Disease",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n63-year-old client with chronic kidney disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Missed dialysis and reports weakness and palpitations."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• potassium 6.8 mEq/L\n• peaked T waves on ECG\n• muscle weakness\n• blood pressure 150/82 mm Hg\n• mild ankle edema"
+   }
+  ],
+  "questionIds": [
+   "case-025-q1",
+   "case-025-q2",
+   "case-025-q3",
+   "case-025-q4",
+   "case-025-q5",
+   "case-025-q6"
+  ]
+ },
+ {
+  "id": "case-026",
+  "title": "Hypokalemia From Diuretics",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Telemetry unit\n74-year-old client receiving IV furosemide."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Complains of muscle weakness and constipation."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• potassium 2.8 mEq/L\n• flattened T waves with U waves\n• weakness\n• urine output increased after diuretic\n• appetite fair"
+   }
+  ],
+  "questionIds": [
+   "case-026-q1",
+   "case-026-q2",
+   "case-026-q3",
+   "case-026-q4",
+   "case-026-q5",
+   "case-026-q6"
+  ]
+ },
+ {
+  "id": "case-027",
+  "title": "Acute Kidney Injury From Nephrotoxic Medication",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n66-year-old client receiving IV vancomycin and contrast yesterday."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has decreased urine output and rising creatinine."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• urine output 18 mL/hr\n• creatinine doubled from baseline\n• vancomycin trough above therapeutic range\n• mild nausea\n• blood pressure 132/70 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-027-q1",
+   "case-027-q2",
+   "case-027-q3",
+   "case-027-q4",
+   "case-027-q5",
+   "case-027-q6"
+  ]
+ },
+ {
+  "id": "case-028",
+  "title": "Possible AV Fistula Infection",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Outpatient dialysis center\n57-year-old client with end-stage kidney disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives for hemodialysis and reports chills and tenderness at fistula site."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• temperature 101.6 F\n• red warmth over AV fistula\n• purulent drainage at access area\n• bruit and thrill present\n• reports mild fatigue after dialysis"
+   }
+  ],
+  "questionIds": [
+   "case-028-q1",
+   "case-028-q2",
+   "case-028-q3",
+   "case-028-q4",
+   "case-028-q5",
+   "case-028-q6"
+  ]
+ },
+ {
+  "id": "case-029",
+  "title": "Peritoneal Dialysis Peritonitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Home dialysis clinic\n60-year-old client performing peritoneal dialysis at home."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Calls reporting abdominal pain and cloudy dialysate outflow."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• cloudy peritoneal drainage\n• diffuse abdominal tenderness\n• fever 101.2 F\n• exit site dressing intact\n• drain time slightly longer than usual"
+   }
+  ],
+  "questionIds": [
+   "case-029-q1",
+   "case-029-q2",
+   "case-029-q3",
+   "case-029-q4",
+   "case-029-q5",
+   "case-029-q6"
+  ]
+ },
+ {
+  "id": "case-030",
+  "title": "Sickle Cell Vaso-Occlusive Crisis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n20-year-old client with sickle cell disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports severe bilateral leg and back pain after dehydration at a soccer tournament."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• pain 9/10 in long bones\n• SpO2 90% on room air\n• reticulocyte count elevated\n• temperature 99.0 F\n• reports thirst"
+   }
+  ],
+  "questionIds": [
+   "case-030-q1",
+   "case-030-q2",
+   "case-030-q3",
+   "case-030-q4",
+   "case-030-q5",
+   "case-030-q6"
+  ]
+ },
+ {
+  "id": "case-031",
+  "title": "Neutropenic Fever During Chemotherapy",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Oncology clinic\n47-year-old client receiving chemotherapy for breast cancer."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Calls to report chills and oral temperature 100.8 F."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• absolute neutrophil count 350/mm3\n• temperature 100.8 F\n• new sore throat\n• hair loss from chemotherapy\n• mild fatigue"
+   }
+  ],
+  "questionIds": [
+   "case-031-q1",
+   "case-031-q2",
+   "case-031-q3",
+   "case-031-q4",
+   "case-031-q5",
+   "case-031-q6"
+  ]
+ },
+ {
+  "id": "case-032",
+  "title": "Thrombocytopenia With Bleeding",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n55-year-old client with immune thrombocytopenia."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports gum bleeding after brushing teeth."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• platelet count 18,000/mm3\n• petechiae on lower legs\n• oozing from venipuncture site\n• hemoglobin 12.8 g/dL\n• appetite intact"
+   }
+  ],
+  "questionIds": [
+   "case-032-q1",
+   "case-032-q2",
+   "case-032-q3",
+   "case-032-q4",
+   "case-032-q5",
+   "case-032-q6"
+  ]
+ },
+ {
+  "id": "case-033",
+  "title": "Hemolytic Transfusion Reaction",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical-surgical unit\n43-year-old client receiving first unit of packed red blood cells."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Ten minutes after transfusion starts, client reports chills and low back pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• fever and chills during transfusion\n• low back pain\n• dark urine with hypotension\n• IV site patent\n• mild anxiety before transfusion"
+   }
+  ],
+  "questionIds": [
+   "case-033-q1",
+   "case-033-q2",
+   "case-033-q3",
+   "case-033-q4",
+   "case-033-q5",
+   "case-033-q6"
+  ]
+ },
+ {
+  "id": "case-034",
+  "title": "Deep Vein Thrombosis After Immobilization",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Rehabilitation unit\n68-year-old client recovering from stroke."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has new unilateral calf swelling and tenderness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• right calf 4 cm larger than left\n• warm tender calf\n• recent immobility\n• pedal pulse palpable\n• skin dry"
+   }
+  ],
+  "questionIds": [
+   "case-034-q1",
+   "case-034-q2",
+   "case-034-q3",
+   "case-034-q4",
+   "case-034-q5",
+   "case-034-q6"
+  ]
+ },
+ {
+  "id": "case-035",
+  "title": "Acute Arterial Occlusion",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n73-year-old client with atrial fibrillation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports sudden severe pain and numbness in left foot."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• pulseless left foot\n• pale cool limb\n• paresthesia with severe pain\n• right foot warm\n• temperature 98.2 F"
+   }
+  ],
+  "questionIds": [
+   "case-035-q1",
+   "case-035-q2",
+   "case-035-q3",
+   "case-035-q4",
+   "case-035-q5",
+   "case-035-q6"
+  ]
+ },
+ {
+  "id": "case-036",
+  "title": "Compartment Syndrome After Fracture",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n29-year-old client with tibia fracture in a splint."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports increasing pain despite prescribed analgesic."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• pain out of proportion\n• pain with passive stretch\n• tense swollen compartment with paresthesia\n• capillary refill 2 seconds initially\n• cast edges padded"
+   }
+  ],
+  "questionIds": [
+   "case-036-q1",
+   "case-036-q2",
+   "case-036-q3",
+   "case-036-q4",
+   "case-036-q5",
+   "case-036-q6"
+  ]
+ },
+ {
+  "id": "case-037",
+  "title": "Neurogenic Shock After Spinal Cord Injury",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n35-year-old client after diving accident."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has suspected cervical spinal cord injury."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• hypotension with bradycardia\n• warm dry skin below injury\n• loss of motor/sensation below shoulders\n• facial abrasions\n• anxious but oriented"
+   }
+  ],
+  "questionIds": [
+   "case-037-q1",
+   "case-037-q2",
+   "case-037-q3",
+   "case-037-q4",
+   "case-037-q5",
+   "case-037-q6"
+  ]
+ },
+ {
+  "id": "case-038",
+  "title": "Autonomic Dysreflexia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Rehabilitation unit\n42-year-old client with T4 spinal cord injury."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports pounding headache and flushed face during bladder training."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 210/108 mm Hg\n• pounding headache\n• distended bladder\n• legs are cool below injury baseline\n• urine in catheter tubing absent"
+   }
+  ],
+  "questionIds": [
+   "case-038-q1",
+   "case-038-q2",
+   "case-038-q3",
+   "case-038-q4",
+   "case-038-q5",
+   "case-038-q6"
+  ]
+ },
+ {
+  "id": "case-039",
+  "title": "Increased Intracranial Pressure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Neuro unit\n46-year-old client after traumatic brain injury."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Was alert earlier but now is difficult to arouse."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• declining level of consciousness\n• new unequal pupils\n• systolic hypertension with bradycardia\n• scalp dressing dry\n• urine output 40 mL/hr"
+   }
+  ],
+  "questionIds": [
+   "case-039-q1",
+   "case-039-q2",
+   "case-039-q3",
+   "case-039-q4",
+   "case-039-q5",
+   "case-039-q6"
+  ]
+ },
+ {
+  "id": "case-040",
+  "title": "Acute Ischemic Stroke",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n70-year-old client with sudden right-sided weakness."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Last known well 45 minutes ago while eating breakfast."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• facial droop and right arm drift\n• slurred speech\n• symptom onset within thrombolytic window\n• blood glucose 104 mg/dL\n• blood pressure 178/92 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-040-q1",
+   "case-040-q2",
+   "case-040-q3",
+   "case-040-q4",
+   "case-040-q5",
+   "case-040-q6"
+  ]
+ },
+ {
+  "id": "case-041",
+  "title": "Hemorrhagic Stroke",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n60-year-old client taking warfarin."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops sudden severe headache, vomiting, and left-sided weakness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• worst headache of life\n• vomiting with decreased LOC\n• INR 5.8\n• blood glucose 118 mg/dL\n• afebrile"
+   }
+  ],
+  "questionIds": [
+   "case-041-q1",
+   "case-041-q2",
+   "case-041-q3",
+   "case-041-q4",
+   "case-041-q5",
+   "case-041-q6"
+  ]
+ },
+ {
+  "id": "case-042",
+  "title": "Status Epilepticus",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n31-year-old client with known seizure disorder."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has continuous tonic-clonic activity lasting longer than 5 minutes."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• seizure lasting over 5 minutes\n• cyanosis around lips\n• no return to baseline between seizures\n• old tongue scar\n• family brought medication list"
+   }
+  ],
+  "questionIds": [
+   "case-042-q1",
+   "case-042-q2",
+   "case-042-q3",
+   "case-042-q4",
+   "case-042-q5",
+   "case-042-q6"
+  ]
+ },
+ {
+  "id": "case-043",
+  "title": "Bacterial Meningitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n23-year-old college student."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports fever, severe headache, stiff neck, and photophobia."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• nuchal rigidity\n• fever 103.0 F\n• petechial rash\n• roommate has sore throat\n• oriented to name only"
+   }
+  ],
+  "questionIds": [
+   "case-043-q1",
+   "case-043-q2",
+   "case-043-q3",
+   "case-043-q4",
+   "case-043-q5",
+   "case-043-q6"
+  ]
+ },
+ {
+  "id": "case-044",
+  "title": "Myasthenic Crisis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: ICU\n50-year-old client with myasthenia gravis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports increasing weakness after respiratory infection."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• weak cough\n• difficulty swallowing secretions\n• vital capacity decreased\n• ptosis worse late in day\n• reports fatigue"
+   }
+  ],
+  "questionIds": [
+   "case-044-q1",
+   "case-044-q2",
+   "case-044-q3",
+   "case-044-q4",
+   "case-044-q5",
+   "case-044-q6"
+  ]
+ },
+ {
+  "id": "case-045",
+  "title": "Guillain-Barre Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n41-year-old client recovering from viral illness."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports ascending weakness and tingling in feet."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• ascending bilateral weakness\n• decreased deep tendon reflexes\n• forced vital capacity trending down\n• low back discomfort\n• afebrile"
+   }
+  ],
+  "questionIds": [
+   "case-045-q1",
+   "case-045-q2",
+   "case-045-q3",
+   "case-045-q4",
+   "case-045-q5",
+   "case-045-q6"
+  ]
+ },
+ {
+  "id": "case-046",
+  "title": "Thyroid Storm",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n36-year-old client with untreated Graves disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives with fever, agitation, and palpitations after infection."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• temperature 104.2 F\n• heart rate 158/min\n• severe agitation with diarrhea\n• exophthalmos\n• warm moist skin"
+   }
+  ],
+  "questionIds": [
+   "case-046-q1",
+   "case-046-q2",
+   "case-046-q3",
+   "case-046-q4",
+   "case-046-q5",
+   "case-046-q6"
+  ]
+ },
+ {
+  "id": "case-047",
+  "title": "Myxedema Coma",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n82-year-old client with history of hypothyroidism."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Found lethargic at home during cold weather."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• hypothermia\n• bradycardia with hypotension\n• hypoventilation and decreased LOC\n• dry coarse skin\n• constipation history"
+   }
+  ],
+  "questionIds": [
+   "case-047-q1",
+   "case-047-q2",
+   "case-047-q3",
+   "case-047-q4",
+   "case-047-q5",
+   "case-047-q6"
+  ]
+ },
+ {
+  "id": "case-048",
+  "title": "Adrenal Crisis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n40-year-old client with Addison disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has vomiting and weakness after stopping prednisone abruptly."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 78/44 mm Hg\n• hyperkalemia with hyponatremia\n• severe weakness and abdominal pain\n• hyperpigmented skin\n• reports nausea"
+   }
+  ],
+  "questionIds": [
+   "case-048-q1",
+   "case-048-q2",
+   "case-048-q3",
+   "case-048-q4",
+   "case-048-q5",
+   "case-048-q6"
+  ]
+ },
+ {
+  "id": "case-049",
+  "title": "Post-Adrenalectomy Cortisol Deficiency",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postoperative unit\n55-year-old client after unilateral adrenalectomy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Four hours postop, client becomes dizzy and hypotensive."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 82/46 mm Hg\n• serum glucose 56 mg/dL\n• severe weakness\n• incision dressing dry\n• reports incisional pain 3/10"
+   }
+  ],
+  "questionIds": [
+   "case-049-q1",
+   "case-049-q2",
+   "case-049-q3",
+   "case-049-q4",
+   "case-049-q5",
+   "case-049-q6"
+  ]
+ },
+ {
+  "id": "case-050",
+  "title": "Pyelonephritis With Sepsis Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n28-year-old client with flank pain."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports fever, chills, dysuria, and nausea."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• costovertebral angle tenderness\n• temperature 102.9 F\n• tachycardia with leukocytosis\n• urine cloudy\n• reports poor fluid intake"
+   }
+  ],
+  "questionIds": [
+   "case-050-q1",
+   "case-050-q2",
+   "case-050-q3",
+   "case-050-q4",
+   "case-050-q5",
+   "case-050-q6"
+  ]
+ },
+ {
+  "id": "case-051",
+  "title": "Urinary Retention After TURP",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postoperative unit\n73-year-old client after transurethral resection of prostate."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has continuous bladder irrigation infusing."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• suprapubic distention\n• decreased catheter output despite irrigation inflow\n• severe bladder spasms\n• light pink drainage earlier\n• vital signs stable"
+   }
+  ],
+  "questionIds": [
+   "case-051-q1",
+   "case-051-q2",
+   "case-051-q3",
+   "case-051-q4",
+   "case-051-q5",
+   "case-051-q6"
+  ]
+ },
+ {
+  "id": "case-052",
+  "title": "Wound Evisceration",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Surgical unit\n60-year-old client 3 days after abdominal surgery."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports a popping sensation after coughing."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• bowel visible through incision\n• sudden serosanguineous drainage\n• incision edges separated\n• pain 4/10 before event\n• temperature 99.0 F"
+   }
+  ],
+  "questionIds": [
+   "case-052-q1",
+   "case-052-q2",
+   "case-052-q3",
+   "case-052-q4",
+   "case-052-q5",
+   "case-052-q6"
+  ]
+ },
+ {
+  "id": "case-053",
+  "title": "Major Burn Fluid Resuscitation",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n34-year-old client with partial- and full-thickness burns after house fire."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Burns involve anterior torso and both arms."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• tachycardia with hypotension\n• urine output 15 mL/hr\n• deep burns over large body surface area\n• singed arm hair only\n• reports severe pain"
+   }
+  ],
+  "questionIds": [
+   "case-053-q1",
+   "case-053-q2",
+   "case-053-q3",
+   "case-053-q4",
+   "case-053-q5",
+   "case-053-q6"
+  ]
+ },
+ {
+  "id": "case-054",
+  "title": "Inhalation Injury After Burn",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n44-year-old client rescued from enclosed-space fire."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has facial burns and cough."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sooty sputum\n• hoarse voice\n• stridor with facial burns\n• singed eyebrows\n• anxiety"
+   }
+  ],
+  "questionIds": [
+   "case-054-q1",
+   "case-054-q2",
+   "case-054-q3",
+   "case-054-q4",
+   "case-054-q5",
+   "case-054-q6"
+  ]
+ },
+ {
+  "id": "case-055",
+  "title": "Anaphylaxis After Antibiotic",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n30-year-old client receiving first dose of IV ceftriaxone."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops itching and throat tightness during infusion."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• wheezing and stridor\n• hives with facial swelling\n• blood pressure 78/40 mm Hg\n• IV site patent\n• mild nausea"
+   }
+  ],
+  "questionIds": [
+   "case-055-q1",
+   "case-055-q2",
+   "case-055-q3",
+   "case-055-q4",
+   "case-055-q5",
+   "case-055-q6"
+  ]
+ },
+ {
+  "id": "case-056",
+  "title": "Opioid Overdose",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n27-year-old client found unresponsive with empty oxycodone bottle nearby."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Respirations are slow and shallow."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• respiratory rate 6/min\n• pinpoint pupils\n• SpO2 82% on room air\n• blood glucose 94 mg/dL\n• skin cool"
+   }
+  ],
+  "questionIds": [
+   "case-056-q1",
+   "case-056-q2",
+   "case-056-q3",
+   "case-056-q4",
+   "case-056-q5",
+   "case-056-q6"
+  ]
+ },
+ {
+  "id": "case-057",
+  "title": "Alcohol Withdrawal Delirium",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n50-year-old client admitted for pancreatitis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Last alcohol use was 36 hours ago; now tremulous and diaphoretic."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• visual hallucinations\n• blood pressure 178/96 mm Hg with tachycardia\n• coarse tremors and agitation\n• reports nausea\n• oriented to person only"
+   }
+  ],
+  "questionIds": [
+   "case-057-q1",
+   "case-057-q2",
+   "case-057-q3",
+   "case-057-q4",
+   "case-057-q5",
+   "case-057-q6"
+  ]
+ },
+ {
+  "id": "case-058",
+  "title": "Lithium Toxicity",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n46-year-old client with bipolar disorder taking lithium."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports vomiting and diarrhea after taking ibuprofen for back pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• coarse tremor\n• ataxia\n• lithium level 2.1 mEq/L\n• mild thirst\n• blood pressure 118/70 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-058-q1",
+   "case-058-q2",
+   "case-058-q3",
+   "case-058-q4",
+   "case-058-q5",
+   "case-058-q6"
+  ]
+ },
+ {
+  "id": "case-059",
+  "title": "Serotonin Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n32-year-old client taking sertraline."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Started linezolid yesterday and now has fever and agitation."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• hyperreflexia and clonus\n• temperature 103.1 F\n• agitation with diarrhea\n• blood pressure mildly elevated\n• skin flushed"
+   }
+  ],
+  "questionIds": [
+   "case-059-q1",
+   "case-059-q2",
+   "case-059-q3",
+   "case-059-q4",
+   "case-059-q5",
+   "case-059-q6"
+  ]
+ },
+ {
+  "id": "case-060",
+  "title": "Neuroleptic Malignant Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Psychiatric inpatient unit\n28-year-old client started on haloperidol 3 days ago."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops fever and severe muscle rigidity."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• lead-pipe rigidity\n• temperature 104.0 F\n• elevated creatine kinase\n• dry mouth\n• mild constipation"
+   }
+  ],
+  "questionIds": [
+   "case-060-q1",
+   "case-060-q2",
+   "case-060-q3",
+   "case-060-q4",
+   "case-060-q5",
+   "case-060-q6"
+  ]
+ },
+ {
+  "id": "case-061",
+  "title": "Malignant Hyperthermia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Operating room/PACU\n21-year-old client under general anesthesia."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "During surgery develops sudden hypercarbia and rigidity."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• rapid rise in end-tidal CO2\n• generalized muscle rigidity\n• temperature increasing rapidly\n• incision clean\n• IV patent"
+   }
+  ],
+  "questionIds": [
+   "case-061-q1",
+   "case-061-q2",
+   "case-061-q3",
+   "case-061-q4",
+   "case-061-q5",
+   "case-061-q6"
+  ]
+ },
+ {
+  "id": "case-062",
+  "title": "TACO - Transfusion-Associated Circulatory Overload",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n83-year-old client with heart failure receiving packed RBCs."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Near the end of transfusion, client reports dyspnea."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• crackles and dyspnea during transfusion\n• distended neck veins\n• blood pressure rises\n• temperature 98.9 F\n• no rash or back pain"
+   }
+  ],
+  "questionIds": [
+   "case-062-q1",
+   "case-062-q2",
+   "case-062-q3",
+   "case-062-q4",
+   "case-062-q5",
+   "case-062-q6"
+  ]
+ },
+ {
+  "id": "case-063",
+  "title": "Central Line-Associated Bloodstream Infection",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: ICU\n59-year-old client with central venous catheter for vasopressors."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops fever and chills with no clear source."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• temperature 102.4 F\n• purulent drainage at central line insertion site\n• new hypotension\n• white dressing date label present\n• glucose 140 mg/dL"
+   }
+  ],
+  "questionIds": [
+   "case-063-q1",
+   "case-063-q2",
+   "case-063-q3",
+   "case-063-q4",
+   "case-063-q5",
+   "case-063-q6"
+  ]
+ },
+ {
+  "id": "case-064",
+  "title": "TPN Hyperglycemia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical-surgical unit\n56-year-old client receiving total parenteral nutrition through central line."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports thirst and frequent urination."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 328 mg/dL\n• TPN infusing at prescribed rate\n• dry mucous membranes\n• central line dressing intact\n• bowel sounds present"
+   }
+  ],
+  "questionIds": [
+   "case-064-q1",
+   "case-064-q2",
+   "case-064-q3",
+   "case-064-q4",
+   "case-064-q5",
+   "case-064-q6"
+  ]
+ },
+ {
+  "id": "case-065",
+  "title": "Tube Feeding Aspiration Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Long-term acute care\n68-year-old client with stroke and gastrostomy tube."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Receives continuous enteral feeding."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• coughing during feeding\n• new crackles\n• head of bed found flat\n• gastric residual within facility parameter\n• abdomen soft"
+   }
+  ],
+  "questionIds": [
+   "case-065-q1",
+   "case-065-q2",
+   "case-065-q3",
+   "case-065-q4",
+   "case-065-q5",
+   "case-065-q6"
+  ]
+ },
+ {
+  "id": "case-066",
+  "title": "Clostridioides difficile Infection",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n71-year-old client who received clindamycin."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has watery diarrhea and abdominal cramping."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• watery foul-smelling diarrhea\n• recent antibiotic exposure\n• white blood cells elevated\n• normal urine output\n• mild appetite loss"
+   }
+  ],
+  "questionIds": [
+   "case-066-q1",
+   "case-066-q2",
+   "case-066-q3",
+   "case-066-q4",
+   "case-066-q5",
+   "case-066-q6"
+  ]
+ },
+ {
+  "id": "case-067",
+  "title": "Hepatic Encephalopathy",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n62-year-old client with cirrhosis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family reports increasing confusion and sleepiness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• asterixis\n• ammonia elevated\n• confusion with fetor hepaticus\n• scleral icterus\n• mild ascites"
+   }
+  ],
+  "questionIds": [
+   "case-067-q1",
+   "case-067-q2",
+   "case-067-q3",
+   "case-067-q4",
+   "case-067-q5",
+   "case-067-q6"
+  ]
+ },
+ {
+  "id": "case-068",
+  "title": "Esophageal Variceal Bleeding",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n54-year-old client with cirrhosis and portal hypertension."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Vomits a large amount of bright red blood."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• hematemesis\n• blood pressure 84/42 mm Hg\n• history of esophageal varices\n• jaundice\n• spider angiomas"
+   }
+  ],
+  "questionIds": [
+   "case-068-q1",
+   "case-068-q2",
+   "case-068-q3",
+   "case-068-q4",
+   "case-068-q5",
+   "case-068-q6"
+  ]
+ },
+ {
+  "id": "case-069",
+  "title": "Chemotherapy Extravasation",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Outpatient infusion center\n49-year-old client receiving vesicant chemotherapy through peripheral IV."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports burning at IV site."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• burning pain at infusion site\n• swelling around IV\n• absence of blood return\n• mild nausea expected with chemo\n• vital signs stable"
+   }
+  ],
+  "questionIds": [
+   "case-069-q1",
+   "case-069-q2",
+   "case-069-q3",
+   "case-069-q4",
+   "case-069-q5",
+   "case-069-q6"
+  ]
+ },
+ {
+  "id": "case-070",
+  "title": "Tumor Lysis Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Oncology unit\n35-year-old client with leukemia beginning induction chemotherapy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops nausea, weakness, and decreased urine output."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• potassium 6.2 mEq/L\n• uric acid elevated\n• phosphate elevated with low calcium\n• mild fatigue\n• alopecia absent"
+   }
+  ],
+  "questionIds": [
+   "case-070-q1",
+   "case-070-q2",
+   "case-070-q3",
+   "case-070-q4",
+   "case-070-q5",
+   "case-070-q6"
+  ]
+ },
+ {
+  "id": "case-071",
+  "title": "Osteomyelitis With Sepsis Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n52-year-old client with diabetic foot ulcer."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports worsening foot pain and fever."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• bone visible in ulcer\n• fever and elevated ESR/CRP\n• purulent drainage\n• capillary refill 3 seconds\n• reports neuropathy"
+   }
+  ],
+  "questionIds": [
+   "case-071-q1",
+   "case-071-q2",
+   "case-071-q3",
+   "case-071-q4",
+   "case-071-q5",
+   "case-071-q6"
+  ]
+ },
+ {
+  "id": "case-072",
+  "title": "Hip Fracture With Delirium Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n87-year-old client after fall at home."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has shortened externally rotated leg and increasing confusion."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• shortened externally rotated leg\n• pain with movement\n• acute confusion after opioid dose\n• skin intact over hip\n• pedal pulse present"
+   }
+  ],
+  "questionIds": [
+   "case-072-q1",
+   "case-072-q2",
+   "case-072-q3",
+   "case-072-q4",
+   "case-072-q5",
+   "case-072-q6"
+  ]
+ },
+ {
+  "id": "case-073",
+  "title": "Fat Embolism Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Orthopedic unit\n26-year-old client 24 hours after femur fracture."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Develops restlessness and shortness of breath."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• petechial rash on chest\n• SpO2 86% on room air\n• confusion/restlessness\n• leg pain controlled\n• splint intact"
+   }
+  ],
+  "questionIds": [
+   "case-073-q1",
+   "case-073-q2",
+   "case-073-q3",
+   "case-073-q4",
+   "case-073-q5",
+   "case-073-q6"
+  ]
+ },
+ {
+  "id": "case-074",
+  "title": "Ectopic Pregnancy With Rupture Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n27-year-old client at 7 weeks gestation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports unilateral pelvic pain and light vaginal bleeding."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sharp left lower quadrant pain\n• shoulder tip pain and dizziness\n• blood pressure 88/50 mm Hg\n• positive pregnancy test\n• mild spotting"
+   }
+  ],
+  "questionIds": [
+   "case-074-q1",
+   "case-074-q2",
+   "case-074-q3",
+   "case-074-q4",
+   "case-074-q5",
+   "case-074-q6"
+  ]
+ },
+ {
+  "id": "case-075",
+  "title": "Placenta Previa With Painless Bleeding",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery triage\n34-week pregnant client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives with sudden bright red vaginal bleeding and no abdominal pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• painless bright red bleeding\n• known low-lying placenta\n• soft nontender uterus\n• fetal movement present\n• mild anxiety"
+   }
+  ],
+  "questionIds": [
+   "case-075-q1",
+   "case-075-q2",
+   "case-075-q3",
+   "case-075-q4",
+   "case-075-q5",
+   "case-075-q6"
+  ]
+ },
+ {
+  "id": "case-076",
+  "title": "Abruptio Placentae",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery triage\n35-week pregnant client with chronic hypertension."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports sudden abdominal pain after a fall."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• rigid tender uterus\n• dark red vaginal bleeding\n• nonreassuring fetal heart rate\n• reports back pain\n• blood type unknown"
+   }
+  ],
+  "questionIds": [
+   "case-076-q1",
+   "case-076-q2",
+   "case-076-q3",
+   "case-076-q4",
+   "case-076-q5",
+   "case-076-q6"
+  ]
+ },
+ {
+  "id": "case-077",
+  "title": "Severe Preeclampsia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Antepartum unit\n31-year-old client at 35 weeks gestation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports severe headache and spots before eyes."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 168/112 mm Hg\n• 3+ proteinuria\n• right upper quadrant pain\n• mild dependent edema\n• fetal movement present"
+   }
+  ],
+  "questionIds": [
+   "case-077-q1",
+   "case-077-q2",
+   "case-077-q3",
+   "case-077-q4",
+   "case-077-q5",
+   "case-077-q6"
+  ]
+ },
+ {
+  "id": "case-078",
+  "title": "Eclampsia During Labor",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery\n19-year-old primigravida at 38 weeks."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has a generalized seizure after reporting headache."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• tonic-clonic seizure\n• blood pressure 172/116 mm Hg\n• hyperreflexia with clonus\n• cervix 5 cm dilated\n• family at bedside"
+   }
+  ],
+  "questionIds": [
+   "case-078-q1",
+   "case-078-q2",
+   "case-078-q3",
+   "case-078-q4",
+   "case-078-q5",
+   "case-078-q6"
+  ]
+ },
+ {
+  "id": "case-079",
+  "title": "HELLP Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Antepartum unit\n28-year-old client at 33 weeks gestation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports malaise, nausea, and right upper quadrant pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• platelets 72,000/mm3\n• AST/ALT elevated\n• right upper quadrant pain\n• blood pressure 152/98 mm Hg\n• mild nausea"
+   }
+  ],
+  "questionIds": [
+   "case-079-q1",
+   "case-079-q2",
+   "case-079-q3",
+   "case-079-q4",
+   "case-079-q5",
+   "case-079-q6"
+  ]
+ },
+ {
+  "id": "case-080",
+  "title": "Gestational Diabetes With Hypoglycemia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Antepartum clinic\n32-week pregnant client using insulin for gestational diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Feels shaky and sweaty during a prenatal visit."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 54 mg/dL\n• diaphoresis and tremor\n• missed morning snack after insulin\n• fetal movement present\n• blood pressure 118/70 mm Hg"
+   }
+  ],
+  "questionIds": [
+   "case-080-q1",
+   "case-080-q2",
+   "case-080-q3",
+   "case-080-q4",
+   "case-080-q5",
+   "case-080-q6"
+  ]
+ },
+ {
+  "id": "case-081",
+  "title": "Preterm Labor",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery triage\n30-week pregnant client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports regular contractions and pelvic pressure."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• contractions every 5 minutes\n• cervical change from closed to 2 cm\n• low backache and pelvic pressure\n• membranes intact\n• afebrile"
+   }
+  ],
+  "questionIds": [
+   "case-081-q1",
+   "case-081-q2",
+   "case-081-q3",
+   "case-081-q4",
+   "case-081-q5",
+   "case-081-q6"
+  ]
+ },
+ {
+  "id": "case-082",
+  "title": "Prelabor Rupture of Membranes With Infection Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery triage\n37-week pregnant client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports a gush of clear fluid 10 hours ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• positive nitrazine/ferning per facility testing\n• maternal temperature 100.9 F\n• fetal tachycardia\n• clear fluid initially\n• mild contractions"
+   }
+  ],
+  "questionIds": [
+   "case-082-q1",
+   "case-082-q2",
+   "case-082-q3",
+   "case-082-q4",
+   "case-082-q5",
+   "case-082-q6"
+  ]
+ },
+ {
+  "id": "case-083",
+  "title": "Umbilical Cord Prolapse",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery\nMultiparous client in active labor after membrane rupture."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Fetal heart rate suddenly drops to 70/min."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• visible cord at introitus\n• sudden fetal bradycardia\n• ruptured membranes with high presenting part\n• contractions every 3 minutes\n• client anxious"
+   }
+  ],
+  "questionIds": [
+   "case-083-q1",
+   "case-083-q2",
+   "case-083-q3",
+   "case-083-q4",
+   "case-083-q5",
+   "case-083-q6"
+  ]
+ },
+ {
+  "id": "case-084",
+  "title": "Shoulder Dystocia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Delivery room\nClient giving birth to a large-for-gestational-age newborn."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Head delivers, then retracts against perineum."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• turtle sign\n• failure of shoulders to deliver\n• prolonged head-to-body interval\n• maternal pushing effective before event\n• fetal heart rate previously reassuring"
+   }
+  ],
+  "questionIds": [
+   "case-084-q1",
+   "case-084-q2",
+   "case-084-q3",
+   "case-084-q4",
+   "case-084-q5",
+   "case-084-q6"
+  ]
+ },
+ {
+  "id": "case-085",
+  "title": "Postpartum Hemorrhage From Uterine Atony",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postpartum unit\nClient 1 hour after vaginal birth of macrosomic infant."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports dizziness and has heavy lochia."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• boggy uterus above umbilicus\n• saturated peripad in 15 minutes\n• blood pressure 88/46 mm Hg\n• perineal ice pack in place\n• newborn skin-to-skin"
+   }
+  ],
+  "questionIds": [
+   "case-085-q1",
+   "case-085-q2",
+   "case-085-q3",
+   "case-085-q4",
+   "case-085-q5",
+   "case-085-q6"
+  ]
+ },
+ {
+  "id": "case-086",
+  "title": "Postpartum Endometritis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postpartum unit\nClient 2 days after cesarean birth."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports chills, uterine tenderness, and foul lochia."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• temperature 101.8 F\n• uterine tenderness\n• foul-smelling lochia\n• incision edges approximated\n• breast milk coming in"
+   }
+  ],
+  "questionIds": [
+   "case-086-q1",
+   "case-086-q2",
+   "case-086-q3",
+   "case-086-q4",
+   "case-086-q5",
+   "case-086-q6"
+  ]
+ },
+ {
+  "id": "case-087",
+  "title": "Mastitis During Breastfeeding",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postpartum clinic\nClient 3 weeks postpartum and breastfeeding."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports fever and painful red area on one breast."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• localized red tender wedge on breast\n• temperature 101.5 F\n• flu-like aches\n• nipples mildly cracked\n• infant gaining weight"
+   }
+  ],
+  "questionIds": [
+   "case-087-q1",
+   "case-087-q2",
+   "case-087-q3",
+   "case-087-q4",
+   "case-087-q5",
+   "case-087-q6"
+  ]
+ },
+ {
+  "id": "case-088",
+  "title": "Newborn Hypoglycemia - Infant of Diabetic Mother",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Newborn nursery\n1-hour-old newborn of client with diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Nurse notes jitteriness during assessment."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• jitteriness\n• blood glucose 32 mg/dL\n• poor feeding\n• respiratory rate 44/min\n• axillary temperature 98.1 F"
+   }
+  ],
+  "questionIds": [
+   "case-088-q1",
+   "case-088-q2",
+   "case-088-q3",
+   "case-088-q4",
+   "case-088-q5",
+   "case-088-q6"
+  ]
+ },
+ {
+  "id": "case-089",
+  "title": "Neonatal Respiratory Distress",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Newborn nursery\nLate-preterm newborn 30 minutes after birth."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has grunting and retractions."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• expiratory grunting\n• nasal flaring and intercostal retractions\n• SpO2 below target for age\n• acrocyanosis of hands/feet\n• heart rate 148/min"
+   }
+  ],
+  "questionIds": [
+   "case-089-q1",
+   "case-089-q2",
+   "case-089-q3",
+   "case-089-q4",
+   "case-089-q5",
+   "case-089-q6"
+  ]
+ },
+ {
+  "id": "case-090",
+  "title": "Neonatal Hyperbilirubinemia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postpartum/newborn unit\n2-day-old newborn, exclusively breastfed."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Appears jaundiced to abdomen and is sleepy at feeds."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• bilirubin above phototherapy threshold\n• poor feeding and lethargy\n• jaundice progressing below chest\n• voided twice today\n• mother is learning latch"
+   }
+  ],
+  "questionIds": [
+   "case-090-q1",
+   "case-090-q2",
+   "case-090-q3",
+   "case-090-q4",
+   "case-090-q5",
+   "case-090-q6"
+  ]
+ },
+ {
+  "id": "case-091",
+  "title": "Neonatal Abstinence Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Newborn nursery\nNewborn whose parent used opioids during pregnancy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "At 24 hours, newborn has high-pitched cry and tremors."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• high-pitched inconsolable cry\n• tremors with increased tone\n• poor feeding with loose stools\n• temperature 99.0 F\n• respirations 54/min"
+   }
+  ],
+  "questionIds": [
+   "case-091-q1",
+   "case-091-q2",
+   "case-091-q3",
+   "case-091-q4",
+   "case-091-q5",
+   "case-091-q6"
+  ]
+ },
+ {
+  "id": "case-092",
+  "title": "Late Decelerations During Labor",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery\nClient receiving oxytocin augmentation at 6 cm dilation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Fetal monitor shows recurrent late decelerations."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• late decelerations after contractions\n• minimal variability\n• uterine tachysystole\n• membranes ruptured clear fluid\n• maternal temperature 98.9 F"
+   }
+  ],
+  "questionIds": [
+   "case-092-q1",
+   "case-092-q2",
+   "case-092-q3",
+   "case-092-q4",
+   "case-092-q5",
+   "case-092-q6"
+  ]
+ },
+ {
+  "id": "case-093",
+  "title": "Amniotic Fluid Embolism",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Labor and delivery\nClient in labor shortly after artificial rupture of membranes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Suddenly becomes dyspneic and cyanotic."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sudden hypoxia and dyspnea\n• hypotension\n• bleeding from IV site suggesting DIC\n• contractions ongoing\n• cervix 8 cm"
+   }
+  ],
+  "questionIds": [
+   "case-093-q1",
+   "case-093-q2",
+   "case-093-q3",
+   "case-093-q4",
+   "case-093-q5",
+   "case-093-q6"
+  ]
+ },
+ {
+  "id": "case-094",
+  "title": "Postpartum Preeclampsia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postpartum triage\nClient 5 days after birth."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports severe headache and swelling of face/hands."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood pressure 166/110 mm Hg\n• visual changes\n• right upper quadrant pain\n• lochia light\n• incision clean"
+   }
+  ],
+  "questionIds": [
+   "case-094-q1",
+   "case-094-q2",
+   "case-094-q3",
+   "case-094-q4",
+   "case-094-q5",
+   "case-094-q6"
+  ]
+ },
+ {
+  "id": "case-095",
+  "title": "Infant Bronchiolitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric emergency department\n4-month-old infant with 3 days of rhinorrhea."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Parent reports poor feeding and increased work of breathing."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• nasal flaring and subcostal retractions\n• respiratory rate 68/min\n• only 2 wet diapers in 12 hours\n• low-grade fever\n• scattered wheezes"
+   }
+  ],
+  "questionIds": [
+   "case-095-q1",
+   "case-095-q2",
+   "case-095-q3",
+   "case-095-q4",
+   "case-095-q5",
+   "case-095-q6"
+  ]
+ },
+ {
+  "id": "case-096",
+  "title": "Croup With Stridor at Rest",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric emergency department\n3-year-old child."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has barking cough that worsens at night."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• inspiratory stridor at rest\n• suprasternal retractions\n• barking cough with agitation\n• temperature 100.4 F\n• able to swallow secretions"
+   }
+  ],
+  "questionIds": [
+   "case-096-q1",
+   "case-096-q2",
+   "case-096-q3",
+   "case-096-q4",
+   "case-096-q5",
+   "case-096-q6"
+  ]
+ },
+ {
+  "id": "case-097",
+  "title": "Suspected Epiglottitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric emergency department\n5-year-old child with incomplete immunizations."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives sitting upright, drooling, and anxious."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• drooling and tripod position\n• muffled voice\n• high fever with toxic appearance\n• parent reports sore throat\n• minimal cough"
+   }
+  ],
+  "questionIds": [
+   "case-097-q1",
+   "case-097-q2",
+   "case-097-q3",
+   "case-097-q4",
+   "case-097-q5",
+   "case-097-q6"
+  ]
+ },
+ {
+  "id": "case-098",
+  "title": "Pediatric Status Asthmaticus",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n9-year-old child with asthma."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has worsening wheeze after running outside in cold air."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• speaks only in short phrases\n• peak flow in red zone\n• minimal air movement despite wheeze\n• heart rate 132/min after albuterol\n• uses rescue inhaler at school"
+   }
+  ],
+  "questionIds": [
+   "case-098-q1",
+   "case-098-q2",
+   "case-098-q3",
+   "case-098-q4",
+   "case-098-q5",
+   "case-098-q6"
+  ]
+ },
+ {
+  "id": "case-099",
+  "title": "Adolescent DKA",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n15-year-old with type 1 diabetes."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Missed insulin at camp and has vomiting."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• blood glucose 522 mg/dL\n• Kussmaul respirations\n• large serum/urine ketones with dehydration\n• abdominal pain\n• fruity breath"
+   }
+  ],
+  "questionIds": [
+   "case-099-q1",
+   "case-099-q2",
+   "case-099-q3",
+   "case-099-q4",
+   "case-099-q5",
+   "case-099-q6"
+  ]
+ },
+ {
+  "id": "case-100",
+  "title": "Pediatric Dehydration From Gastroenteritis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n18-month-old toddler."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has vomiting and diarrhea for 2 days."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• no tears when crying\n• capillary refill 4 seconds\n• fewer wet diapers\n• mild diaper rash\n• temperature 100.2 F"
+   }
+  ],
+  "questionIds": [
+   "case-100-q1",
+   "case-100-q2",
+   "case-100-q3",
+   "case-100-q4",
+   "case-100-q5",
+   "case-100-q6"
+  ]
+ },
+ {
+  "id": "case-101",
+  "title": "Pyloric Stenosis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric clinic/ED\n5-week-old infant."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Parent reports forceful vomiting after each feeding."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• projectile nonbilious vomiting\n• olive-shaped mass in RUQ\n• hypochloremic metabolic alkalosis\n• hungry after vomiting\n• slight weight loss"
+   }
+  ],
+  "questionIds": [
+   "case-101-q1",
+   "case-101-q2",
+   "case-101-q3",
+   "case-101-q4",
+   "case-101-q5",
+   "case-101-q6"
+  ]
+ },
+ {
+  "id": "case-102",
+  "title": "Intussusception",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n8-month-old infant."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has intermittent severe crying and draws knees to chest."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• currant jelly stool\n• episodic severe abdominal pain\n• sausage-shaped abdominal mass\n• vomited once\n• afebrile"
+   }
+  ],
+  "questionIds": [
+   "case-102-q1",
+   "case-102-q2",
+   "case-102-q3",
+   "case-102-q4",
+   "case-102-q5",
+   "case-102-q6"
+  ]
+ },
+ {
+  "id": "case-103",
+  "title": "Pediatric Bacterial Meningitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n2-year-old child."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Arrives with fever, irritability, and neck stiffness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• high fever\n• nuchal rigidity\n• petechial rash\n• poor appetite\n• parent reports irritability"
+   }
+  ],
+  "questionIds": [
+   "case-103-q1",
+   "case-103-q2",
+   "case-103-q3",
+   "case-103-q4",
+   "case-103-q5",
+   "case-103-q6"
+  ]
+ },
+ {
+  "id": "case-104",
+  "title": "Febrile Seizure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n2-year-old child with fever."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has a generalized seizure lasting 2 minutes at home."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• generalized seizure with fever\n• postictal sleepiness\n• temperature 103.2 F\n• seizure stopped before arrival\n• no neck stiffness"
+   }
+  ],
+  "questionIds": [
+   "case-104-q1",
+   "case-104-q2",
+   "case-104-q3",
+   "case-104-q4",
+   "case-104-q5",
+   "case-104-q6"
+  ]
+ },
+ {
+  "id": "case-105",
+  "title": "Pediatric Appendicitis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n10-year-old child."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has right lower quadrant pain and refuses to walk upright."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• right lower quadrant guarding\n• fever and vomiting\n• pain with movement/jumping\n• poor appetite\n• last stool yesterday"
+   }
+  ],
+  "questionIds": [
+   "case-105-q1",
+   "case-105-q2",
+   "case-105-q3",
+   "case-105-q4",
+   "case-105-q5",
+   "case-105-q6"
+  ]
+ },
+ {
+  "id": "case-106",
+  "title": "Sickle Cell Acute Chest Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric unit\n12-year-old with sickle cell disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Admitted for pain crisis and now develops chest pain."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• new chest pain\n• fever\n• SpO2 88% with new infiltrate\n• leg pain improving\n• received IV fluids"
+   }
+  ],
+  "questionIds": [
+   "case-106-q1",
+   "case-106-q2",
+   "case-106-q3",
+   "case-106-q4",
+   "case-106-q5",
+   "case-106-q6"
+  ]
+ },
+ {
+  "id": "case-107",
+  "title": "Cystic Fibrosis Pulmonary Exacerbation",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric clinic\n14-year-old with cystic fibrosis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports increased cough, thick sputum, and weight loss."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• increased thick green sputum\n• decreased FEV1 from baseline\n• weight loss with poor appetite\n• takes pancreatic enzymes\n• digital clubbing present"
+   }
+  ],
+  "questionIds": [
+   "case-107-q1",
+   "case-107-q2",
+   "case-107-q3",
+   "case-107-q4",
+   "case-107-q5",
+   "case-107-q6"
+  ]
+ },
+ {
+  "id": "case-108",
+  "title": "Kawasaki Disease",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric unit\n3-year-old child."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has fever for 6 days, rash, and red eyes."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• fever more than 5 days\n• strawberry tongue with cracked lips\n• swollen hands/feet and conjunctivitis\n• irritable\n• no exudate in eyes"
+   }
+  ],
+  "questionIds": [
+   "case-108-q1",
+   "case-108-q2",
+   "case-108-q3",
+   "case-108-q4",
+   "case-108-q5",
+   "case-108-q6"
+  ]
+ },
+ {
+  "id": "case-109",
+  "title": "Acute Glomerulonephritis",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric unit\n7-year-old child after recent strep throat."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Parent reports tea-colored urine and facial swelling."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• cola-colored urine\n• periorbital edema\n• hypertension\n• mild fatigue\n• decreased appetite"
+   }
+  ],
+  "questionIds": [
+   "case-109-q1",
+   "case-109-q2",
+   "case-109-q3",
+   "case-109-q4",
+   "case-109-q5",
+   "case-109-q6"
+  ]
+ },
+ {
+  "id": "case-110",
+  "title": "Nephrotic Syndrome",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric clinic\n5-year-old child."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has periorbital edema and swelling of abdomen."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• massive proteinuria\n• generalized edema\n• low serum albumin\n• blood pressure normal\n• urine not bloody"
+   }
+  ],
+  "questionIds": [
+   "case-110-q1",
+   "case-110-q2",
+   "case-110-q3",
+   "case-110-q4",
+   "case-110-q5",
+   "case-110-q6"
+  ]
+ },
+ {
+  "id": "case-111",
+  "title": "Tet Spell in Tetralogy of Fallot",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric clinic\n18-month-old with unrepaired tetralogy of Fallot."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Becomes cyanotic and irritable after crying."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sudden cyanosis\n• knee-chest position relieves symptoms\n• murmur intensity decreases during spell\n• clubbed fingers\n• growth slightly delayed"
+   }
+  ],
+  "questionIds": [
+   "case-111-q1",
+   "case-111-q2",
+   "case-111-q3",
+   "case-111-q4",
+   "case-111-q5",
+   "case-111-q6"
+  ]
+ },
+ {
+  "id": "case-112",
+  "title": "Leukemia With Neutropenic Fever",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric oncology unit\n8-year-old receiving chemotherapy for leukemia."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has oral temperature 100.9 F and mouth sores."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• ANC 200/mm3\n• fever\n• oral mucositis\n• platelets 80,000/mm3\n• hair loss"
+   }
+  ],
+  "questionIds": [
+   "case-112-q1",
+   "case-112-q2",
+   "case-112-q3",
+   "case-112-q4",
+   "case-112-q5",
+   "case-112-q6"
+  ]
+ },
+ {
+  "id": "case-113",
+  "title": "Suspected Child Abuse",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n6-month-old infant brought for arm injury."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Caregiver's explanation changes during interview."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• spiral fracture inconsistent with history\n• multiple bruises in different stages\n• caregiver delays seeking care\n• infant is fed formula\n• diaper clean"
+   }
+  ],
+  "questionIds": [
+   "case-113-q1",
+   "case-113-q2",
+   "case-113-q3",
+   "case-113-q4",
+   "case-113-q5",
+   "case-113-q6"
+  ]
+ },
+ {
+  "id": "case-114",
+  "title": "Acetaminophen Poisoning",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Pediatric ED\n16-year-old adolescent."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports taking unknown number of acetaminophen tablets 6 hours ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• possible intentional overdose\n• acetaminophen level above treatment line\n• nausea with right upper quadrant discomfort\n• vital signs stable\n• denies alcohol today"
+   }
+  ],
+  "questionIds": [
+   "case-114-q1",
+   "case-114-q2",
+   "case-114-q3",
+   "case-114-q4",
+   "case-114-q5",
+   "case-114-q6"
+  ]
+ },
+ {
+  "id": "case-115",
+  "title": "Major Depression With Suicide Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Psychiatric intake\n22-year-old college student."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports worsening depression after breakup."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• states 'I have a plan to overdose tonight'\n• gives away belongings\n• access to prescription medications at home\n• tearful affect\n• sleeping 12 hours/day"
+   }
+  ],
+  "questionIds": [
+   "case-115-q1",
+   "case-115-q2",
+   "case-115-q3",
+   "case-115-q4",
+   "case-115-q5",
+   "case-115-q6"
+  ]
+ },
+ {
+  "id": "case-116",
+  "title": "Mania With Exhaustion Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Psychiatric unit\n34-year-old client with bipolar I disorder."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has not slept for 3 nights and is pacing continuously."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• no sleep for 72 hours\n• pressured speech and flight of ideas\n• poor oral intake while pacing\n• grandiose statements\n• colorful clothing"
+   }
+  ],
+  "questionIds": [
+   "case-116-q1",
+   "case-116-q2",
+   "case-116-q3",
+   "case-116-q4",
+   "case-116-q5",
+   "case-116-q6"
+  ]
+ },
+ {
+  "id": "case-117",
+  "title": "Schizophrenia With Command Hallucinations",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Psychiatric unit\n40-year-old client with schizophrenia."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "States voices are telling them to hurt a roommate."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• command hallucinations to harm others\n• clenched fists and pacing\n• paranoid statements about roommate\n• taking antipsychotic inconsistently\n• poor eye contact"
+   }
+  ],
+  "questionIds": [
+   "case-117-q1",
+   "case-117-q2",
+   "case-117-q3",
+   "case-117-q4",
+   "case-117-q5",
+   "case-117-q6"
+  ]
+ },
+ {
+  "id": "case-118",
+  "title": "Delirium From UTI",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\n84-year-old client admitted for hip pain."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Suddenly becomes disoriented and pulls at IV tubing."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• acute onset confusion\n• positive urine culture with fever\n• fluctuating attention\n• history of mild forgetfulness\n• hearing aids not in place"
+   }
+  ],
+  "questionIds": [
+   "case-118-q1",
+   "case-118-q2",
+   "case-118-q3",
+   "case-118-q4",
+   "case-118-q5",
+   "case-118-q6"
+  ]
+ },
+ {
+  "id": "case-119",
+  "title": "Dementia With Sundowning",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Long-term care\n79-year-old client with Alzheimer disease."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Becomes agitated and confused every evening."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• evening agitation\n• wandering toward exit\n• misinterprets shadows as people\n• oriented to self only at baseline\n• eats breakfast well"
+   }
+  ],
+  "questionIds": [
+   "case-119-q1",
+   "case-119-q2",
+   "case-119-q3",
+   "case-119-q4",
+   "case-119-q5",
+   "case-119-q6"
+  ]
+ },
+ {
+  "id": "case-120",
+  "title": "Anorexia Nervosa With Electrolyte Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Eating disorder unit\n17-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Admitted after fainting during exercise."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• BMI severely low\n• bradycardia and orthostatic hypotension\n• fear of weight gain despite low weight\n• wears oversized clothing\n• denies hunger"
+   }
+  ],
+  "questionIds": [
+   "case-120-q1",
+   "case-120-q2",
+   "case-120-q3",
+   "case-120-q4",
+   "case-120-q5",
+   "case-120-q6"
+  ]
+ },
+ {
+  "id": "case-121",
+  "title": "Bulimia Nervosa With Hypokalemia",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Clinic\n20-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports binge eating followed by self-induced vomiting."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• potassium 2.9 mEq/L\n• parotid gland enlargement\n• dental enamel erosion\n• normal BMI\n• reports shame"
+   }
+  ],
+  "questionIds": [
+   "case-121-q1",
+   "case-121-q2",
+   "case-121-q3",
+   "case-121-q4",
+   "case-121-q5",
+   "case-121-q6"
+  ]
+ },
+ {
+  "id": "case-122",
+  "title": "Opioid Withdrawal",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical detox unit\n37-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Stopped heroin use 18 hours ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• yawning and lacrimation\n• abdominal cramps with diarrhea\n• piloerection and dilated pupils\n• blood pressure 142/88 mm Hg\n• requests help quitting"
+   }
+  ],
+  "questionIds": [
+   "case-122-q1",
+   "case-122-q2",
+   "case-122-q3",
+   "case-122-q4",
+   "case-122-q5",
+   "case-122-q6"
+  ]
+ },
+ {
+  "id": "case-123",
+  "title": "Benzodiazepine Withdrawal",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n62-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Stopped long-term alprazolam abruptly 2 days ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• tremors and agitation\n• tachycardia with hypertension\n• history of high-dose benzodiazepine use\n• insomnia\n• nausea"
+   }
+  ],
+  "questionIds": [
+   "case-123-q1",
+   "case-123-q2",
+   "case-123-q3",
+   "case-123-q4",
+   "case-123-q5",
+   "case-123-q6"
+  ]
+ },
+ {
+  "id": "case-124",
+  "title": "Alcohol Intoxication With Head Injury",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n45-year-old client found after fall outside bar."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Smells of alcohol and has scalp laceration."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• decreasing level of consciousness\n• unequal pupils\n• vomiting after head injury\n• slurred speech\n• blood alcohol positive"
+   }
+  ],
+  "questionIds": [
+   "case-124-q1",
+   "case-124-q2",
+   "case-124-q3",
+   "case-124-q4",
+   "case-124-q5",
+   "case-124-q6"
+  ]
+ },
+ {
+  "id": "case-125",
+  "title": "Intimate Partner Violence Disclosure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Primary care clinic\n29-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has bruises and whispers that partner controls money and phone."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• bruises inconsistent with explanation\n• client fears going home\n• partner refuses to leave exam room\n• missed several appointments\n• client avoids eye contact"
+   }
+  ],
+  "questionIds": [
+   "case-125-q1",
+   "case-125-q2",
+   "case-125-q3",
+   "case-125-q4",
+   "case-125-q5",
+   "case-125-q6"
+  ]
+ },
+ {
+  "id": "case-126",
+  "title": "Sexual Assault Trauma-Informed Care",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Emergency department\n19-year-old client."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports sexual assault 3 hours ago."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• client requests medical help and is tearful\n• reports strangulation during assault\n• has not changed clothes\n• vital signs stable\n• declines police at first"
+   }
+  ],
+  "questionIds": [
+   "case-126-q1",
+   "case-126-q2",
+   "case-126-q3",
+   "case-126-q4",
+   "case-126-q5",
+   "case-126-q6"
+  ]
+ },
+ {
+  "id": "case-127",
+  "title": "End-of-Life Dyspnea and Family Distress",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Hospice home visit\n76-year-old client with end-stage lung cancer."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family is distressed by noisy breathing and restlessness."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• terminal secretions\n• dyspnea at rest\n• family states 'they are suffering'\n• oxygen concentrator in home\n• client has DNR order"
+   }
+  ],
+  "questionIds": [
+   "case-127-q1",
+   "case-127-q2",
+   "case-127-q3",
+   "case-127-q4",
+   "case-127-q5",
+   "case-127-q6"
+  ]
+ },
+ {
+  "id": "case-128",
+  "title": "Postoperative Fall Risk",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Surgical unit\n69-year-old client after laparoscopic cholecystectomy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Received opioid analgesic and tries to get out of bed alone."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• unsteady gait after opioid\n• call light out of reach\n• orthostatic dizziness\n• incisions dry\n• pain improved"
+   }
+  ],
+  "questionIds": [
+   "case-128-q1",
+   "case-128-q2",
+   "case-128-q3",
+   "case-128-q4",
+   "case-128-q5",
+   "case-128-q6"
+  ]
+ },
+ {
+  "id": "case-129",
+  "title": "Delegation for Unstable Chest Pain",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical-surgical unit\nCharge nurse assigning tasks to RN, LPN/VN, and assistive personnel."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "One client reports new chest pressure and shortness of breath."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• new chest pain\n• diaphoresis\n• shortness of breath\n• scheduled bath due\n• routine vital signs due on stable clients"
+   }
+  ],
+  "questionIds": [
+   "case-129-q1",
+   "case-129-q2",
+   "case-129-q3",
+   "case-129-q4",
+   "case-129-q5",
+   "case-129-q6"
+  ]
+ },
+ {
+  "id": "case-130",
+  "title": "Medication Allergy Near Miss",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nClient with documented penicillin allergy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "New order is entered for ampicillin/sulbactam."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• penicillin allergy band\n• order contains penicillin-class antibiotic\n• client reports prior throat swelling\n• vital signs stable\n• IV site patent"
+   }
+  ],
+  "questionIds": [
+   "case-130-q1",
+   "case-130-q2",
+   "case-130-q3",
+   "case-130-q4",
+   "case-130-q5",
+   "case-130-q6"
+  ]
+ },
+ {
+  "id": "case-131",
+  "title": "DNR Conflict During Code Call",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Long-term care/acute transfer\nOlder adult client with valid DNR/DNI order."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Becomes pulseless and a staff member starts CPR."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• valid DNR/DNI in chart and bracelet\n• pulseless client\n• family previously confirmed comfort-focused goals\n• oxygen at bedside\n• advance directive copy present"
+   }
+  ],
+  "questionIds": [
+   "case-131-q1",
+   "case-131-q2",
+   "case-131-q3",
+   "case-131-q4",
+   "case-131-q5",
+   "case-131-q6"
+  ]
+ },
+ {
+  "id": "case-132",
+  "title": "HIPAA Breach in Elevator",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Hospital hallway/elevator\nTwo staff discuss a client by name in a public elevator."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Visitors overhear diagnosis and room number."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• client name spoken publicly\n• diagnosis discussed in elevator\n• visitors present\n• staff are assigned to same unit\n• conversation not needed for urgent care"
+   }
+  ],
+  "questionIds": [
+   "case-132-q1",
+   "case-132-q2",
+   "case-132-q3",
+   "case-132-q4",
+   "case-132-q5",
+   "case-132-q6"
+  ]
+ },
+ {
+  "id": "case-133",
+  "title": "Disaster Triage After Bus Crash",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Mass casualty incident\nNurse participates in field triage after bus crash."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Several clients require rapid prioritization."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• apneic adult who breathes after airway repositioning\n• uncontrolled arterial bleeding\n• walking wounded asking for help\n• minor abrasions\n• anxious bystanders"
+   }
+  ],
+  "questionIds": [
+   "case-133-q1",
+   "case-133-q2",
+   "case-133-q3",
+   "case-133-q4",
+   "case-133-q5",
+   "case-133-q6"
+  ]
+ },
+ {
+  "id": "case-134",
+  "title": "Restraint Use for Line Pulling",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: ICU step-down\nConfused client repeatedly pulls at central line."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reorientation and family presence have not been effective."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• pulling at central line\n• acute confusion\n• less restrictive measures failed\n• bed alarm on\n• pain controlled"
+   }
+  ],
+  "questionIds": [
+   "case-134-q1",
+   "case-134-q2",
+   "case-134-q3",
+   "case-134-q4",
+   "case-134-q5",
+   "case-134-q6"
+  ]
+ },
+ {
+  "id": "case-135",
+  "title": "Sterile Field Break During Dressing Change",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Surgical unit\nNurse changes a central line dressing."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "A sterile glove touches the bed rail."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• sterile glove contacts bed rail\n• central line dressing change\n• client immunocompromised\n• mask in place\n• chlorhexidine available"
+   }
+  ],
+  "questionIds": [
+   "case-135-q1",
+   "case-135-q2",
+   "case-135-q3",
+   "case-135-q4",
+   "case-135-q5",
+   "case-135-q6"
+  ]
+ },
+ {
+  "id": "case-136",
+  "title": "Pressure Injury Prevention",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Long-term care\n82-year-old immobile client with poor nutrition."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Has nonblanchable redness on sacrum."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• nonblanchable sacral redness\n• Braden score high risk\n• moisture from incontinence\n• heels intact\n• appetite poor"
+   }
+  ],
+  "questionIds": [
+   "case-136-q1",
+   "case-136-q2",
+   "case-136-q3",
+   "case-136-q4",
+   "case-136-q5",
+   "case-136-q6"
+  ]
+ },
+ {
+  "id": "case-137",
+  "title": "MRSA Wound Contact Precautions",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nClient with draining MRSA wound."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Roommate assignment is being reviewed."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• draining wound positive for MRSA\n• dressing not containing drainage\n• shared equipment in room\n• client afebrile\n• pain controlled"
+   }
+  ],
+  "questionIds": [
+   "case-137-q1",
+   "case-137-q2",
+   "case-137-q3",
+   "case-137-q4",
+   "case-137-q5",
+   "case-137-q6"
+  ]
+ },
+ {
+  "id": "case-138",
+  "title": "Airborne Tuberculosis Precautions",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nClient has cough, weight loss, night sweats, and cavitary lesion on x-ray."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "AFB smear is pending."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• persistent cough with hemoptysis\n• night sweats and weight loss\n• cavitary chest x-ray lesion\n• oxygen saturation 95% on room air\n• appetite poor"
+   }
+  ],
+  "questionIds": [
+   "case-138-q1",
+   "case-138-q2",
+   "case-138-q3",
+   "case-138-q4",
+   "case-138-q5",
+   "case-138-q6"
+  ]
+ },
+ {
+  "id": "case-139",
+  "title": "Needlestick Exposure",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medication room\nNurse sustains needlestick after administering injection."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Source client has unknown bloodborne pathogen status."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• puncture from used needle\n• source status unknown\n• injury occurred before device activation\n• small amount of bleeding\n• nurse wearing gloves"
+   }
+  ],
+  "questionIds": [
+   "case-139-q1",
+   "case-139-q2",
+   "case-139-q3",
+   "case-139-q4",
+   "case-139-q5",
+   "case-139-q6"
+  ]
+ },
+ {
+  "id": "case-140",
+  "title": "Home Oxygen Fire Safety",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Home health\nClient newly prescribed oxygen for pulmonary fibrosis."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family asks about candles and gas stove."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• open flames used in home\n• oxygen tubing extends across kitchen\n• family unaware of no-smoking rule\n• smoke detector present\n• oxygen tank secured upright"
+   }
+  ],
+  "questionIds": [
+   "case-140-q1",
+   "case-140-q2",
+   "case-140-q3",
+   "case-140-q4",
+   "case-140-q5",
+   "case-140-q6"
+  ]
+ },
+ {
+  "id": "case-141",
+  "title": "Elder Neglect Home Visit",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Home health visit\nHome health nurse visits 86-year-old dependent adult."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Client appears thin with urine-soaked clothing and pressure injury."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• soiled clothing and strong urine odor\n• untreated pressure injury\n• caregiver reports being overwhelmed and leaves client alone\n• client smiles at nurse\n• medication bottles present"
+   }
+  ],
+  "questionIds": [
+   "case-141-q1",
+   "case-141-q2",
+   "case-141-q3",
+   "case-141-q4",
+   "case-141-q5",
+   "case-141-q6"
+  ]
+ },
+ {
+  "id": "case-142",
+  "title": "Live Vaccine Teaching for Immunocompromised Client",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Oncology clinic\nClient receiving high-dose chemotherapy."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Asks about receiving live attenuated intranasal influenza vaccine."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• immunocompromised from chemotherapy\n• request for live vaccine\n• neutropenia\n• wants flu prevention\n• family members live at home"
+   }
+  ],
+  "questionIds": [
+   "case-142-q1",
+   "case-142-q2",
+   "case-142-q3",
+   "case-142-q4",
+   "case-142-q5",
+   "case-142-q6"
+  ]
+ },
+ {
+  "id": "case-143",
+  "title": "School Asthma Action Plan",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: School nurse office\n12-year-old student with asthma."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports wheezing during recess and forgot controller medication this week."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• wheezing after exercise\n• rescue inhaler not immediately available\n• no written action plan on file\n• speaks full sentences\n• SpO2 95%"
+   }
+  ],
+  "questionIds": [
+   "case-143-q1",
+   "case-143-q2",
+   "case-143-q3",
+   "case-143-q4",
+   "case-143-q5",
+   "case-143-q6"
+  ]
+ },
+ {
+  "id": "case-144",
+  "title": "PCA Opioid Respiratory Depression",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Postoperative unit\n50-year-old client using patient-controlled analgesia morphine."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Family member says they pressed the button while client slept."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• respiratory rate 7/min\n• difficult to arouse\n• family-administered PCA doses\n• pain was 6/10 earlier\n• oxygen cannula displaced"
+   }
+  ],
+  "questionIds": [
+   "case-144-q1",
+   "case-144-q2",
+   "case-144-q3",
+   "case-144-q4",
+   "case-144-q5",
+   "case-144-q6"
+  ]
+ },
+ {
+  "id": "case-145",
+  "title": "Warfarin Teaching With High INR",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Anticoagulation clinic\n67-year-old client taking warfarin for atrial fibrillation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Reports nosebleeds and started trimethoprim-sulfamethoxazole."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• INR 5.6\n• spontaneous nosebleeds\n• new antibiotic interaction\n• eats spinach weekly\n• no chest pain"
+   }
+  ],
+  "questionIds": [
+   "case-145-q1",
+   "case-145-q2",
+   "case-145-q3",
+   "case-145-q4",
+   "case-145-q5",
+   "case-145-q6"
+  ]
+ },
+ {
+  "id": "case-146",
+  "title": "Insulin Administration Safety",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nClient prescribed insulin lispro with meals and insulin glargine at bedtime."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Breakfast tray is delayed."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• rapid-acting insulin due\n• meal tray delayed\n• blood glucose 92 mg/dL\n• long-acting insulin scheduled at bedtime\n• client alert"
+   }
+  ],
+  "questionIds": [
+   "case-146-q1",
+   "case-146-q2",
+   "case-146-q3",
+   "case-146-q4",
+   "case-146-q5",
+   "case-146-q6"
+  ]
+ },
+ {
+  "id": "case-147",
+  "title": "Heart Failure Discharge Red Flags",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Discharge teaching\nClient hospitalized for heart failure exacerbation."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Preparing for discharge with new diuretic prescription."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• gained 4 lb in 2 days\n• increased shortness of breath when lying flat\n• uncertain how to follow low-sodium diet\n• has scale at home\n• family can assist with medications"
+   }
+  ],
+  "questionIds": [
+   "case-147-q1",
+   "case-147-q2",
+   "case-147-q3",
+   "case-147-q4",
+   "case-147-q5",
+   "case-147-q6"
+  ]
+ },
+ {
+  "id": "case-148",
+  "title": "Advance Directive and Dialysis Refusal",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nClient with acute renal failure is confused."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Spouse presents advance directive refusing dialysis if incapacitated."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• client lacks decision-making capacity now\n• valid advance directive refuses dialysis\n• provider order placed for dialysis catheter\n• spouse available\n• creatinine elevated"
+   }
+  ],
+  "questionIds": [
+   "case-148-q1",
+   "case-148-q2",
+   "case-148-q3",
+   "case-148-q4",
+   "case-148-q5",
+   "case-148-q6"
+  ]
+ },
+ {
+  "id": "case-149",
+  "title": "Unsafe Staff Practice - Impaired Coworker",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nNurse notices coworker slurring words and smelling of alcohol."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Coworker is preparing IV opioids."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• slurred speech and alcohol odor\n• accessing controlled substances\n• unsafe medication preparation\n• unit busy\n• coworker says they are fine"
+   }
+  ],
+  "questionIds": [
+   "case-149-q1",
+   "case-149-q2",
+   "case-149-q3",
+   "case-149-q4",
+   "case-149-q5",
+   "case-149-q6"
+  ]
+ },
+ {
+  "id": "case-150",
+  "title": "Wrong-Patient Medication Prevention",
+  "tabs": [
+   {
+    "label": "Client Profile",
+    "body": "Setting: Medical unit\nNurse enters room with IV antibiotic."
+   },
+   {
+    "label": "Nurses' Notes",
+    "body": "Client states a different name than the MAR."
+   },
+   {
+    "label": "Initial Data",
+    "body": "• client states different full name\n• ID band does not match MAR\n• antibiotic prepared for another room\n• client has IV access\n• family at bedside"
+   }
+  ],
+  "questionIds": [
+   "case-150-q1",
+   "case-150-q2",
+   "case-150-q3",
+   "case-150-q4",
+   "case-150-q5",
+   "case-150-q6"
+  ]
+ }
+]

@@ -1,0 +1,19 @@
+# Florence Academy SPA — built, then served as static files behind Caddy.
+# (Used by the single-VPS docker-compose test stack; on Render the SPA is a
+# native static site instead.) The Core + API URLs are baked in at build time.
+FROM node:24-slim AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ARG VITE_CORE_URL=https://id.florenceeducation.com
+ARG VITE_API_URL=https://api.academy.florenceeducation.com
+ARG VITE_LIVE_URL=https://live.academy.florenceeducation.com
+ENV VITE_CORE_URL=$VITE_CORE_URL VITE_API_URL=$VITE_API_URL VITE_LIVE_URL=$VITE_LIVE_URL
+RUN npm run build
+
+FROM caddy:2-alpine
+COPY --from=build /app/dist /srv
+# SPA fallback so deep links resolve (HashRouter-safe regardless).
+RUN printf ':80 {\n\troot * /srv\n\tencode gzip\n\ttry_files {path} /index.html\n\tfile_server\n}\n' > /etc/caddy/Caddyfile
+EXPOSE 80

@@ -1,0 +1,703 @@
+openapi: 3.1.0
+info:
+  title: Florence Academy Data API
+  version: "1.0.0"
+  description: >
+    Moves enrollment, performance, and financial data between Florence and
+    external systems (CRMs, and later underwriting partners). Machine-to-machine
+    auth via OAuth2 client-credentials with least-privilege scopes. See
+    SECURITY.md for the full security & compliance design. All writes accept an
+    Idempotency-Key; performance results are append-only and immutable.
+servers:
+  - url: https://api.florence.academy/v1
+    description: Production (placeholder — provision per data-residency decision)
+  - url: http://localhost:8088/v1
+    description: Local reference service
+
+security:
+  - oauth2: []
+
+tags:
+  - name: candidates
+  - name: enrollments
+  - name: performance
+  - name: payments
+
+paths:
+  /health:
+    get:
+      summary: Liveness probe (unauthenticated)
+      security: []
+      tags: [candidates]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  service: { type: string }
+
+  /candidates:
+    get:
+      summary: List candidates
+      tags: [candidates]
+      security: [{ oauth2: [candidates:read] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { $ref: "#/components/responses/CandidateList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      summary: Create a candidate
+      tags: [candidates]
+      security: [{ oauth2: [candidates:write] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CandidateCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/CandidateOne" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /candidates/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      summary: Get a candidate
+      tags: [candidates]
+      security: [{ oauth2: [candidates:read] }]
+      responses:
+        "200": { $ref: "#/components/responses/CandidateOne" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Update mutable candidate fields (contact, consent)
+      tags: [candidates]
+      security: [{ oauth2: [candidates:write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CandidatePatch" }
+      responses:
+        "200": { $ref: "#/components/responses/CandidateOne" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /enrollments:
+    get:
+      summary: List enrollments
+      tags: [enrollments]
+      security: [{ oauth2: [enrollment:read] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { $ref: "#/components/responses/EnrollmentList" }
+    post:
+      summary: Create an enrollment
+      tags: [enrollments]
+      security: [{ oauth2: [enrollment:write] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnrollmentCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/EnrollmentOne" }
+
+  /enrollments/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      summary: Advance enrollment status
+      tags: [enrollments]
+      security: [{ oauth2: [enrollment:write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { $ref: "#/components/schemas/EnrollmentStatus" }
+      responses:
+        "200": { $ref: "#/components/responses/EnrollmentOne" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /assessment-results:
+    get:
+      summary: List performance results (append-only history)
+      tags: [performance]
+      security: [{ oauth2: [performance:read] }]
+      parameters:
+        - $ref: "#/components/parameters/CandidateIdFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { $ref: "#/components/responses/AssessmentList" }
+    post:
+      summary: Append an immutable performance result
+      description: >
+        Append-only. Corrections are recorded as a new superseding row, never an
+        edit. Emits an `assessment_result.created` signed webhook.
+      tags: [performance]
+      security: [{ oauth2: [performance:write] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssessmentResultCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/AssessmentOne" }
+
+  /payments:
+    get:
+      summary: List payments (tokens & references only — no raw instrument data)
+      tags: [payments]
+      security: [{ oauth2: [payments:read] }]
+      parameters:
+        - $ref: "#/components/parameters/CandidateIdFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { $ref: "#/components/responses/PaymentList" }
+    post:
+      summary: Record a payment / deposit (processor token only)
+      tags: [payments]
+      security: [{ oauth2: [payments:write] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/PaymentOne" }
+
+  /v1/clients:
+    post:
+      summary: Register a partner API client
+      tags: [candidates]
+      security: [{ oauth2: [clients:manage] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, name, secret, scopes]
+              properties:
+                client_id: { type: string }
+                name: { type: string }
+                secret: { type: string }
+                scopes:
+                  type: array
+                  items: { type: string }
+      responses:
+        "201":
+          description: Client created (secret hash never returned)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_id: { type: string }
+                  name: { type: string }
+                  allowed_scopes: { type: array, items: { type: string } }
+                  active: { type: boolean }
+        "409": { description: client_id already exists }
+
+  /v1/tokens/session:
+    post:
+      summary: Exchange for a short-lived, candidate-bound session token
+      description: >
+        A trusted backend (holding tokens:mint) exchanges proof of a signed-in
+        student for a downscoped token bound to one candidate. Safe to hand to a
+        browser: it can only act on that candidate, for a few minutes, with the
+        delegated scopes (non-delegable scopes are stripped).
+      tags: [candidates]
+      security: [{ oauth2: [tokens:mint] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [candidate_id]
+              properties:
+                candidate_id: { type: string }
+                scopes: { type: array, items: { type: string } }
+                ttl_sec: { type: integer, minimum: 60, maximum: 3600, default: 600 }
+      responses:
+        "201":
+          description: A candidate-bound bearer token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string }
+                  expires_in: { type: integer }
+                  scope: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /v1/tokens/revoke:
+    post:
+      summary: Revoke a token before its TTL (logout / kill)
+      description: >
+        No body revokes the presented token (logout) — any authenticated token
+        may do that. Revoking a different `jti` requires tokens:mint. Revocation
+        is enforced on every request via a denylist until the token's expiry.
+      tags: [candidates]
+      security: [{ oauth2: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jti: { type: string }
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked: { type: string }
+
+  /v1/clients/{id}/rotate:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      summary: Rotate a client's secret
+      tags: [candidates]
+      security: [{ oauth2: [clients:manage] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secret]
+              properties:
+                secret: { type: string }
+      responses:
+        "200":
+          description: Rotated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_id: { type: string }
+                  rotated: { type: boolean }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/cohorts:
+    get:
+      summary: List cohorts
+      tags: [enrollments]
+      security: [{ oauth2: [cohorts:read] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: A page of cohorts }
+    post:
+      summary: Schedule a cohort
+      tags: [enrollments]
+      security: [{ oauth2: [cohorts:write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string, examples: ["MNL-2026-07"] }
+                name: { type: string }
+                starts_at: { type: string, format: date-time }
+                capacity: { type: integer, minimum: 1 }
+                instructor_ref: { type: string }
+                status: { type: string, enum: [scheduled, active, completed, cancelled] }
+      responses:
+        "201": { description: Created }
+        "409": { description: code already exists }
+
+  /v1/cohorts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      summary: Get a cohort
+      tags: [enrollments]
+      security: [{ oauth2: [cohorts:read] }]
+      responses:
+        "200": { description: A cohort }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Update a cohort (status, capacity, schedule, instructor)
+      tags: [enrollments]
+      security: [{ oauth2: [cohorts:write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                starts_at: { type: string, format: date-time }
+                capacity: { type: integer, minimum: 1 }
+                instructor_ref: { type: string }
+                status: { type: string, enum: [scheduled, active, completed, cancelled] }
+      responses:
+        "200": { description: Updated }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/cohorts/{id}/roster:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      summary: Roster — enrollments for the cohort + capacity/count
+      tags: [enrollments]
+      security: [{ oauth2: [cohorts:read] }]
+      responses:
+        "200":
+          description: The cohort roster
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cohort_id: { type: string }
+                  code: { type: string }
+                  capacity: { type: integer, nullable: true }
+                  count: { type: integer }
+                  enrollments:
+                    type: array
+                    items: { $ref: "#/components/schemas/Enrollment" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: Machine-to-machine client-credentials grant.
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            candidates:read: Read candidate records
+            candidates:write: Create/update candidate records
+            enrollment:read: Read enrollments
+            enrollment:write: Create/advance enrollments
+            performance:read: Read assessment results
+            performance:write: Append assessment results
+            payments:read: Read payment records
+            payments:write: Record payments
+            webhooks:manage: Manage webhook subscriptions
+            clients:manage: Create and rotate partner API clients
+            tokens:mint: Exchange for short-lived, candidate-bound session tokens
+            cohorts:read: Read cohorts and rosters
+            cohorts:write: Create and update cohorts
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    CandidateIdFilter:
+      name: candidate_id
+      in: query
+      required: false
+      schema: { type: string }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+      description: Opaque pagination cursor from a prior response.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: { type: string, maxLength: 200 }
+      description: Replaying a write with the same key returns the original result.
+
+  schemas:
+    Consent:
+      type: object
+      properties:
+        service: { type: boolean, description: Consent to run the Academy service }
+        crm_sync: { type: boolean, description: Consent to sync to external CRM }
+        underwriting:
+          type: boolean
+          description: >
+            Explicit consent to use performance/financial data for underwriting.
+            Required before any underwriting read of those fields.
+        updated_at: { type: string, format: date-time }
+    Candidate:
+      type: object
+      required: [id, created_at]
+      properties:
+        id: { type: string, examples: ["cand_a1b2c3"] }
+        external_ref: { type: string, description: Partner/CRM foreign key }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, description: Stored column-encrypted; PII }
+        country: { type: string }
+        consent: { $ref: "#/components/schemas/Consent" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    CandidateCreate:
+      type: object
+      required: [full_name]
+      properties:
+        external_ref: { type: string }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        country: { type: string }
+        consent: { $ref: "#/components/schemas/Consent" }
+    CandidatePatch:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        phone: { type: string }
+        country: { type: string }
+        consent: { $ref: "#/components/schemas/Consent" }
+    EnrollmentStatus:
+      type: string
+      enum: [registered, deposit_paid, attending, completed, withdrawn]
+    Enrollment:
+      type: object
+      required: [id, candidate_id, status, created_at]
+      properties:
+        id: { type: string, examples: ["enr_a1b2c3"] }
+        candidate_id: { type: string }
+        cohort: { type: string, examples: ["MNL-2026-07"] }
+        status: { $ref: "#/components/schemas/EnrollmentStatus" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EnrollmentCreate:
+      type: object
+      required: [candidate_id, cohort]
+      properties:
+        candidate_id: { type: string }
+        cohort: { type: string }
+        status: { $ref: "#/components/schemas/EnrollmentStatus" }
+    AssessmentResult:
+      type: object
+      required: [id, candidate_id, kind, created_at, content_hash]
+      properties:
+        id: { type: string, examples: ["asr_a1b2c3"] }
+        candidate_id: { type: string }
+        kind:
+          type: string
+          enum: [tutor, nightly, adaptive_exam, timed, diagnostic]
+        readiness:
+          type: number
+          description: Projected pass probability 0..1.
+        theta:
+          type: number
+          description: Rasch ability estimate (logits).
+        items_completed: { type: integer }
+        by_client_need:
+          type: object
+          additionalProperties: { type: number }
+          description: Mean score per NCSBN Client Need category.
+        supersedes:
+          type: string
+          description: ID of a prior result this row corrects (append-only).
+        content_hash:
+          type: string
+          description: SHA-256 of the canonical payload — tamper-evidence.
+        created_at: { type: string, format: date-time }
+    AssessmentResultCreate:
+      type: object
+      required: [candidate_id, kind]
+      properties:
+        candidate_id: { type: string }
+        kind:
+          type: string
+          enum: [tutor, nightly, adaptive_exam, timed, diagnostic]
+        readiness: { type: number, minimum: 0, maximum: 1 }
+        theta: { type: number }
+        items_completed: { type: integer, minimum: 0 }
+        by_client_need:
+          type: object
+          additionalProperties: { type: number }
+        supersedes: { type: string }
+    Payment:
+      type: object
+      required: [id, candidate_id, kind, amount_cents, currency, status, created_at]
+      properties:
+        id: { type: string, examples: ["pay_a1b2c3"] }
+        candidate_id: { type: string }
+        kind: { type: string, enum: [commitment_deposit, tuition, other] }
+        amount_cents: { type: integer }
+        currency: { type: string, examples: ["USD"] }
+        status: { type: string, enum: [pending, paid, refunded, credited, failed] }
+        processor: { type: string, examples: ["stripe"] }
+        processor_ref:
+          type: string
+          description: Processor token/charge ID. Never a raw card/bank number.
+        created_at: { type: string, format: date-time }
+    PaymentCreate:
+      type: object
+      required: [candidate_id, kind, amount_cents, currency, processor_ref]
+      properties:
+        candidate_id: { type: string }
+        kind: { type: string, enum: [commitment_deposit, tuition, other] }
+        amount_cents: { type: integer, minimum: 0 }
+        currency: { type: string }
+        status: { type: string, enum: [pending, paid, refunded, credited, failed] }
+        processor: { type: string }
+        processor_ref: { type: string }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+            fields:
+              type: array
+              description: Per-field detail when code is "validation_error".
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+    Page:
+      type: object
+      properties:
+        next_cursor: { type: string, nullable: true }
+
+  responses:
+    CandidateOne:
+      description: A candidate
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Candidate" }
+    CandidateList:
+      description: A page of candidates
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Page"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Candidate" }
+    EnrollmentOne:
+      description: An enrollment
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Enrollment" }
+    EnrollmentList:
+      description: A page of enrollments
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Page"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Enrollment" }
+    AssessmentOne:
+      description: An assessment result
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AssessmentResult" }
+    AssessmentList:
+      description: A page of assessment results
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Page"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AssessmentResult" }
+    PaymentOne:
+      description: A payment
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Payment" }
+    PaymentList:
+      description: A page of payments
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Page"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Payment" }
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing/invalid token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Token lacks the required scope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

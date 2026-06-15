@@ -1,0 +1,42 @@
+# FlorenceRN test stack — TLS termination + per-subdomain reverse proxy.
+# Caddy fetches a Let's Encrypt cert for each host automatically (ports 80+443
+# must be reachable and DNS must point at this server). BASE_DOMAIN + ACME_EMAIL
+# come from the environment (docker-compose passes them in).
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Identity service
+id.{$BASE_DOMAIN} {
+	reverse_proxy core:8080
+}
+
+# Academy: SPA (static) + API + live (Socket.IO; Caddy upgrades WebSockets)
+academy.{$BASE_DOMAIN} {
+	reverse_proxy academy-web:80
+}
+api.academy.{$BASE_DOMAIN} {
+	reverse_proxy academy-api:8088
+}
+live.academy.{$BASE_DOMAIN} {
+	reverse_proxy academy-live:5179
+}
+
+# Pathway + ATS each serve their own SPA + /api
+pathway.{$BASE_DOMAIN} {
+	reverse_proxy pathway:8787
+}
+ats.{$BASE_DOMAIN} {
+	reverse_proxy ats:8788
+}
+
+# Pricing (Streamlit)
+pricing.{$BASE_DOMAIN} {
+	reverse_proxy economist:8501
+}
+
+# Pricing API (stateless FastAPI quote engine)
+pricing-api.{$BASE_DOMAIN} {
+	reverse_proxy pricing-api:8000
+}

@@ -1,0 +1,247 @@
+# ════════════════════════════════════════════════════════════════════════════
+# FlorenceRN platform — Render Blueprint (one repo, one Apply).
+#
+# Each app lives in a subdirectory (rootDir). Identity flows through florence-core
+# (RS256 token verified by every service via JWKS); the fl_session cookie is set on
+# .florenceeducation.com so one login works on every subdomain.
+#
+# Plan/region match the existing labor-economics setup (oregon / starter). Verify
+# the exact plan slugs in the Render dashboard — tiers/prices change. Secrets are
+# `sync: false` (set them per-service in the dashboard after the first Apply).
+#
+# NOTE: Core and Academy each get their OWN Postgres — they both define
+# `api_clients`/`audit_log`, so they must not share one database. Pathway + ATS
+# keep node:sqlite on a 1 GB persistent disk (interim; ATS can move to Postgres
+# later via ATS_DB=postgres + DATABASE_URL with no code change).
+# ════════════════════════════════════════════════════════════════════════════
+
+databases:
+  - name: florence-core-pg
+    plan: basic-256mb        # adjust to a current Render Postgres tier if needed
+    region: oregon
+  - name: florence-academy-pg
+    plan: basic-256mb
+    region: oregon
+
+envVarGroups:
+  - name: florence-shared
+    envVars:
+      - key: TOKEN_ISS
+        value: florence-auth
+      - key: TOKEN_AUD
+        value: florence
+      - key: CORE_ISSUER_URL
+        value: https://id.florenceeducation.com
+      - key: CORE_JWKS_URL
+        value: https://id.florenceeducation.com/.well-known/jwks.json
+      - key: COOKIE_DOMAIN
+        value: .florenceeducation.com
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: GOOGLE_CLIENT_ID    # not secret, but per-deploy — set in dashboard
+        sync: false
+
+services:
+  # ── FlorenceRN Core — the identity / SSO service ──────────────────────────
+  - type: web
+    name: florence-core
+    runtime: docker
+    rootDir: florence-core
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    preDeployCommand: node db/migrate.mjs
+    envVars:
+      - fromGroup: florence-shared
+      - key: PORT
+        value: "8080"
+      - key: PUBLIC_CORE_URL
+        value: https://id.florenceeducation.com
+      - key: FLORENCE_ALLOWED_DOMAIN
+        value: florenceeducation.com
+      - key: FLORENCE_REDIRECT_HOSTS
+        value: .florenceeducation.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: florence-core-pg
+          property: connectionString
+      - key: GOOGLE_CLIENT_SECRET       # Google OAuth client secret (see DEPLOY)
+        sync: false
+      - key: FIELD_ENC_PASSPHRASE       # STABLE across deploys or signing keys orphan
+        sync: false
+      - key: DEMO_CLIENT_SECRET
+        sync: false
+
+  # ── Academy — static SPA + data API + live (Socket.IO) ────────────────────
+  - type: web
+    name: florence-academy-web
+    runtime: static
+    rootDir: florence-academy
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_CORE_URL
+        value: https://id.florenceeducation.com
+      - key: VITE_API_URL
+        value: https://api.academy.florenceeducation.com
+      - key: VITE_LIVE_URL
+        value: https://live.academy.florenceeducation.com
+
+  - type: web
+    name: florence-academy-api
+    runtime: docker
+    rootDir: florence-academy/api
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    preDeployCommand: node db/migrate.mjs
+    envVars:
+      - fromGroup: florence-shared
+      - key: PORT
+        value: "8088"
+      - key: API_JWT_ISSUER
+        value: florence-auth
+      - key: API_JWT_AUDIENCE
+        value: florence
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://academy.florenceeducation.com,https://id.florenceeducation.com
+      - key: PUBLIC_APP_URL
+        value: https://academy.florenceeducation.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: florence-academy-pg
+          property: connectionString
+      - key: FIELD_ENC_PASSPHRASE
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: AGORA_APP_ID            # live classroom A/V (blank → slides-only)
+        sync: false
+      - key: AGORA_APP_CERTIFICATE
+        sync: false
+      - key: AGORA_CUSTOMER_ID       # cloud recording (blank → Record button hidden)
+        sync: false
+      - key: AGORA_CUSTOMER_SECRET
+        sync: false
+      - key: AGORA_REC_VENDOR
+        value: "1"
+      - key: AGORA_REC_REGION
+        value: "0"
+      - key: AGORA_REC_BUCKET
+        sync: false
+      - key: AGORA_REC_ACCESS_KEY
+        sync: false
+      - key: AGORA_REC_SECRET_KEY
+        sync: false
+      - key: AGORA_REC_PREFIX
+        value: florence-academy
+      - key: AGORA_REC_PUBLIC_BASE    # CDN base for replay playback
+        sync: false
+
+  - type: web
+    name: florence-academy-live
+    runtime: docker
+    rootDir: florence-academy
+    dockerfilePath: ./Dockerfile.live
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "5179"
+      - key: LIVE_PORT
+        value: "5179"
+
+  # ── Pathway — SPA + Express + node:sqlite (1 GB disk) ─────────────────────
+  - type: web
+    name: florence-pathway
+    runtime: docker
+    rootDir: florence-pathway-agent
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: pathway-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - fromGroup: florence-shared
+      - key: PORT
+        value: "8787"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ── ATS Connect — SPA + Express + node:sqlite (1 GB disk) ─────────────────
+  - type: web
+    name: florence-ats
+    runtime: docker
+    rootDir: florence-ats-connect
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: ats-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - fromGroup: florence-shared
+      - key: PORT
+        value: "8788"
+      - key: ATS_DB
+        value: postgres          # embedded PGlite on the persistent disk (/app/data)
+      - key: ATS_CONNECT_BASE_URL
+        value: https://ats.florenceeducation.com
+      - key: ATS_CONNECT_VAULT_KEY    # encrypts connector credentials at rest (vault.ts)
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ── Pricing — Streamlit Workforce Economist (1 GB disk; existing Dockerfile) ─
+  - type: web
+    name: florence-economist
+    runtime: docker
+    rootDir: labor-economics-agent
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    healthCheckPath: /_stcore/health
+    disk:
+      name: florence-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - fromGroup: florence-shared
+      - key: FLORENCE_INTERNAL_AUTH
+        value: "1"
+      - key: PUBLIC_PRICING_URL
+        value: https://pricing.florenceeducation.com
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: BLS_REGISTRATION_KEY
+        sync: false
+
+  # ── Pricing API — stateless FastAPI quote engine ──────────────────────────
+  - type: web
+    name: florence-pricing-api
+    runtime: python
+    rootDir: labor-economics-agent
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: uvicorn pricing_api:app --host 0.0.0.0 --port $PORT
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: PRICING_API_CORS_ORIGINS
+        value: https://pricing.florenceeducation.com

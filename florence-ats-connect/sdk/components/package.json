@@ -1,0 +1,21 @@
+{
+  "name": "@florencern/components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FlorenceRN Component SDK — embeddable React widgets over the Platform API (NursePassport, JobTiles, ApplicationGate). Built in Vite library mode; publish is operator-owned (no registry wired).",
+  "type": "module",
+  "main": "./dist/florencern-components.js",
+  "module": "./dist/florencern-components.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "import": "./dist/florencern-components.js", "types": "./dist/index.d.ts" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

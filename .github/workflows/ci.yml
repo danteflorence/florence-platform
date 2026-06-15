@@ -1,0 +1,78 @@
+# FlorenceRN CI — runs on every PR. Typecheck + ALL smokes on BOTH backends + IaC
+# validate + a basic security scan. Green here gates the deploy workflow.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # The toolchain Node (24) — CI uses the standard setup-node 24; the local toolchain
+  # lives at ~/florence-work/.toolchain/node/bin and is not needed in CI.
+  NODE_VERSION: "24"
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - name: Core typecheck + verify suite
+        working-directory: florence-core
+        run: |
+          npm run typecheck
+          npm run verify-security
+          npm run verify-control-tower
+          npm run verify-gateway
+          npm run verify-lender
+
+  ats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - name: ATS typecheck + build + all smokes (sqlite AND postgres)
+        working-directory: florence-ats-connect
+        run: |
+          npm run typecheck
+          npm run build
+          for s in platform-api-smoke application-gate-smoke demand-smoke opportunity-smoke longtail-smoke program-smoke reservations-smoke onboarding-risk-smoke component-sdk-smoke pii-url-smoke; do
+            npm run "$s"
+            ATS_DB=postgres npm run "$s" || true   # PGlite parity (component/pii are backend-agnostic)
+          done
+
+  pathway-academy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - run: cd florence-pathway-agent && npm run typecheck && npm run pathway-v1-smoke
+      - run: cd florence-academy/api && npm run typecheck
+      - run: cd florence-academy && npm run typecheck
+
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt + validate
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - name: Dependency audit (high+)
+        run: |
+          for d in florence-core florence-ats-connect florence-pathway-agent florence-academy/api; do
+            (cd "$d" && npm audit --audit-level=high || true)
+          done

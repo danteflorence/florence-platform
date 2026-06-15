@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ats-web",
+      "runtimeExecutable": "/Users/dantetolbedantert/florence-work/.toolchain/node/bin/node",
+      "runtimeArgs": [
+        "/Users/dantetolbedantert/florence-work/florence-ats-connect/node_modules/vite/bin/vite.js",
+        "--host",
+        "--port",
+        "5174",
+        "--config",
+        "/Users/dantetolbedantert/florence-work/florence-ats-connect/vite.config.ts",
+        "/Users/dantetolbedantert/florence-work/florence-ats-connect"
+      ],
+      "port": 5174
+    }
+  ]
+}

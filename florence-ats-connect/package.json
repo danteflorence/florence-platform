@@ -1,0 +1,51 @@
+{
+  "name": "florence-ats-connect",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "FlorenceRN ATS Connect — import employer RN requisitions, match Florence (internationally-educated) nurses, build consent-gated employer-ready packets, submit into the employer ATS (manual/portal now, native connectors later), and sync interview/offer/start/retention into the Production Ledger.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "api": "node --experimental-sqlite --watch --import tsx server/index.ts",
+    "start": "node --experimental-sqlite --import tsx server/index.ts",
+    "web": "node node_modules/vite/bin/vite.js --host",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "seed": "node --experimental-sqlite --import tsx scripts/seed.ts",
+    "seed:targets": "node --experimental-sqlite --import tsx scripts/seed-targets.ts",
+    "sync": "node --experimental-sqlite --import tsx scripts/sync.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node --experimental-sqlite --import tsx scripts/smoke.ts",
+    "demand-smoke": "node --experimental-sqlite --import tsx scripts/demand-smoke.ts",
+    "opportunity-smoke": "node --experimental-sqlite --import tsx scripts/opportunity-smoke.ts",
+    "longtail-smoke": "node --experimental-sqlite --import tsx scripts/longtail-smoke.ts",
+    "application-gate-smoke": "node --experimental-sqlite --import tsx scripts/application-gate-smoke.ts",
+    "platform-api-smoke": "node --experimental-sqlite --import tsx scripts/platform-api-smoke.ts",
+    "component-sdk-smoke": "node --import tsx scripts/component-sdk-smoke.ts",
+    "pii-url-smoke": "node --experimental-sqlite --import tsx scripts/pii-url-smoke.ts",
+    "csv-bridge-smoke": "node --import tsx scripts/csv-bridge-smoke.ts",
+    "program-smoke": "node --experimental-sqlite --import tsx scripts/program-smoke.ts",
+    "onboarding-risk-smoke": "node --experimental-sqlite --import tsx scripts/onboarding-risk-smoke.ts",
+    "reservations-smoke": "node --experimental-sqlite --import tsx scripts/reservations-smoke.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "express": "^4.19.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}
