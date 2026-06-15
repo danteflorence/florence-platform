@@ -43,3 +43,13 @@ labor-economics-agent/
 
 # internal session/workflow stash
 .florence_workflow_stash
+
+# ── terraform ────────────────────────────────────────────────────────────────
+# Keep .terraform.lock.hcl committed (provider version lock); exclude the local
+# plugin cache + any state (state lives in a remote backend, never in git).
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars.local

@@ -38,6 +38,12 @@ jobs:
           terraform init
           terraform apply -auto-approve -var-file=envs/staging.tfvars \
             -var="image_tag=${{ github.sha }}"
+      - name: Run DB migrations (Cloud Run Jobs — once per deploy, not per cold start)
+        run: |
+          for name in core academy-api; do
+            gcloud run jobs execute "$name-migrate-staging" \
+              --region us-central1 --project "${{ secrets.GCP_PROJECT_STAGING }}" --wait
+          done
 
   deploy-production:
     needs: build-and-deploy-staging
@@ -65,3 +71,9 @@ jobs:
           terraform init
           terraform apply -auto-approve -var-file=envs/production.tfvars \
             -var="image_tag=${{ github.sha }}"
+      - name: Run DB migrations (Cloud Run Jobs — once per deploy, not per cold start)
+        run: |
+          for name in core academy-api; do
+            gcloud run jobs execute "$name-migrate-production" \
+              --region us-central1 --project "${{ secrets.GCP_PROJECT_PROD }}" --wait
+          done

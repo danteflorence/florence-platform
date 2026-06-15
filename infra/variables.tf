@@ -39,10 +39,11 @@ variable "image_tag" {
 variable "services" {
   type = map(object({
     subdomains    = list(string) # e.g. ["id","api","developers","partners"] for core
-    needs_sql     = bool          # mounts the Cloud SQL connection + DATABASE_URL
+    needs_sql     = bool         # mounts the Cloud SQL connection + DATABASE_URL
     min_instances = number
     max_instances = number
-    public        = bool          # allow unauthenticated (the API gateway authenticates itself)
+    public        = bool                        # allow unauthenticated (the API gateway authenticates itself)
+    health_path   = optional(string, "/health") # Cloud Run startup/liveness probe path
   }))
 }
 
@@ -54,4 +55,18 @@ variable "sql_tier" {
 variable "db_name" {
   type    = string
   default = "florencern"
+}
+
+# The CI deployer service account (Workload Identity Federation) email. When
+# `manage_deployer_iam = true`, Terraform grants it the deploy roles; default false so
+# the bootstrap owner grants them out-of-band first (the deployer can't self-grant on the
+# first apply). See docs/GCP_STRUCTURE.md.
+variable "deployer_sa_email" {
+  type    = string
+  default = ""
+}
+
+variable "manage_deployer_iam" {
+  type    = bool
+  default = false
 }
