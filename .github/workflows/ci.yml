@@ -54,7 +54,7 @@ jobs:
         with: { node-version: "24" }
       - run: cd florence-pathway-agent && npm ci && npm run typecheck && npm run pathway-v1-smoke
       - run: cd florence-academy/api && npm ci && npm run typecheck
-      - run: cd florence-academy && npm ci && npm run typecheck
+      - run: cd florence-academy && npm ci && npm run typecheck && npm run build
 
   infra:
     runs-on: ubuntu-latest
