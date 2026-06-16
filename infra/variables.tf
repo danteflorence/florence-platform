@@ -38,12 +38,17 @@ variable "image_tag" {
 # Each platform service that runs on Cloud Run.
 variable "services" {
   type = map(object({
-    subdomains    = list(string) # e.g. ["id","api","developers","partners"] for core
-    needs_sql     = bool         # mounts the Cloud SQL connection + DATABASE_URL
-    min_instances = number
-    max_instances = number
-    public        = bool                        # allow unauthenticated (the API gateway authenticates itself)
-    health_path   = optional(string, "/health") # Cloud Run startup/liveness probe path
+    subdomains       = list(string) # e.g. ["id","api","developers","partners"] for core
+    needs_sql        = bool         # mounts the Cloud SQL connection + DATABASE_URL
+    min_instances    = number
+    max_instances    = number
+    public           = bool                        # allow unauthenticated (the API gateway authenticates itself)
+    health_path      = optional(string, "/health") # Cloud Run startup/liveness probe path
+    needs_field_enc  = optional(bool, false)       # inject FIELD_ENC_PASSPHRASE (Core signing-key wrap + field crypto)
+    session_affinity = optional(bool, false)       # sticky sessions (the live-classroom WebSocket service)
+    extra_env        = optional(map(string), {})   # plain per-service config (CORS, PUBLIC_APP_URL, ATS_DB, …)
+    # Optional per-service secret refs (operator creates the secret_ids; e.g. Stripe, Agora).
+    secret_env = optional(list(object({ name = string, secret = string })), [])
   }))
 }
 

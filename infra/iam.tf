@@ -11,12 +11,28 @@ resource "google_secret_manager_secret_iam_member" "db_url" {
   member    = "serviceAccount:${google_service_account.runtime[each.key].email}"
 }
 
-# Core field-encryption passphrase → readable by Core only.
+# Field-encryption passphrase → readable by the services that wrap keys / do field crypto
+# (Core + academy-api).
 resource "google_secret_manager_secret_iam_member" "field_enc" {
-  for_each  = { for k, v in var.services : k => v if k == "core" }
+  for_each  = { for k, v in var.services : k => v if v.needs_field_enc }
   secret_id = google_secret_manager_secret.core_field_enc.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.runtime[each.key].email}"
+}
+
+# Optional per-service secrets (Stripe/Agora/etc.) → readable by the service that declares
+# them in secret_env. Flatten services × their secret_env into one binding each.
+resource "google_secret_manager_secret_iam_member" "service_secret_env" {
+  for_each = {
+    for pair in flatten([
+      for k, v in var.services : [
+        for s in v.secret_env : { svc = k, secret = s.secret }
+      ]
+    ]) : "${pair.svc}:${pair.secret}" => pair
+  }
+  secret_id = each.value.secret
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.runtime[each.value.svc].email}"
 }
 
 # Cloud SQL client (connect over the mounted unix socket) → stateful services.

@@ -23,15 +23,30 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Build + push images (one per service)
+      - name: Build + push images (staging hosts baked into the SPAs)
+        env:
+          REG: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_STAGING }}/florencern
+          SHA: ${{ github.sha }}
+          # SPA-bearing images bake their URLs at BUILD time, so each env builds its own
+          # images from this SHA (the promote-same-image model can't carry per-env SPA URLs).
+          ID_HOST: id-staging.florencern.com
+          API_ACADEMY_HOST: api-staging.academy.florencern.com
+          LIVE_ACADEMY_HOST: live-staging.academy.florencern.com
         run: |
-          REG="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_STAGING }}/florencern"
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-          for svc in core:florence-core ats:florence-ats-connect pathway:florence-pathway-agent academy-api:florence-academy/api; do
-            name="${svc%%:*}"; dir="${svc##*:}"
-            docker build -t "$REG/$name:${{ github.sha }}" "$dir"
-            docker push "$REG/$name:${{ github.sha }}"
-          done
+          # Runtime-configured backend services.
+          docker build -t "$REG/core:$SHA" florence-core && docker push "$REG/core:$SHA"
+          docker build -t "$REG/academy-api:$SHA" florence-academy/api && docker push "$REG/academy-api:$SHA"
+          # SPA-bearing services (Core URL baked at build time).
+          docker build --build-arg VITE_CORE_URL="https://$ID_HOST" -t "$REG/ats:$SHA" florence-ats-connect && docker push "$REG/ats:$SHA"
+          docker build --build-arg VITE_CORE_URL="https://$ID_HOST" -t "$REG/pathway:$SHA" florence-pathway-agent && docker push "$REG/pathway:$SHA"
+          # Academy SPA (static) + live classroom.
+          docker build -f florence-academy/Dockerfile.web \
+            --build-arg VITE_CORE_URL="https://$ID_HOST" \
+            --build-arg VITE_API_URL="https://$API_ACADEMY_HOST" \
+            --build-arg VITE_LIVE_URL="https://$LIVE_ACADEMY_HOST" \
+            -t "$REG/academy-web:$SHA" florence-academy && docker push "$REG/academy-web:$SHA"
+          docker build -f florence-academy/Dockerfile.live -t "$REG/academy-live:$SHA" florence-academy && docker push "$REG/academy-live:$SHA"
       - name: Terraform apply (staging) with the new image tags
         working-directory: infra
         run: |
@@ -57,14 +72,28 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Promote the same images to production
+      - name: Build + push images (production hosts baked into the SPAs)
+        env:
+          REG: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_PROD }}/florencern
+          SHA: ${{ github.sha }}
+          # Same SHA as staging, rebuilt with PRODUCTION URLs (backend code is identical;
+          # only the SPA's baked URLs differ). Backend images could be promoted instead, but
+          # a per-env build keeps one coherent path for all six services.
+          ID_HOST: id.florencern.com
+          API_ACADEMY_HOST: api.academy.florencern.com
+          LIVE_ACADEMY_HOST: live.academy.florencern.com
         run: |
-          SRC="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_STAGING }}/florencern"
-          DST="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_PROD }}/florencern"
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-          for name in core ats pathway academy-api; do
-            gcloud artifacts docker tags add "$SRC/$name:${{ github.sha }}" "$DST/$name:${{ github.sha }}" || true
-          done
+          docker build -t "$REG/core:$SHA" florence-core && docker push "$REG/core:$SHA"
+          docker build -t "$REG/academy-api:$SHA" florence-academy/api && docker push "$REG/academy-api:$SHA"
+          docker build --build-arg VITE_CORE_URL="https://$ID_HOST" -t "$REG/ats:$SHA" florence-ats-connect && docker push "$REG/ats:$SHA"
+          docker build --build-arg VITE_CORE_URL="https://$ID_HOST" -t "$REG/pathway:$SHA" florence-pathway-agent && docker push "$REG/pathway:$SHA"
+          docker build -f florence-academy/Dockerfile.web \
+            --build-arg VITE_CORE_URL="https://$ID_HOST" \
+            --build-arg VITE_API_URL="https://$API_ACADEMY_HOST" \
+            --build-arg VITE_LIVE_URL="https://$LIVE_ACADEMY_HOST" \
+            -t "$REG/academy-web:$SHA" florence-academy && docker push "$REG/academy-web:$SHA"
+          docker build -f florence-academy/Dockerfile.live -t "$REG/academy-live:$SHA" florence-academy && docker push "$REG/academy-live:$SHA"
       - name: Terraform apply (production)
         working-directory: infra
         run: |

@@ -142,6 +142,8 @@ resource "google_cloud_run_v2_service" "svc" {
 
   template {
     service_account = google_service_account.runtime[each.key].email
+    # Sticky sessions for the live-classroom WebSocket service (in-memory room state).
+    session_affinity = each.value.session_affinity
 
     scaling {
       min_instance_count = each.value.min_instances
@@ -181,6 +183,43 @@ resource "google_cloud_run_v2_service" "svc" {
           value_source {
             secret_key_ref {
               secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      # Core signing-key wrap + field crypto. Stable, operator-set secret value.
+      dynamic "env" {
+        for_each = each.value.needs_field_enc ? [1] : []
+        content {
+          name = "FIELD_ENC_PASSPHRASE"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.core_field_enc.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      # Plain per-service config (CORS allowlist, PUBLIC_APP_URL, ATS_DB, JWT iss/aud, …).
+      dynamic "env" {
+        for_each = each.value.extra_env
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      # Optional per-service secrets (operator provisions the secret_ids; e.g. Stripe, Agora).
+      dynamic "env" {
+        for_each = each.value.secret_env
+        content {
+          name = env.value.name
+          value_source {
+            secret_key_ref {
+              secret  = env.value.secret
               version = "latest"
             }
           }

@@ -15,5 +15,6 @@ RUN npm run build
 FROM caddy:2-alpine
 COPY --from=build /app/dist /srv
 # SPA fallback so deep links resolve (HashRouter-safe regardless).
-RUN printf ':80 {\n\troot * /srv\n\tencode gzip\n\ttry_files {path} /index.html\n\tfile_server\n}\n' > /etc/caddy/Caddyfile
+# Listen on Cloud Run's injected $PORT (default 80 for the local compose stack).
+RUN printf ':{$PORT:80} {\n\troot * /srv\n\tencode gzip\n\ttry_files {path} /index.html\n\tfile_server\n}\n' > /etc/caddy/Caddyfile
 EXPOSE 80

@@ -24,7 +24,8 @@
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 
-const PORT = process.env.LIVE_PORT ? Number(process.env.LIVE_PORT) : 5179;
+// Cloud Run injects PORT; LIVE_PORT is the local/compose override; 5179 is the dev default.
+const PORT = Number(process.env.PORT ?? process.env.LIVE_PORT ?? 5179);
 
 // A live poll reveals its answer automatically after this long, no matter what
 // the instructor does — so the class always sees the answer + rationale in a

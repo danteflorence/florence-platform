@@ -86,11 +86,11 @@ instances, preserves schema isolation):
 - Delegate `florencern.com` to **Cloud DNS** (or keep at the registrar and add records).
 - After `terraform apply`, run `terraform output domain_mapping_records` and create the
   printed CNAME/A records. **Google-managed TLS** provisions automatically once they resolve.
-- Hosts: production `id. api. developers. partners.` → core; `ats.` → ats; `api.academy.` →
-  academy-api. Staging/sandbox use prefixed hosts (`id-staging.`, `sandbox-api.`, …).
-- **Not in this Terraform** (document where they live): the Academy static SPA (`academy.`),
-  `live.academy.` (Socket.IO), and the external pricing `pricing.`/economist hosts (separate
-  `labor-economics-agent` repo).
+- Hosts: production `id. api. developers. partners.` → core; `academy.` → academy-web (SPA);
+  `api.academy.` → academy-api; `live.academy.` → academy-live; `ats.` → ats. Staging/sandbox
+  use prefixed hosts (`id-staging.`, `sandbox-academy.`, …).
+- **Not in this Terraform** (document where they live): `pathway.` (excluded wave-1 — see §11)
+  and the external pricing `pricing.`/economist hosts (separate `labor-economics-agent` repo).
 
 ## 7. Sandbox seeding
 
@@ -132,3 +132,38 @@ sandbox-only follow-up.)
 - **Counsel (before LIVE lender/credit use only — NOT a deploy blocker for sandbox or
   non-lender):** fair-lending field sign-off, GLBA safeguards, per-bank DPA, FCRA program;
   own-bank charter/BSA-AML/SR 11-7 is a separate corporate track.
+
+## 11. Full user-facing platform (the 6 Cloud Run services)
+
+To put the platform — incl. the **Academy learning app** — in front of real users, the IaC now
+deploys six services (per-env hosts in `infra/envs/*.tfvars`):
+
+| Service | Prod host | Notes |
+|---|---|---|
+| `core` | `id. / api. / developers. / partners.` | SSO + Platform API gateway (needs_sql + field_enc) |
+| `academy-web` | `academy.` | the **learner SPA** (static via Caddy on `$PORT`; URLs baked at build) |
+| `academy-api` | `api.academy.` | learner signup/login + progress + assessments + payments (needs_sql + field_enc) |
+| `academy-live` | `live.academy.` | live classroom (Socket.IO; `session_affinity`, single-instance) |
+| `ats` | `ats.` | employer/ops + Demand/Opportunity/VMS Connect (needs_sql, `ATS_DB=postgres`) |
+| `pathway` | — | **excluded wave-1** (sync sqlite; see `docs/PATHWAY_CLOUD_RUN.md`) — runs on a stateful host or after the Postgres refactor |
+
+**End users CAN use Academy today once deployed:** it has learner signup/login (`/v1/auth/*`),
+Stripe deposit checkout, content/audio, and live classroom. One SSO login on `id.florencern.com`
+(cookie on `.florencern.com`) works across every app.
+
+**Per-service SECRETS the operator creates in Secret Manager + wires via `secret_env`** (left empty
+in the tfvars; add when ready — the runtime SA is auto-granted access via `iam.tf`). `docker-compose.yml`
+is the canonical full env list:
+- **core:** `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (staff Google login; password admin works without it via `seed-admin`), `DEMO_CLIENT_SECRET`.
+- **academy-api:** `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (paid enrollment), `AGORA_*` (live A/V), `ELEVENLABS_*` (narration/tutor) — all optional; features degrade gracefully if unset.
+- **ats:** `ATS_CONNECT_VAULT_KEY` (connector creds), `ANTHROPIC_API_KEY`, `PRICING_API_URL` (external economist).
+
+**SPA build-time config caveat:** `academy-web` (and the ats/pathway SPAs) bake their URLs at
+`docker build` time, so each environment **builds its own images** with that env's hosts (the CI
+`deploy.yml` does this; it does NOT promote the same image staging→prod). Backend code is identical
+across envs — only the SPA's baked URLs differ.
+
+**Go-live order (after the §8 bootstrap):** push to `main` → CI builds 6 images + `terraform apply
+-var-file=envs/staging.tfvars` → migrate jobs → create DNS records from `terraform output
+domain_mapping_records` → managed TLS → hit `academy.florencern.com` and sign in. Production is the
+same behind the manual-approval gate.
