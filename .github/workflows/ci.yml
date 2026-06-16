@@ -53,8 +53,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "24" }
       - run: cd florence-pathway-agent && npm ci && npm run typecheck && npm run pathway-v1-smoke
-      - run: cd florence-academy/api && npm ci && npm run typecheck
-      - run: cd florence-academy && npm ci && npm run typecheck && npm run build
+      - run: cd florence-academy/api && npm ci && npm run typecheck && npm test
+      - run: cd florence-academy && npm ci && npm run typecheck && npm test && npm run build
 
   infra:
     runs-on: ubuntu-latest
