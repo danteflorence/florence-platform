@@ -25,7 +25,8 @@
     "csv-bridge-smoke": "node --import tsx scripts/csv-bridge-smoke.ts",
     "program-smoke": "node --experimental-sqlite --import tsx scripts/program-smoke.ts",
     "onboarding-risk-smoke": "node --experimental-sqlite --import tsx scripts/onboarding-risk-smoke.ts",
-    "reservations-smoke": "node --experimental-sqlite --import tsx scripts/reservations-smoke.ts"
+    "reservations-smoke": "node --experimental-sqlite --import tsx scripts/reservations-smoke.ts",
+    "vms-smoke": "node --experimental-sqlite --import tsx scripts/vms-smoke.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

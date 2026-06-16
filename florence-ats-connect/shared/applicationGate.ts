@@ -70,7 +70,7 @@ const norm = (s?: string) => (s ?? '').trim().toLowerCase()
 // Only an affirmatively-cleared work authorization passes (fail-closed).
 const VISA_PASS: VisaStatus[] = ['approved', 'not_required']
 const LICENSE_VERIFIED: string[] = ['issued', 'approved']
-const AUTHORIZED_CHANNELS: OpportunityState[] = ['amn_channel', 'direct_partner', 'ats_connected']
+const AUTHORIZED_CHANNELS: OpportunityState[] = ['amn_channel', 'vms_channel', 'direct_partner', 'ats_connected']
 
 export const SUBJECT_TO = [
   'consular_processing',

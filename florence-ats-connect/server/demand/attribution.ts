@@ -56,7 +56,7 @@ export async function dashboardSummary() {
   // per-job source channelOwner refinement is applied on the candidate card).
   const empById = new Map(employers.map((e) => [e.id, e]))
   const empByName = new Map(employers.map((e) => [e.name.toLowerCase(), e]))
-  const byOpportunityState: Record<OpportunityState, number> = { public: 0, amn_channel: 0, direct_partner: 0, ats_connected: 0 }
+  const byOpportunityState: Record<OpportunityState, number> = { public: 0, amn_channel: 0, vms_channel: 0, direct_partner: 0, ats_connected: 0 }
   for (const j of open) {
     const emp = (j.employerId ? empById.get(j.employerId) : undefined) ?? empByName.get(j.employerName.toLowerCase())
     byOpportunityState[opportunityStateFor(j, emp ?? undefined)] += 1

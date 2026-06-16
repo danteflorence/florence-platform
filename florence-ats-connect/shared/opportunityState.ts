@@ -5,7 +5,7 @@
 // doesn't exist, and never submit into an ATS without authorization.
 import type { FlorenceRNJob } from './demand-types'
 
-export type OpportunityState = 'public' | 'amn_channel' | 'direct_partner' | 'ats_connected'
+export type OpportunityState = 'public' | 'amn_channel' | 'vms_channel' | 'direct_partner' | 'ats_connected'
 export type OpportunityCta = 'express_interest' | 'apply_with_packet'
 
 // Minimal shapes so this is usable from both server and client without importing the
@@ -21,6 +21,7 @@ export interface OppSourceHint {
 const STATE_LABEL: Record<OpportunityState, string> = {
   public: 'Publicly posted',
   amn_channel: 'AMN channel',
+  vms_channel: 'VMS / MSP channel',
   direct_partner: 'FlorenceRN partner',
   ats_connected: 'ATS-connected partner',
 }
