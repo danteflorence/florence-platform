@@ -7,6 +7,37 @@ Account ID** (`gcloud organizations list`, `gcloud billing accounts list`). Arch
 rationale: [`GCP_STRUCTURE.md`](GCP_STRUCTURE.md). This is operator click-ops (it spends money
 and creates real infra), so it isn't run by the agent.
 
+## Precursor — create the GCP account + billing (do this first if you have no GCP yet)
+
+~10 minutes, mostly clicks. The billing step needs a payment method, so **you** do it (the
+agent never enters card details).
+
+1. **Sign in to the Cloud console** at <https://console.cloud.google.com> with a
+   `@florenceeducation.com` **admin** account. Because you run Google Workspace on that domain,
+   a Cloud **Organization** already exists for it (that's your `ORG_ID`). Accept the terms on
+   first visit.
+2. **Create a Billing Account + add a payment method:** <https://console.cloud.google.com/billing>
+   → *Create account* → add a card. New accounts get **$300 free credit for 90 days** — staging
+   runs well within that.
+3. **Buy/point the domain:** make sure you control **`florencern.com`** DNS (any registrar). You
+   only need it at the DNS step after the first deploy, but line it up now.
+4. **Install the gcloud CLI (macOS)** and authenticate:
+   ```bash
+   brew install --cask google-cloud-sdk        # or https://cloud.google.com/sdk/docs/install
+   gcloud auth login                            # browser → your @florenceeducation.com admin
+   gcloud auth application-default login         # lets Terraform use your credentials
+   ```
+5. **Grab the two IDs the bootstrap needs:**
+   ```bash
+   gcloud organizations list      # → ORG_ID  (the numeric ID)
+   gcloud billing accounts list   # → BILLING (ACCOUNT_ID, like XXXXXX-XXXXXX-XXXXXX)
+   ```
+   Paste those into step 0 below, then run the rest.
+
+> **No org / not a Workspace super-admin?** You can still go: drop `--organization="$ORG_ID"`
+> from the `gcloud projects create` line in step 1 to make a **standalone** project. You lose
+> folder-level org policies (a nice-to-have) but staging works fine. You can adopt an org later.
+
 ```bash
 # ── 0. Variables (edit these) ────────────────────────────────────────────────
 export ENV=staging
