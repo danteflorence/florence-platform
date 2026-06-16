@@ -42,6 +42,13 @@ import {
   verifyLobSignature,
 } from "./outreach.ts";
 import { lobCreate, LobError, priceDollarsToCents, type LobAddress } from "./lob_client.ts";
+import { timingSafeEqual } from "node:crypto";
+import {
+  DRIP_MAX_STEP,
+  renderDripStage,
+  stageAdvanceTarget,
+  type DripContext,
+} from "./drip_copy.ts";
 import { buildInterviewPacket, computeUniversityOverview, isReadinessCleared } from "./partners.ts";
 import { cohortPassRates, publishedReport } from "./cohortStats.ts";
 import type {
@@ -2179,6 +2186,212 @@ async function listRecentLeadEvents(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { data: await deps.store.leads.events.listRecent(since, limit) });
 }
 
+// ── Drip campaign (Phase 3) ─────────────────────────────────────────────────
+function safeSecretEq(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
+/** Build the per-lead template context: name, school-tier join, soonest
+ *  cohort label, and the tokenized public URLs. */
+async function buildDripContext(deps: Deps, lead: import("./types.ts").Lead): Promise<DripContext> {
+  const token = lead.unsubscribe_token ?? "";
+  const base = config.publicAppUrl;
+  let schoolName: string | undefined;
+  let isPartner = false;
+  if (lead.school_slug) {
+    const school = await deps.store.schools.get(lead.school_slug);
+    if (school) {
+      schoolName = school.name;
+      isPartner = school.tier === "affiliate" || school.tier === "lab_partner";
+    }
+  }
+  // Soonest scheduled/active cohort with a start date → "Manila cohort".
+  let cohortLabel: string | undefined;
+  const page = await deps.store.cohorts.list(undefined, 100);
+  const upcoming = page.data
+    .filter((c) => (c.status === "scheduled" || c.status === "active") && c.starts_at)
+    .sort((a, b) => (a.starts_at ?? "").localeCompare(b.starts_at ?? ""));
+  if (upcoming[0]) {
+    const city = upcoming[0].name.split(" · ")[0].trim();
+    cohortLabel = `${city} cohort`;
+  }
+  const firstname = lead.firstname ?? lead.fullname?.split(" ")[0] ?? "";
+  return {
+    firstname,
+    ...(schoolName && { schoolName }),
+    isPartnerSchool: isPartner,
+    ...(cohortLabel && { cohortLabel }),
+    enrichUrl: `${base}/#/enrich?token=${encodeURIComponent(token)}`,
+    learnUrl: `${base}/#/`,
+    signupUrl: `${base}/#/signup`,
+    unsubUrl: `${base}/#/unsubscribe?token=${encodeURIComponent(token)}`,
+  };
+}
+
+/**
+ * Advance the drip by one step for every eligible lead. External-cron
+ * triggered; guarded by DRIP_TICK_SECRET (503 when unset, 401 on mismatch).
+ * Re-entrant: dedupes by (lead, next_step) via drip_step + the per-stage
+ * interval, so a double-firing cron never double-sends.
+ */
+async function postDripTick(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const secret = config.drip.tickSecret;
+  if (!secret) return err(ctx, 503, "not_configured", "DRIP_TICK_SECRET not set");
+  const provided = typeof ctx.headers["x-drip-secret"] === "string" ? ctx.headers["x-drip-secret"] : "";
+  if (!provided || !safeSecretEq(provided, secret))
+    return err(ctx, 401, "unauthorized", "bad drip secret");
+
+  const cap = Math.max(1, Math.min(1000, num(ctx.body, "cap") ?? config.drip.sendCapPerTick));
+  const scanLimit = Math.min(cap * 5, 3000);
+  const active = await deps.store.leads.dripActive(scanLimit);
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
+  let sent = 0;
+  let advanced = 0;
+  let suppressed_skipped = 0;
+  let consent_skipped = 0;
+  let not_due = 0;
+  let failed = 0;
+  let capped = 0;
+
+  for (const candidate of active) {
+    if (sent >= cap) {
+      capped++;
+      continue;
+    }
+    // Re-fetch fresh to close the TOCTOU between scan and send.
+    const lead = await deps.store.leads.get(candidate.id);
+    if (!lead) continue;
+    if (lead.unsubscribed_at) {
+      suppressed_skipped++;
+      continue;
+    }
+    const stage = lead.lifecycle_stage ?? "new";
+    if (stage !== "invited" && stage !== "engaged") continue;
+    const nextStep = (lead.drip_step ?? -1) + 1;
+    if (nextStep > DRIP_MAX_STEP) continue;
+    // Re-permission gate: an "invited" lead only ever receives stage 0.
+    if (stage === "invited" && nextStep >= 1) {
+      consent_skipped++;
+      continue;
+    }
+    // Per-stage interval (stage 0 has interval 0 → sends immediately on enroll).
+    const intervalDays = config.drip.stageIntervalDays[nextStep] ?? 7;
+    if (lead.last_contacted_at) {
+      const elapsed = nowMs - Date.parse(lead.last_contacted_at);
+      if (elapsed < intervalDays * 86_400_000) {
+        not_due++;
+        continue;
+      }
+    }
+    const dctx = await buildDripContext(deps, lead);
+    const email = renderDripStage(nextStep, dctx);
+    try {
+      await deps.email.send({
+        to: lead.email,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
+        headers: { "List-Unsubscribe": `<${dctx.unsubUrl}>` },
+      });
+    } catch {
+      // Relay failed — leave the lead due, retry next tick. No PII logged.
+      failed++;
+      continue;
+    }
+    await deps.store.leads.dripRecordSend(lead.id, nextStep, now, stageAdvanceTarget(nextStep));
+    sent++;
+    advanced++;
+  }
+  ctx.resourceType = "drip_tick";
+  send(ctx, 200, {
+    scanned: active.length,
+    sent,
+    advanced,
+    suppressed_skipped,
+    consent_skipped,
+    not_due,
+    failed,
+    capped,
+  });
+}
+
+async function postLeadDripEnroll(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["id"] ?? "";
+  const requireOptin = bool(ctx.body, "require_optin") ?? true;
+  ctx.resourceType = "lead";
+  ctx.resourceId = id;
+  const lead = await deps.store.leads.dripEnroll(id, requireOptin);
+  if (!lead) return err(ctx, 404, "not_found", "lead not found");
+  send(ctx, 200, lead);
+}
+
+async function postLeadDripPause(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["id"] ?? "";
+  ctx.resourceType = "lead";
+  ctx.resourceId = id;
+  const lead = await deps.store.leads.dripPause(id);
+  if (!lead) return err(ctx, 404, "not_found", "lead not found");
+  send(ctx, 200, lead);
+}
+
+async function postDripEnrollBatch(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const filtersRaw = obj(ctx.body, "filters") ?? {};
+  const filters = {
+    country: str(filtersRaw, "country"),
+    type: str(filtersRaw, "type") as Lead["type"] | undefined,
+    nclex_status: str(filtersRaw, "nclex_status") as Lead["nclex_status"] | undefined,
+    application_status: str(filtersRaw, "application_status") as Lead["application_status"] | undefined,
+    q: str(filtersRaw, "q"),
+  };
+  const requireOptin = bool(ctx.body, "require_optin") ?? true;
+  const capRaw = num(ctx.body, "cap") ?? 500;
+  const cap = Math.max(1, Math.min(5000, capRaw));
+  ctx.resourceType = "drip_enroll_batch";
+  send(ctx, 200, await deps.store.leads.dripEnrollBatch(filters, requireOptin, cap));
+}
+
+async function getDripOverview(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "drip_overview";
+  send(ctx, 200, await deps.store.leads.dripOverview());
+}
+
+async function postDripPreview(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const leadId = str(ctx.body, "lead_id") ?? "";
+  const step = Math.max(0, Math.min(DRIP_MAX_STEP, num(ctx.body, "step") ?? 0));
+  const lead = await deps.store.leads.get(leadId);
+  if (!lead) return err(ctx, 404, "not_found", "lead not found");
+  const dctx = await buildDripContext(deps, lead);
+  const email = renderDripStage(step, dctx);
+  ctx.resourceType = "drip_preview";
+  send(ctx, 200, { step, ...email });
+}
+
+/** Public one-click opt-out. No auth — the token is the proof. Idempotent. */
+async function postDripUnsubscribe(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const token = str(ctx.body, "token") ?? ctx.query.get("token") ?? "";
+  if (!token) return err(ctx, 400, "invalid_request", "token required");
+  const lead = await deps.store.leads.dripUnsubscribeByToken(token);
+  if (!lead) return err(ctx, 404, "not_found", "unknown token");
+  send(ctx, 200, { unsubscribed: true });
+}
+
+/** Public opt-in + school enrichment callback (the stage-0 CTA). Sets consent,
+ *  moves the lead to "engaged", and records the school when supplied. */
+async function postDripEnrich(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const token = str(ctx.body, "token") ?? "";
+  const schoolSlug = str(ctx.body, "school_slug");
+  if (!token) return err(ctx, 400, "invalid_request", "token required");
+  if (schoolSlug && !(await deps.store.schools.get(schoolSlug)))
+    return err(ctx, 400, "invalid_request", "unknown school_slug");
+  const lead = await deps.store.leads.dripConsentByToken(token, schoolSlug);
+  if (!lead) return err(ctx, 404, "not_found", "unknown token");
+  send(ctx, 200, { ok: true, lifecycle_stage: lead.lifecycle_stage });
+}
+
 // ── Outreach (Lob print + mail) ─────────────────────────────────────────────
 async function postOutreachCampaign(ctx: ReqCtx, deps: Deps): Promise<void> {
   const name = str(ctx.body, "name") ?? "";
@@ -2632,6 +2845,16 @@ export const routes: Route[] = [
   compile("GET", "/v1/leads/rollup", "leads:read", true, getLeadRollup),
   compile("GET", "/v1/leads/events/recent", "leads:read", true, listRecentLeadEvents),
   compile("GET", "/v1/leads/:id", "leads:read", true, getLead),
+  // Drip campaign (Phase 3). Operator endpoints are leads:read/write-scoped;
+  // the tick is secret-guarded (external cron); unsubscribe/enrich are public.
+  compile("POST", "/v1/drip/tick", null, false, postDripTick),
+  compile("POST", "/v1/drip/enroll-batch", "leads:write", true, postDripEnrollBatch),
+  compile("GET", "/v1/drip/overview", "leads:read", true, getDripOverview),
+  compile("POST", "/v1/drip/preview", "leads:read", true, postDripPreview),
+  compile("POST", "/v1/drip/unsubscribe", null, false, postDripUnsubscribe),
+  compile("POST", "/v1/drip/enrich", null, false, postDripEnrich),
+  compile("POST", "/v1/leads/:id/drip/enroll", "leads:write", true, postLeadDripEnroll),
+  compile("POST", "/v1/leads/:id/drip/pause", "leads:write", true, postLeadDripPause),
   // Outreach (Lob print + mail). Operator-scoped; never returned to candidates.
   compile("POST", "/v1/outreach/campaigns", "outreach:write", true, postOutreachCampaign),
   compile("GET", "/v1/outreach/campaigns", "outreach:read", true, listOutreachCampaigns),

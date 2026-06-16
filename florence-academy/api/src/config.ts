@@ -46,6 +46,17 @@ export interface Config {
    * unsigned webhooks in any environment.
    */
   lobWebhookSecret?: string;
+  /** Drip campaign (Phase 3). */
+  drip: {
+    /** Guards POST /v1/drip/tick (external cron). When unset, the tick
+     *  endpoint responds 503 — never advance the drip unguarded. */
+    tickSecret?: string;
+    /** Max emails dispatched per tick (deliverability warm-up; ramp via env). */
+    sendCapPerTick: number;
+    /** Per-stage minimum interval in days, index = stage being sent.
+     *  Stage 0 is 0 (send immediately on enroll). */
+    stageIntervalDays: number[];
+  };
 }
 
 const warnings: string[] = [];
@@ -99,6 +110,14 @@ export const config: Config = {
     ...(process.env.STRIPE_WEBHOOK_SECRET && { stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET }),
   },
   ...(process.env.LOB_WEBHOOK_SECRET && { lobWebhookSecret: process.env.LOB_WEBHOOK_SECRET }),
+  drip: {
+    ...(process.env.DRIP_TICK_SECRET && { tickSecret: process.env.DRIP_TICK_SECRET }),
+    sendCapPerTick: Number(process.env.DRIP_SEND_CAP_PER_TICK ?? 50),
+    stageIntervalDays: (process.env.DRIP_STAGE_INTERVAL_DAYS ?? "0,3,5,7,10,14")
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n)),
+  },
 };
 
 /** Emit dev-secret warnings once, after logging is ready. */

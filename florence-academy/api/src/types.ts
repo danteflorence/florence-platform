@@ -533,6 +533,23 @@ export interface Lead {
   /** Slug into the school directory, set once we can join leads to schools.
    *  Today the export doesn't carry school; we'll backfill once core ships it. */
   school_slug?: string;
+  // ── Drip campaign (Phase 3) — all optional so the CSV importer path is
+  //    untouched. A lead enters the drip only via the operator enroll flow. ──
+  /** Where the lead sits in the lifecycle funnel. Defaults to "new". */
+  lifecycle_stage?: LeadLifecycleStage;
+  /** True once the lead opts in (clicks the re-permission email's CTA) or an
+   *  operator marks a documented-consent segment. Gates every send. */
+  consent_marketing?: boolean;
+  /** 0-based index of the last drip stage SENT to this lead. */
+  drip_step?: number;
+  drip_enrolled_at?: string;
+  /** Last time any drip email was sent — gates the per-stage re-send window. */
+  last_contacted_at?: string;
+  /** Set when the lead one-click unsubscribes; terminal for the drip. */
+  unsubscribed_at?: string;
+  /** Opaque token minted at enroll time; powers the public unsubscribe +
+   *  school-enrichment callbacks (no auth, single lead). */
+  unsubscribe_token?: string;
   source: string; // "csv:2026-06-06" | "api:v1" | "manual"
   first_seen_at: string;
   last_seen_at: string;
@@ -540,14 +557,35 @@ export interface Lead {
   updated_at: string;
 }
 
+/** Lead lifecycle funnel for the drip campaign.
+ *   new        — imported, not in the drip
+ *   invited    — opt-in (re-permission) email sent, awaiting a click
+ *   engaged    — consented; receiving the value sequence
+ *   reserved   — started a deposit checkout
+ *   enrolled   — paid deposit / became a candidate
+ *   converted  — downstream outcome (RN start)
+ *   suppressed — unsubscribed or hard-bounced; terminal */
+export type LeadLifecycleStage =
+  | "new"
+  | "invited"
+  | "engaged"
+  | "reserved"
+  | "enrolled"
+  | "converted"
+  | "suppressed";
+
 /** Append-only event for every meaningful change to a Lead. Drives the
- *  "status changes since last import" reconciliation view + a future drip
- *  campaign's trigger conditions. */
+ *  "status changes since last import" reconciliation view + the drip
+ *  campaign's trigger + audit conditions. */
 export type LeadEventKind =
   | "imported"
   | "status_change"
   | "merged"
-  | "manual_edit";
+  | "manual_edit"
+  | "drip_send" // a drip email was dispatched
+  | "drip_advance" // lifecycle_stage transitioned
+  | "drip_consent" // opted in (re-permission click / enrichment)
+  | "drip_unsubscribe"; // one-click opt-out
 
 export interface LeadEvent {
   id: string; // le_…

@@ -39,6 +39,7 @@ import type {
   SchoolTier,
   Lead,
   LeadEvent,
+  LeadLifecycleStage,
   OutreachCampaign,
   OutreachCampaignStatus,
   OutreachKind,
@@ -454,6 +455,41 @@ export interface Store {
        *  "status changes since X" reconciliation view. */
       listRecent(since: string | undefined, limit: number): Promise<LeadEvent[]>;
     };
+    // ── Drip campaign (Phase 3) ────────────────────────────────────────────
+    /** Put one lead into the drip. requireOptin=true → lifecycle "invited"
+     *  (re-permission first); false → "engaged" + consent_marketing=true
+     *  (documented-consent segments). Mints unsubscribe_token. Idempotent:
+     *  re-enrolling an already-active lead is a no-op. */
+    dripEnroll(id: string, requireOptin: boolean): Promise<Lead | undefined>;
+    /** Remove a lead from the active drip (lifecycle → "new"); history kept. */
+    dripPause(id: string): Promise<Lead | undefined>;
+    /** Bulk-enroll every lead matching the filters that is not already active
+     *  and not suppressed, up to `cap`. Returns counts + a small id sample. */
+    dripEnrollBatch(
+      filters: LeadListFilters,
+      requireOptin: boolean,
+      cap: number,
+    ): Promise<{ enrolled: number; skipped: number; sample_ids: string[] }>;
+    /** Active drip leads (invited|engaged, not unsubscribed), oldest-contacted
+     *  first, up to `limit`. The tick handler does the per-stage interval math
+     *  on the returned set. */
+    dripActive(limit: number): Promise<Lead[]>;
+    /** Record a successful send: advance drip_step, stamp last_contacted_at,
+     *  optionally transition lifecycle_stage. Logs drip_send (+ drip_advance). */
+    dripRecordSend(
+      id: string,
+      nextStep: number,
+      now: string,
+      newStage?: LeadLifecycleStage,
+    ): Promise<Lead | undefined>;
+    /** Public opt-in / school-enrichment callback. Sets consent_marketing=true,
+     *  lifecycle → "engaged", and school_slug when supplied. Logs drip_consent. */
+    dripConsentByToken(token: string, schoolSlug?: string): Promise<Lead | undefined>;
+    /** Public one-click unsubscribe. Sets unsubscribed_at, lifecycle →
+     *  "suppressed". Logs drip_unsubscribe. Idempotent. */
+    dripUnsubscribeByToken(token: string): Promise<Lead | undefined>;
+    /** Funnel + rates for the ops Drip dashboard. */
+    dripOverview(): Promise<LeadDripOverview>;
   };
 }
 
@@ -547,6 +583,7 @@ export interface LeadListFilters {
   type?: Lead["type"];
   nclex_status?: Lead["nclex_status"];
   application_status?: Lead["application_status"];
+  lifecycle_stage?: Lead["lifecycle_stage"];
   /** Substring search over email + fullname. */
   q?: string;
 }
@@ -557,6 +594,17 @@ export interface LeadRollup {
   by_type: Record<string, number>;
   by_nclex_status: Record<string, number>;
   by_application_status: Record<string, number>;
+}
+
+/** Funnel + rates for the ops Drip dashboard. */
+export interface LeadDripOverview {
+  by_stage: Record<string, number>; // lifecycle_stage → count (drip leads only)
+  total_in_drip: number;
+  sends_today: number;
+  sends_7d: number;
+  due_now: number; // active leads eligible for the next tick (pre-interval estimate)
+  consent_rate: number; // engaged / (invited + engaged) — re-permission yield
+  unsubscribe_rate: number; // suppressed / ever-enrolled
 }
 
 export function paginate<T extends { id: string }>(
@@ -1337,6 +1385,11 @@ export class MemoryStore implements Store {
           l.application_status !== filters.application_status
         )
           return false;
+        if (
+          filters.lifecycle_stage &&
+          (l.lifecycle_stage ?? "new") !== filters.lifecycle_stage
+        )
+          return false;
         if (q) {
           const hay = `${l.email} ${l.fullname ?? ""} ${l.firstname ?? ""} ${l.lastname ?? ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
@@ -1383,6 +1436,217 @@ export class MemoryStore implements Store {
           .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
           .slice(0, limit);
       },
+    },
+
+    // ── Drip campaign (Phase 3) ────────────────────────────────────────────
+    dripEnroll: async (id: string, requireOptin: boolean): Promise<Lead | undefined> => {
+      const l = this._leads.find((x) => x.id === id);
+      if (!l) return undefined;
+      // Idempotent: a lead already moving through the drip stays put.
+      if (l.lifecycle_stage && l.lifecycle_stage !== "new") return l;
+      const now = new Date().toISOString();
+      const before = l.lifecycle_stage ?? "new";
+      l.lifecycle_stage = requireOptin ? "invited" : "engaged";
+      l.consent_marketing = requireOptin ? l.consent_marketing : true;
+      l.drip_step = undefined;
+      l.drip_enrolled_at = now;
+      l.unsubscribe_token = l.unsubscribe_token ?? randomBytes(24).toString("hex");
+      l.updated_at = now;
+      this._writeLeadEvent({
+        lead_id: l.id,
+        kind: "drip_advance",
+        before: { lifecycle_stage: before },
+        after: { lifecycle_stage: l.lifecycle_stage },
+        source: "drip",
+        actor: "ops",
+        occurred_at: now,
+      });
+      return l;
+    },
+    dripPause: async (id: string): Promise<Lead | undefined> => {
+      const l = this._leads.find((x) => x.id === id);
+      if (!l) return undefined;
+      const now = new Date().toISOString();
+      const before = l.lifecycle_stage ?? "new";
+      l.lifecycle_stage = "new";
+      l.updated_at = now;
+      this._writeLeadEvent({
+        lead_id: l.id,
+        kind: "drip_advance",
+        before: { lifecycle_stage: before },
+        after: { lifecycle_stage: "new" },
+        source: "drip",
+        actor: "ops",
+        occurred_at: now,
+      });
+      return l;
+    },
+    dripEnrollBatch: async (
+      filters: LeadListFilters,
+      requireOptin: boolean,
+      cap: number,
+    ): Promise<{ enrolled: number; skipped: number; sample_ids: string[] }> => {
+      const q = filters.q?.trim().toLowerCase();
+      const match = (l: Lead) => {
+        if (filters.country && l.country !== filters.country) return false;
+        if (filters.type && l.type !== filters.type) return false;
+        if (filters.nclex_status && l.nclex_status !== filters.nclex_status) return false;
+        if (filters.application_status && l.application_status !== filters.application_status)
+          return false;
+        if (q) {
+          const hay = `${l.email} ${l.fullname ?? ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      };
+      let enrolled = 0;
+      let skipped = 0;
+      const sample_ids: string[] = [];
+      for (const l of this._leads) {
+        if (!match(l)) continue;
+        const stage = l.lifecycle_stage ?? "new";
+        if (stage !== "new" || l.unsubscribed_at) {
+          skipped++;
+          continue;
+        }
+        if (enrolled >= cap) {
+          skipped++;
+          continue;
+        }
+        await this.leads.dripEnroll(l.id, requireOptin);
+        enrolled++;
+        if (sample_ids.length < 10) sample_ids.push(l.id);
+      }
+      return { enrolled, skipped, sample_ids };
+    },
+    dripActive: async (limit: number): Promise<Lead[]> =>
+      this._leads
+        .filter(
+          (l) =>
+            !l.unsubscribed_at &&
+            (l.lifecycle_stage === "invited" || l.lifecycle_stage === "engaged"),
+        )
+        // Oldest-contacted first (never-contacted = undefined sorts first).
+        .sort((a, b) => (a.last_contacted_at ?? "").localeCompare(b.last_contacted_at ?? ""))
+        .slice(0, limit),
+    dripRecordSend: async (
+      id: string,
+      nextStep: number,
+      now: string,
+      newStage?: LeadLifecycleStage,
+    ): Promise<Lead | undefined> => {
+      const l = this._leads.find((x) => x.id === id);
+      if (!l) return undefined;
+      const beforeStage = l.lifecycle_stage ?? "new";
+      l.drip_step = nextStep;
+      l.last_contacted_at = now;
+      l.updated_at = now;
+      this._writeLeadEvent({
+        lead_id: l.id,
+        kind: "drip_send",
+        after: { drip_step: nextStep, sent_at: now },
+        source: "drip",
+        actor: "system",
+        occurred_at: now,
+      });
+      if (newStage && newStage !== beforeStage) {
+        l.lifecycle_stage = newStage;
+        this._writeLeadEvent({
+          lead_id: l.id,
+          kind: "drip_advance",
+          before: { lifecycle_stage: beforeStage },
+          after: { lifecycle_stage: newStage },
+          source: "drip",
+          actor: "system",
+          occurred_at: now,
+        });
+      }
+      return l;
+    },
+    dripConsentByToken: async (
+      token: string,
+      schoolSlug?: string,
+    ): Promise<Lead | undefined> => {
+      const l = this._leads.find((x) => x.unsubscribe_token === token);
+      if (!l) return undefined;
+      const now = new Date().toISOString();
+      const beforeStage = l.lifecycle_stage ?? "new";
+      l.consent_marketing = true;
+      if (l.lifecycle_stage !== "engaged") l.lifecycle_stage = "engaged";
+      if (schoolSlug) l.school_slug = schoolSlug.toUpperCase();
+      l.updated_at = now;
+      this._writeLeadEvent({
+        lead_id: l.id,
+        kind: "drip_consent",
+        before: { lifecycle_stage: beforeStage },
+        after: {
+          lifecycle_stage: l.lifecycle_stage,
+          consent_marketing: true,
+          ...(schoolSlug && { school_slug: l.school_slug }),
+        },
+        source: "drip",
+        actor: "lead",
+        occurred_at: now,
+      });
+      return l;
+    },
+    dripUnsubscribeByToken: async (token: string): Promise<Lead | undefined> => {
+      const l = this._leads.find((x) => x.unsubscribe_token === token);
+      if (!l) return undefined;
+      if (l.unsubscribed_at) return l; // idempotent
+      const now = new Date().toISOString();
+      const beforeStage = l.lifecycle_stage ?? "new";
+      l.unsubscribed_at = now;
+      l.lifecycle_stage = "suppressed";
+      l.updated_at = now;
+      this._writeLeadEvent({
+        lead_id: l.id,
+        kind: "drip_unsubscribe",
+        before: { lifecycle_stage: beforeStage },
+        after: { lifecycle_stage: "suppressed", unsubscribed_at: now },
+        source: "drip",
+        actor: "lead",
+        occurred_at: now,
+      });
+      return l;
+    },
+    dripOverview: async (): Promise<LeadDripOverview> => {
+      const by_stage: Record<string, number> = {};
+      let total_in_drip = 0;
+      let invited = 0;
+      let engaged = 0;
+      let suppressed = 0;
+      let everEnrolled = 0;
+      let due_now = 0;
+      for (const l of this._leads) {
+        if (!l.drip_enrolled_at) continue;
+        everEnrolled++;
+        const stage = l.lifecycle_stage ?? "new";
+        by_stage[stage] = (by_stage[stage] ?? 0) + 1;
+        if (stage !== "new") total_in_drip++;
+        if (stage === "invited") invited++;
+        if (stage === "engaged") engaged++;
+        if (stage === "suppressed") suppressed++;
+        if (!l.unsubscribed_at && (stage === "invited" || stage === "engaged")) due_now++;
+      }
+      const todayPrefix = new Date().toISOString().slice(0, 10);
+      const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+      let sends_today = 0;
+      let sends_7d = 0;
+      for (const e of this._leadEvents) {
+        if (e.kind !== "drip_send") continue;
+        if (e.occurred_at.startsWith(todayPrefix)) sends_today++;
+        if (e.occurred_at >= weekAgo) sends_7d++;
+      }
+      return {
+        by_stage,
+        total_in_drip,
+        sends_today,
+        sends_7d,
+        due_now,
+        consent_rate: invited + engaged > 0 ? engaged / (invited + engaged) : 0,
+        unsubscribe_rate: everEnrolled > 0 ? suppressed / everEnrolled : 0,
+      };
     },
   };
 

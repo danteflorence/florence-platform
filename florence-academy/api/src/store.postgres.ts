@@ -5,6 +5,7 @@
 // with a fake (see test/postgres.ts). `createPgClient` wires the real `pg`
 // driver, lazily imported so the reference build needs no dependency.
 
+import { randomBytes } from "node:crypto";
 import type { FieldCrypto } from "./crypto.ts";
 import type {
   ApiClient,
@@ -41,6 +42,7 @@ import type {
   LeadInput,
   LeadListFilters,
   LeadRollup,
+  LeadDripOverview,
   OutcomeInput,
   Page,
   PathwayTaskInput,
@@ -53,7 +55,13 @@ import type {
   Store,
 } from "./store.ts";
 import { walkthroughBodyHash, contentHash, rollupAnalytics } from "./store.ts";
-import type { Lead, LeadEvent, RemediationAssignment, RemediationStatus } from "./types.ts";
+import type {
+  Lead,
+  LeadEvent,
+  LeadLifecycleStage,
+  RemediationAssignment,
+  RemediationStatus,
+} from "./types.ts";
 import type { Walkthrough, WalkthroughStatus, WalkthroughUpsertInput } from "./walkthroughTypes.ts";
 import { emptyLinkedContent } from "./walkthroughTypes.ts";
 import type { QuestionResponse, QuestionAnalytics } from "./types.ts";
@@ -1118,6 +1126,15 @@ export class PostgresStore implements Store {
     ...(r["video_screen"] != null && { video_screen: Boolean(r["video_screen"]) }),
     ...(r["signup_at"] != null && { signup_at: iso(r["signup_at"]) }),
     ...(r["school_slug"] != null && { school_slug: String(r["school_slug"]) }),
+    ...(r["lifecycle_stage"] != null && {
+      lifecycle_stage: String(r["lifecycle_stage"]) as Lead["lifecycle_stage"],
+    }),
+    ...(r["consent_marketing"] != null && { consent_marketing: Boolean(r["consent_marketing"]) }),
+    ...(r["drip_step"] != null && { drip_step: Number(r["drip_step"]) }),
+    ...(r["drip_enrolled_at"] != null && { drip_enrolled_at: iso(r["drip_enrolled_at"]) }),
+    ...(r["last_contacted_at"] != null && { last_contacted_at: iso(r["last_contacted_at"]) }),
+    ...(r["unsubscribed_at"] != null && { unsubscribed_at: iso(r["unsubscribed_at"]) }),
+    ...(r["unsubscribe_token"] != null && { unsubscribe_token: String(r["unsubscribe_token"]) }),
   });
 
   leads = {
@@ -1264,6 +1281,8 @@ export class PostgresStore implements Store {
       if (filters.nclex_status) conds.push(`nclex_status = ${p(filters.nclex_status)}`);
       if (filters.application_status)
         conds.push(`application_status = ${p(filters.application_status)}`);
+      if (filters.lifecycle_stage)
+        conds.push(`COALESCE(lifecycle_stage, 'new') = ${p(filters.lifecycle_stage)}`);
       if (filters.q) {
         const q = `%${filters.q.trim().toLowerCase()}%`;
         conds.push(`(lower(email) LIKE ${p(q)} OR lower(fullname) LIKE ${p(q)})`);
@@ -1335,6 +1354,199 @@ export class PostgresStore implements Store {
             );
         return rows.map(rowToLeadEvent);
       },
+    },
+
+    // ── Drip campaign (Phase 3) ────────────────────────────────────────────
+    dripEnroll: async (id: string, requireOptin: boolean): Promise<Lead | undefined> => {
+      const l = await this.leads.get(id);
+      if (!l) return undefined;
+      if (l.lifecycle_stage && l.lifecycle_stage !== "new") return l; // idempotent
+      const now = new Date().toISOString();
+      const before = l.lifecycle_stage ?? "new";
+      const stage: Lead["lifecycle_stage"] = requireOptin ? "invited" : "engaged";
+      const token = l.unsubscribe_token ?? randomBytes(24).toString("hex");
+      await this.sql.query(
+        `UPDATE leads SET lifecycle_stage=$2, consent_marketing=$3, drip_step=NULL,
+           drip_enrolled_at=$4, unsubscribe_token=$5, updated_at=$4 WHERE id=$1`,
+        [id, stage, requireOptin ? l.consent_marketing ?? null : true, now, token],
+      );
+      await this.writeLeadEvent({
+        lead_id: id, kind: "drip_advance",
+        before: { lifecycle_stage: before }, after: { lifecycle_stage: stage },
+        source: "drip", actor: "ops", occurred_at: now,
+      });
+      return this.leads.get(id);
+    },
+    dripPause: async (id: string): Promise<Lead | undefined> => {
+      const l = await this.leads.get(id);
+      if (!l) return undefined;
+      const now = new Date().toISOString();
+      const before = l.lifecycle_stage ?? "new";
+      await this.sql.query(`UPDATE leads SET lifecycle_stage='new', updated_at=$2 WHERE id=$1`, [id, now]);
+      await this.writeLeadEvent({
+        lead_id: id, kind: "drip_advance",
+        before: { lifecycle_stage: before }, after: { lifecycle_stage: "new" },
+        source: "drip", actor: "ops", occurred_at: now,
+      });
+      return this.leads.get(id);
+    },
+    dripEnrollBatch: async (
+      filters: LeadListFilters,
+      requireOptin: boolean,
+      cap: number,
+    ): Promise<{ enrolled: number; skipped: number; sample_ids: string[] }> => {
+      const conds: string[] = [`COALESCE(lifecycle_stage,'new') = 'new'`, `unsubscribed_at IS NULL`];
+      const params: unknown[] = [];
+      const p = (v: unknown) => { params.push(v); return `$${params.length}`; };
+      if (filters.country) conds.push(`country = ${p(filters.country)}`);
+      if (filters.type) conds.push(`type = ${p(filters.type)}`);
+      if (filters.nclex_status) conds.push(`nclex_status = ${p(filters.nclex_status)}`);
+      if (filters.application_status) conds.push(`application_status = ${p(filters.application_status)}`);
+      if (filters.q) {
+        const q = `%${filters.q.trim().toLowerCase()}%`;
+        conds.push(`(lower(email) LIKE ${p(q)} OR lower(fullname) LIKE ${p(q)})`);
+      }
+      const rows = await this.sql.query<{ id: string }>(
+        `SELECT id FROM leads WHERE ${conds.join(" AND ")} ORDER BY created_at LIMIT ${p(cap)}`,
+        params,
+      );
+      // Count matches beyond the cap as skipped.
+      const totalRow = (
+        await this.sql.query<{ n: string }>(
+          `SELECT COUNT(*)::text AS n FROM leads WHERE ${conds.join(" AND ")}`,
+          params.slice(0, params.length - 1),
+        )
+      )[0];
+      let enrolled = 0;
+      const sample_ids: string[] = [];
+      for (const r of rows) {
+        await this.leads.dripEnroll(r.id, requireOptin);
+        enrolled++;
+        if (sample_ids.length < 10) sample_ids.push(r.id);
+      }
+      const skipped = Math.max(0, Number(totalRow?.n ?? 0) - enrolled);
+      return { enrolled, skipped, sample_ids };
+    },
+    dripActive: async (limit: number): Promise<Lead[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM leads
+         WHERE unsubscribed_at IS NULL AND COALESCE(lifecycle_stage,'new') IN ('invited','engaged')
+         ORDER BY last_contacted_at ASC NULLS FIRST LIMIT $1`,
+        [limit],
+      );
+      return rows.map(this.toLead);
+    },
+    dripRecordSend: async (
+      id: string,
+      nextStep: number,
+      now: string,
+      newStage?: LeadLifecycleStage,
+    ): Promise<Lead | undefined> => {
+      const l = await this.leads.get(id);
+      if (!l) return undefined;
+      const beforeStage = l.lifecycle_stage ?? "new";
+      await this.sql.query(
+        `UPDATE leads SET drip_step=$2, last_contacted_at=$3, updated_at=$3 WHERE id=$1`,
+        [id, nextStep, now],
+      );
+      await this.writeLeadEvent({
+        lead_id: id, kind: "drip_send",
+        after: { drip_step: nextStep, sent_at: now },
+        source: "drip", actor: "system", occurred_at: now,
+      });
+      if (newStage && newStage !== beforeStage) {
+        await this.sql.query(`UPDATE leads SET lifecycle_stage=$2, updated_at=$3 WHERE id=$1`, [id, newStage, now]);
+        await this.writeLeadEvent({
+          lead_id: id, kind: "drip_advance",
+          before: { lifecycle_stage: beforeStage }, after: { lifecycle_stage: newStage },
+          source: "drip", actor: "system", occurred_at: now,
+        });
+      }
+      return this.leads.get(id);
+    },
+    dripConsentByToken: async (token: string, schoolSlug?: string): Promise<Lead | undefined> => {
+      const row = (
+        await this.sql.query<Record<string, unknown>>(`SELECT * FROM leads WHERE unsubscribe_token = $1`, [token])
+      )[0];
+      if (!row) return undefined;
+      const l = this.toLead(row);
+      const now = new Date().toISOString();
+      const beforeStage = l.lifecycle_stage ?? "new";
+      const slug = schoolSlug ? schoolSlug.toUpperCase() : l.school_slug ?? null;
+      await this.sql.query(
+        `UPDATE leads SET consent_marketing=true, lifecycle_stage='engaged',
+           school_slug=$2, updated_at=$3 WHERE id=$1`,
+        [l.id, slug, now],
+      );
+      await this.writeLeadEvent({
+        lead_id: l.id, kind: "drip_consent",
+        before: { lifecycle_stage: beforeStage },
+        after: { lifecycle_stage: "engaged", consent_marketing: true, ...(schoolSlug && { school_slug: slug }) },
+        source: "drip", actor: "lead", occurred_at: now,
+      });
+      return this.leads.get(l.id);
+    },
+    dripUnsubscribeByToken: async (token: string): Promise<Lead | undefined> => {
+      const row = (
+        await this.sql.query<Record<string, unknown>>(`SELECT * FROM leads WHERE unsubscribe_token = $1`, [token])
+      )[0];
+      if (!row) return undefined;
+      const l = this.toLead(row);
+      if (l.unsubscribed_at) return l; // idempotent
+      const now = new Date().toISOString();
+      const beforeStage = l.lifecycle_stage ?? "new";
+      await this.sql.query(
+        `UPDATE leads SET unsubscribed_at=$2, lifecycle_stage='suppressed', updated_at=$2 WHERE id=$1`,
+        [l.id, now],
+      );
+      await this.writeLeadEvent({
+        lead_id: l.id, kind: "drip_unsubscribe",
+        before: { lifecycle_stage: beforeStage },
+        after: { lifecycle_stage: "suppressed", unsubscribed_at: now },
+        source: "drip", actor: "lead", occurred_at: now,
+      });
+      return this.leads.get(l.id);
+    },
+    dripOverview: async (): Promise<LeadDripOverview> => {
+      const byStage = await this.sql.query<{ k: string; n: string }>(
+        `SELECT COALESCE(lifecycle_stage,'new') AS k, COUNT(*)::text AS n
+         FROM leads WHERE drip_enrolled_at IS NOT NULL GROUP BY 1`,
+      );
+      const by_stage = Object.fromEntries(byStage.map((r) => [r.k, Number(r.n)]));
+      const num = (k: string) => by_stage[k] ?? 0;
+      const everEnrolled = Object.values(by_stage).reduce((a, b) => a + b, 0);
+      const total_in_drip = everEnrolled - num("new");
+      const invited = num("invited");
+      const engaged = num("engaged");
+      const today = new Date().toISOString().slice(0, 10);
+      const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+      const sToday = (
+        await this.sql.query<{ n: string }>(
+          `SELECT COUNT(*)::text AS n FROM lead_events WHERE kind='drip_send' AND occurred_at >= $1`,
+          [`${today}T00:00:00.000Z`],
+        )
+      )[0];
+      const s7 = (
+        await this.sql.query<{ n: string }>(
+          `SELECT COUNT(*)::text AS n FROM lead_events WHERE kind='drip_send' AND occurred_at >= $1`,
+          [weekAgo],
+        )
+      )[0];
+      const dueRow = (
+        await this.sql.query<{ n: string }>(
+          `SELECT COUNT(*)::text AS n FROM leads
+           WHERE unsubscribed_at IS NULL AND COALESCE(lifecycle_stage,'new') IN ('invited','engaged')`,
+        )
+      )[0];
+      return {
+        by_stage,
+        total_in_drip,
+        sends_today: Number(sToday?.n ?? 0),
+        sends_7d: Number(s7?.n ?? 0),
+        due_now: Number(dueRow?.n ?? 0),
+        consent_rate: invited + engaged > 0 ? engaged / (invited + engaged) : 0,
+        unsubscribe_rate: everEnrolled > 0 ? num("suppressed") / everEnrolled : 0,
+      };
     },
   };
 

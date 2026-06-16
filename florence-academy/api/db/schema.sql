@@ -379,12 +379,28 @@ CREATE INDEX IF NOT EXISTS leads_type_idx    ON leads (type);
 CREATE INDEX IF NOT EXISTS leads_nclex_idx   ON leads (nclex_status);
 CREATE INDEX IF NOT EXISTS leads_updated_idx ON leads (updated_at DESC);
 
+-- ── Drip campaign (Phase 3) — lifecycle + consent + send-state on each lead ──
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_stage   text NOT NULL DEFAULT 'new';
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS consent_marketing boolean;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS drip_step         integer;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS drip_enrolled_at  timestamptz;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_contacted_at timestamptz;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS unsubscribed_at   timestamptz;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS unsubscribe_token text;
+CREATE UNIQUE INDEX IF NOT EXISTS leads_unsub_token_idx ON leads (unsubscribe_token)
+  WHERE unsubscribe_token IS NOT NULL;
+CREATE INDEX IF NOT EXISTS leads_lifecycle_idx ON leads (lifecycle_stage);
+-- Hot path for the drip tick scan (oldest-contacted active leads first).
+CREATE INDEX IF NOT EXISTS leads_drip_due_idx ON leads (last_contacted_at)
+  WHERE lifecycle_stage IN ('invited','engaged') AND unsubscribed_at IS NULL;
+
 -- Append-only event log: one row per meaningful change to a lead.
 CREATE TABLE IF NOT EXISTS lead_events (
   id           text PRIMARY KEY,                  -- le_…
   lead_id      text NOT NULL REFERENCES leads (id),
   kind         text NOT NULL
-               CHECK (kind IN ('imported','status_change','merged','manual_edit')),
+               CHECK (kind IN ('imported','status_change','merged','manual_edit',
+                               'drip_send','drip_advance','drip_consent','drip_unsubscribe')),
   before_json  jsonb,
   after_json   jsonb,
   source       text NOT NULL,
@@ -395,6 +411,12 @@ CREATE TABLE IF NOT EXISTS lead_events (
 );
 CREATE INDEX IF NOT EXISTS lead_events_lead_idx     ON lead_events (lead_id, occurred_at);
 CREATE INDEX IF NOT EXISTS lead_events_occurred_idx ON lead_events (occurred_at DESC);
+-- Migrate the kind CHECK for databases created before the drip kinds existed
+-- (idempotent: drop-if-exists then re-add the full set).
+ALTER TABLE lead_events DROP CONSTRAINT IF EXISTS lead_events_kind_check;
+ALTER TABLE lead_events ADD  CONSTRAINT lead_events_kind_check
+  CHECK (kind IN ('imported','status_change','merged','manual_edit',
+                  'drip_send','drip_advance','drip_consent','drip_unsubscribe'));
 
 -- ── Outreach campaigns (Lob print + mail) ────────────────────────────────────
 -- NOTE: api/src/store.postgres.ts currently delegates outreach to an in-process

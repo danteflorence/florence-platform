@@ -15,6 +15,8 @@ process.env["CORS_ALLOWED_ORIGINS"] = "https://app.florence.academy";
 // unaffected by these.
 process.env["RATE_LIMIT_CAPACITY"] = "2000";
 process.env["RATE_LIMIT_REFILL_PER_SEC"] = "2000";
+process.env["DRIP_TICK_SECRET"] = "smoke-drip-secret";
+process.env["DRIP_STAGE_INTERVAL_DAYS"] = "0,0,0,0,0,0"; // no waiting in tests
 
 const { config } = await import("../src/config.ts");
 const { MemoryStore } = await import("../src/store.ts");
@@ -912,6 +914,116 @@ try {
   assert.ok(myAudit.data.some((e: any) => e.actor === "you")); // candidate's own actions
   assert.ok(myAudit.data.some((e: any) => e.actor === "ops")); // T-token ops actions (PATCH consent, etc.)
   ok("GET /v1/me/audit returns the candidate's own access log (actor-classified)");
+
+  // 5r) Drip campaign (Phase 3) — re-permission first, consent-gated, compliant
+  const mockEmail = deps.email as InstanceType<typeof MockEmailProvider>;
+  const DT = (await token("leads:write leads:read schools:write")).json.access_token;
+  const dripHdr = { "content-type": "application/json", ...bearer(DT) };
+  // A partner (affiliate) school for the $75 tier copy.
+  await fetch(`${base}/v1/schools`, {
+    method: "POST", headers: dripHdr,
+    body: JSON.stringify({ slug: "FLR-DRIP-PARTNER", name: "Drip Partner University", country: "Dripland", tier: "affiliate" }),
+  });
+  await fetch(`${base}/v1/leads/import`, {
+    method: "POST", headers: dripHdr,
+    body: JSON.stringify({
+      source: "smoke", leads: [
+        { email: "drip-partner@example.com", country: "Dripland", firstname: "Pia", school_slug: "FLR-DRIP-PARTNER" },
+        { email: "drip-plain@example.com", country: "Dripland", firstname: "Ben" },
+        { email: "drip-unsub@example.com", country: "Dripland", firstname: "Uma" },
+      ],
+    }),
+  });
+  const findLead = async (q: string) =>
+    (await (await fetch(`${base}/v1/leads?q=${encodeURIComponent(q)}`, { headers: bearer(DT) })).json() as any).data[0];
+
+  // Enroll the Dripland segment, re-permission first.
+  const batch = await (await fetch(`${base}/v1/drip/enroll-batch`, {
+    method: "POST", headers: dripHdr,
+    body: JSON.stringify({ filters: { country: "Dripland" }, require_optin: true }),
+  })).json() as any;
+  assert.equal(batch.enrolled, 3);
+  const partnerLead = await findLead("drip-partner@example.com");
+  assert.equal(partnerLead.lifecycle_stage, "invited");
+  assert.ok(typeof partnerLead.unsubscribe_token === "string" && partnerLead.unsubscribe_token.length > 0);
+  ok("drip enroll-batch (re-permission) → 3 leads invited, unsubscribe_token minted");
+
+  // Tick → stage 0 (opt-in) to all 3 invited leads.
+  const tick1 = await (await fetch(`${base}/v1/drip/tick`, {
+    method: "POST", headers: { "content-type": "application/json", "x-drip-secret": "smoke-drip-secret" }, body: "{}",
+  })).json() as any;
+  assert.equal(tick1.sent, 3);
+  const m0 = mockEmail.lastFor("drip-partner@example.com");
+  assert.ok(m0 && m0.subject.includes("NCLEX-RN is the next step"));
+  assert.ok(m0!.text.includes("/#/enrich?token=") && m0!.text.includes("/#/unsubscribe?token="));
+  ok("drip tick → stage-0 opt-in sent (enrich + unsubscribe URLs present)");
+
+  // Tick again → invited non-clickers are NOT advanced (consent gate proven).
+  const tick2 = await (await fetch(`${base}/v1/drip/tick`, {
+    method: "POST", headers: { "content-type": "application/json", "x-drip-secret": "smoke-drip-secret" }, body: "{}",
+  })).json() as any;
+  assert.equal(tick2.sent, 0);
+  assert.equal(tick2.consent_skipped, 3);
+  ok("drip consent gate → invited leads do not advance without opt-in");
+
+  // Opt in the two non-unsub leads (consent), then advance to the $75 stage.
+  for (const email of ["drip-partner@example.com", "drip-plain@example.com"]) {
+    const l = await findLead(email);
+    const r = await (await fetch(`${base}/v1/drip/enrich`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: l.unsubscribe_token }),
+    })).json() as any;
+    assert.equal(r.lifecycle_stage, "engaged");
+  }
+  // Two ticks (intervals are 0 in tests) → engaged leads reach stage 2.
+  for (let i = 0; i < 2; i++)
+    await fetch(`${base}/v1/drip/tick`, {
+      method: "POST", headers: { "content-type": "application/json", "x-drip-secret": "smoke-drip-secret" }, body: "{}",
+    });
+  const mp = mockEmail.lastFor("drip-partner@example.com");
+  assert.ok(mp && mp.subject.includes("$75") && mp.text.includes("25 percent"));
+  ok("drip tier copy → partner-school lead gets the $75 / 25 percent offer");
+  const mb = mockEmail.lastFor("drip-plain@example.com");
+  assert.ok(mb && !mb.text.includes("$75"));
+  ok("drip tier copy → non-partner lead gets the generic offer (no $75)");
+
+  // Unsubscribe is honored: the unsub lead gets no further sends.
+  const unsubLead = await findLead("drip-unsub@example.com");
+  const subjectBefore = mockEmail.lastFor("drip-unsub@example.com")?.subject;
+  const unsubRes = await (await fetch(`${base}/v1/drip/unsubscribe`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: unsubLead.unsubscribe_token }),
+  })).json() as any;
+  assert.equal(unsubRes.unsubscribed, true);
+  const afterUnsub = await findLead("drip-unsub@example.com");
+  assert.equal(afterUnsub.lifecycle_stage, "suppressed");
+  await fetch(`${base}/v1/drip/tick`, {
+    method: "POST", headers: { "content-type": "application/json", "x-drip-secret": "smoke-drip-secret" }, body: "{}",
+  });
+  assert.equal(mockEmail.lastFor("drip-unsub@example.com")?.subject, subjectBefore);
+  ok("drip unsubscribe → lead suppressed, no further sends");
+
+  // Secret guard.
+  const noSecret = await fetch(`${base}/v1/drip/tick`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  assert.equal(noSecret.status, 401);
+  const badSecret = await fetch(`${base}/v1/drip/tick`, {
+    method: "POST", headers: { "content-type": "application/json", "x-drip-secret": "wrong" }, body: "{}",
+  });
+  assert.equal(badSecret.status, 401);
+  ok("drip tick → 401 without/with wrong secret");
+
+  // Overview funnel.
+  const ov = await (await fetch(`${base}/v1/drip/overview`, { headers: bearer(DT) })).json() as any;
+  assert.ok(ov.by_stage.engaged >= 2 && ov.by_stage.suppressed >= 1);
+  assert.ok(ov.sends_today > 0);
+  ok("drip overview → funnel + send counts");
+
+  // Brand lint: no forbidden language / em-dashes / italics ship in any stage.
+  const { allDripCopyForLint } = await import("../src/drip_copy.ts");
+  const corpus = allDripCopyForLint().join("\n").toLowerCase();
+  for (const bad of ["—", "<em", "<i>", "visa", "fica", "immigration", " tax"])
+    assert.ok(!corpus.includes(bad), `drip copy must not contain ${JSON.stringify(bad)}`);
+  ok("drip copy brand lint → no forbidden terms / em-dashes / italics");
 
   // 6) Audit trail
   const audits = deps.audit.recent();
