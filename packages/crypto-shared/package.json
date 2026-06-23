@@ -1,0 +1,16 @@
+{
+  "name": "@florencern/crypto-shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared FlorenceRN crypto primitives for secret hashing, webhook signatures, and field encryption.",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -9,32 +9,34 @@
 // with the public key, so a leak anywhere downstream can never forge a token.
 
 import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
   createPrivateKey,
   createPublicKey,
   createSign,
   createVerify,
   generateKeyPairSync,
-  randomBytes,
-  scryptSync,
-  timingSafeEqual,
   type KeyObject,
 } from "node:crypto";
+
+export {
+  LocalKeyProvider,
+  hashSecret,
+  keyFromPassphrase,
+  localKeyProvider,
+  makeFieldCrypto,
+  safeEqual,
+  sha256hex,
+  signWebhook,
+  verifySecret,
+  verifyWebhook,
+  type FieldCrypto,
+  type KeyProvider,
+  type Keyring,
+} from "@florencern/crypto-shared";
 
 // ── base64url helpers ───────────────────────────────────────────────────────
 const enc = (buf: Buffer | string): string =>
   Buffer.from(buf).toString("base64url");
 const dec = (s: string): Buffer => Buffer.from(s, "base64url");
-
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
 
 // ── JWT claim contract (RS256) ──────────────────────────────────────────────
 // Aligned with extracted/florenceos/docs/JWT_VERIFICATION.md AND with what each
@@ -147,129 +149,4 @@ export function verifyJwtRS256(
   const auds = Array.isArray(expect.aud) ? expect.aud : [expect.aud];
   if (!auds.includes(payload.aud)) return { ok: false, error: "bad audience" };
   return { ok: true, payload };
-}
-
-// ── fast hash for high-entropy opaque tokens (refresh tokens) ───────────────
-// Refresh tokens are 256-bit random, so a plain SHA-256 (not scrypt) is the
-// correct, fast choice for the at-rest lookup hash.
-export function sha256hex(s: string): string {
-  return createHash("sha256").update(s).digest("hex");
-}
-
-// ── client-secret + password hashing (scrypt) ───────────────────────────────
-// (carried over verbatim from florence-academy/api/src/crypto.ts)
-export function hashSecret(secret: string): string {
-  const salt = randomBytes(16);
-  const hash = scryptSync(secret, salt, 64);
-  return `${salt.toString("hex")}:${hash.toString("hex")}`;
-}
-
-export function verifySecret(secret: string, stored: string): boolean {
-  const [saltHex, hashHex] = stored.split(":");
-  if (!saltHex || !hashHex) return false;
-  const hash = scryptSync(secret, Buffer.from(saltHex, "hex"), 64);
-  return safeEqual(hash.toString("hex"), hashHex);
-}
-
-// ── webhook signatures (HMAC-SHA256, replay-protected) ──────────────────────
-const MAX_WEBHOOK_AGE_SEC = 300;
-
-export function signWebhook(secret: string, body: string, tsSec: number): string {
-  const v1 = createHmac("sha256", secret).update(`${tsSec}.${body}`).digest("hex");
-  return `t=${tsSec},v1=${v1}`;
-}
-
-export function verifyWebhook(secret: string, header: string, body: string, nowSec: number): boolean {
-  const parts = Object.fromEntries(header.split(",").map((kv) => kv.split("=") as [string, string]));
-  const t = Number(parts["t"]);
-  const v1 = parts["v1"];
-  if (!Number.isFinite(t) || !v1) return false;
-  if (Math.abs(nowSec - t) > MAX_WEBHOOK_AGE_SEC) return false;
-  const expected = createHmac("sha256", secret).update(`${t}.${body}`).digest("hex");
-  return safeEqual(v1, expected);
-}
-
-// ── column-level field encryption (AES-256-GCM envelope) ────────────────────
-// (carried over verbatim from florence-academy/api/src/crypto.ts) — Core uses
-// this to encrypt RSA signing private keys at rest in the store.
-export interface FieldCrypto {
-  encrypt(plaintext: string): Promise<string>;
-  decrypt(token: string): Promise<string>;
-}
-
-export interface Keyring {
-  activeId: string;
-  keys: Record<string, Buffer>;
-}
-
-function gcmSeal(key: Buffer, plaintext: Buffer): Buffer {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const ct = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), ct]);
-}
-function gcmOpen(key: Buffer, blob: Buffer): Buffer {
-  const iv = blob.subarray(0, 12);
-  const tag = blob.subarray(12, 28);
-  const ct = blob.subarray(28);
-  const d = createDecipheriv("aes-256-gcm", key, iv);
-  d.setAuthTag(tag);
-  return Buffer.concat([d.update(ct), d.final()]);
-}
-
-export interface KeyProvider {
-  activeKeyId(): string;
-  wrap(keyId: string, dataKey: Buffer): Promise<Buffer>;
-  unwrap(keyId: string, wrapped: Buffer): Promise<Buffer>;
-}
-
-export class LocalKeyProvider implements KeyProvider {
-  private keys: Record<string, Buffer>;
-  private active: string;
-  constructor(keyring: Keyring) {
-    this.keys = keyring.keys;
-    this.active = keyring.activeId;
-    const k = this.keys[this.active];
-    if (!k || k.length !== 32) throw new Error("active KEK must be present and 32 bytes (256-bit)");
-  }
-  activeKeyId(): string {
-    return this.active;
-  }
-  async wrap(keyId: string, dataKey: Buffer): Promise<Buffer> {
-    const kek = this.keys[keyId];
-    if (!kek) throw new Error(`unknown KEK id: ${keyId}`);
-    return gcmSeal(kek, dataKey);
-  }
-  async unwrap(keyId: string, wrapped: Buffer): Promise<Buffer> {
-    const kek = this.keys[keyId];
-    if (!kek) throw new Error(`unknown KEK id: ${keyId}`);
-    return gcmOpen(kek, wrapped);
-  }
-}
-
-export function makeFieldCrypto(provider: KeyProvider): FieldCrypto {
-  return {
-    async encrypt(plaintext: string): Promise<string> {
-      const dek = randomBytes(32);
-      const keyId = provider.activeKeyId();
-      const wrapped = (await provider.wrap(keyId, dek)).toString("base64");
-      const data = gcmSeal(dek, Buffer.from(plaintext, "utf8")).toString("base64");
-      return `fe1.${keyId}.${wrapped}.${data}`;
-    },
-    async decrypt(token: string): Promise<string> {
-      const [tag, keyId, wrappedB64, dataB64] = token.split(".");
-      if (tag !== "fe1" || !keyId || !wrappedB64 || !dataB64)
-        throw new Error("malformed field ciphertext");
-      const dek = await provider.unwrap(keyId, Buffer.from(wrappedB64, "base64"));
-      return gcmOpen(dek, Buffer.from(dataB64, "base64")).toString("utf8");
-    },
-  };
-}
-
-export function localKeyProvider(key: Buffer): KeyProvider {
-  return new LocalKeyProvider({ activeId: "k0", keys: { k0: key } });
-}
-
-export function keyFromPassphrase(passphrase: string): Buffer {
-  return scryptSync(passphrase, "florence-field-enc", 32);
 }

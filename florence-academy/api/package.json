@@ -19,6 +19,7 @@
     "test": "node test/smoke.ts && node test/integration.ts && node test/hubspot.ts && node test/tls.ts && node test/walkthroughs.ts"
   },
   "dependencies": {
+    "@florencern/crypto-shared": "file:../../packages/crypto-shared",
     "agora-token": "^2.0.5"
   },
   "optionalDependencies": {
