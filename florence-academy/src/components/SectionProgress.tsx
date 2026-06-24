@@ -6,7 +6,7 @@ import { fetchProgress, upsertProgress, type ProgressStatus } from "../lib/acade
 /**
  * Per-section progress control shown at the foot of a lesson. Marks the section
  * "in progress" the first time a signed-in learner opens it, and offers a
- * "Mark complete" action that feeds the readiness rollup. Renders a gentle
+ * "Mark complete" action that keeps the learner's study status current. Renders a gentle
  * sign-in nudge when anonymous, and nothing at all when no API is configured.
  */
 export default function SectionProgress({ slug }: { slug: string }) {

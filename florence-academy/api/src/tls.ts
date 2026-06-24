@@ -1,5 +1,5 @@
 // Native TLS options. When TLS_CERT_PATH + TLS_KEY_PATH are set, the server
-// speaks HTTPS directly with a TLS 1.2 floor and a modern cipher suite — so the
+// speaks HTTPS directly with a TLS 1.2 floor and a modern cipher suite - so the
 // service no longer depends on an external terminator to protect data in
 // transit. Mutual TLS (client-cert pinning) turns on when a client CA is given.
 

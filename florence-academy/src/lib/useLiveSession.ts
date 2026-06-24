@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Florence Academy — useLiveSession
+// Florence Academy - useLiveSession
 //
 // Connects to the live class server (Socket.IO), joins a cohort room, and
 // exposes the latest authoritative snapshot plus role-gated actions. The
@@ -44,7 +44,7 @@ export interface LiveSession {
   poll: PollView | null;
   /** Instructor-only live roster (null for students / until the first roster). */
   roster: RosterView | null;
-  /** Live Q&A questions — the whole room sees the list + answered state. */
+  /** Live Q&A questions - the whole room sees the list + answered state. */
   qa: QaItem[];
   // ── actions (no-ops until connected; server enforces role) ──
   nav: (index: number) => void;
@@ -80,7 +80,7 @@ export function useLiveSession(opts: {
     setError(null);
     setRoster(null);
     setQa([]);
-    // Tracks whether this socket ever fully joined — lets us tell a first-time
+    // Tracks whether this socket ever fully joined - lets us tell a first-time
     // failure ("Offline") apart from a mid-class blip ("Reconnecting…").
     let everJoined = false;
     const socket: LiveSocket = io(liveServerUrl(), {

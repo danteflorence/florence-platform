@@ -1,4 +1,4 @@
-// The Clinical Judgment Walkthrough — a tabbed review surface that teaches HOW to
+// The Clinical Judgment Walkthrough - a tabbed review surface that teaches HOW to
 // think: the 6 NCJMM steps, why the correct answer wins, why each distractor fails +
 // the reasoning ERROR you made if you picked it, adaptive audio, and what to review
 // next. Progressive enhancement: no approved walkthrough → today's plain rationale.
@@ -69,7 +69,7 @@ export default function QuestionWalkthrough({
         )}
       </div>
 
-      {/* Error diagnosis — what reasoning error you made (only when you picked a distractor). */}
+      {/* Error diagnosis - what reasoning error you made (only when you picked a distractor). */}
       {chosenIsWrong && chosen && (
         <div className="mt-3 rounded-xl border border-vital-danger/30 bg-vital-danger/5 p-3">
           <p className="fl-eyebrow text-vital-danger">What happened</p>
@@ -111,7 +111,7 @@ export default function QuestionWalkthrough({
           <ol className="space-y-2.5">
             {v.stepRows.map((s) => (
               <li key={s.key} className={`rounded-xl border p-3 ${s.isPrimary ? "border-florence-indigo/40 bg-florence-indigo/5" : "border-florence-line"}`}>
-                <p className="text-sm font-semibold text-florence-ink">{s.order}. {s.label}{s.isPrimary ? " — focus" : ""}</p>
+                <p className="text-sm font-semibold text-florence-ink">{s.order}. {s.label}{s.isPrimary ? " - focus" : ""}</p>
                 <p className="text-xs text-florence-slate">{s.blurb}</p>
                 {s.applies && <p className="mt-1 text-sm leading-relaxed text-florence-ink">{s.applies}</p>}
                 {s.cues.length > 0 && (

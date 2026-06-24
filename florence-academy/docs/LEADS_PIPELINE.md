@@ -63,7 +63,7 @@ gets these by default.
 ```bash
 export PATH="$HOME/florence-work/.toolchain/node/bin:$PATH"
 API_URL=http://localhost:8788 \
-SEED_CLIENT_SECRET=overnight-demo-secret \
+SEED_CLIENT_SECRET=<SEED_CLIENT_SECRET> \
 node api/scripts/import-leads.mjs \
   "/path/to/users_leads_export_<DATE>.csv"
 ```

@@ -21,7 +21,7 @@ export class MemoryRevocations implements Revocations {
     const exp = this.map.get(jti);
     if (exp === undefined) return false;
     if (exp < Math.floor(Date.now() / 1000)) {
-      this.map.delete(jti); // already expired — no need to keep denying
+      this.map.delete(jti); // already expired - no need to keep denying
       return false;
     }
     return true;

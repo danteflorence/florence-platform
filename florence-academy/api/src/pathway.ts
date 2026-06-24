@@ -19,7 +19,7 @@ export interface PathwayIntake {
     sections_completed: number;
     sections_total: number;
   };
-  /** Purpose-limited consent flags — the Pathway Agent must honor these. */
+  /** Purpose-limited consent flags - the Pathway Agent must honor these. */
   consent: Consent;
   occurred_at: string;
 }

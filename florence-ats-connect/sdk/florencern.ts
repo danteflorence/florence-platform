@@ -19,6 +19,7 @@ export interface GateResult {
   missing: string[]
   allowedAction: 'express_interest' | 'apply_with_packet'
   subjectTo: string[]
+  subjectToMessage?: string
 }
 
 export class FlorenceRN {

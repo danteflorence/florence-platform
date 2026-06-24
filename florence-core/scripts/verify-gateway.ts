@@ -55,6 +55,8 @@ async function main() {
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 
   const EMP_ORG = "org-emp-1";
+  const PROGRAM = "prog-gateway";
+  const JOB = "job-gateway";
   const opsToken = mintUserSession(keys, mkUser("u-ops", "ops@florence.dev"), [grant("super_admin")]).token;
   const empToken = mintUserSession(keys, mkUser("u-emp", "emp@partner.dev"), [grant("employer", EMP_ORG)]).token;
   const noScopeToken = mintUserSession(keys, mkUser("u-non", "non@x.dev"), []).token;
@@ -71,19 +73,34 @@ async function main() {
   const nurseId = resolved.body.nurseId as string;
   await call("POST", "/v1/nurse/event", opsToken, { nurseId, source: "test", type: "pathway.licensure_status", data: { status: "issued", state: "NV" } });
   await call("POST", "/v1/nurse/event", opsToken, { nurseId, source: "test", type: "pathway.visa_status", data: { stage: "decision", outcome: "approved" } });
-  const granted = await call("POST", "/v1/consent/grant", opsToken, { nurseId, purpose: "employer_share", recipientCategory: "employer", recipientOrgId: EMP_ORG, consentTextVersion: "v1", allowedFields: ["readinessBand", "licensure"] });
+  await store.upsertProgramScope({
+    id: PROGRAM,
+    name: "Gateway employer program",
+    owner_org_id: EMP_ORG,
+    employer_org_id: EMP_ORG,
+    authorized_partner_org_ids: [],
+    authorized_actions: ["packet.read", "application.submit", "direct.submit"],
+    approved_packet_nurse_ids: [nurseId],
+    active_job_ids: [JOB],
+    status: "active",
+    created_at: nowIso(),
+  });
+  const granted = await call("POST", "/v1/consent/grant", opsToken, { nurseId, purpose: "employer_share", recipientCategory: "employer", recipientOrgId: EMP_ORG, recipientProgramId: PROGRAM, consentTextVersion: "v1", allowedFields: ["readinessBand", "licensure"] });
   ok("seed: grant employer consent → 200", granted.status === 200 && !!granted.body.consent?.id);
   const consentId = granted.body.consent.id as string;
+  const gateCheck = await call("POST", "/v1/application-gate/check", opsToken, { nurseId, employerId: EMP_ORG, programId: PROGRAM, jobRequisitionId: JOB, channel: "direct" });
+  ok("gateway: /v1/application-gate/check clears a fully gated application", gateCheck.status === 200 && gateCheck.body.gate?.ok === true);
 
   // ── the headline: read the Passport THROUGH the gateway ───────────────────
-  const emp = await call("GET", `/v1/nurses/${nurseId}/passport?view=employer`, empToken);
+  const employerGateQuery = `view=employer&programId=${PROGRAM}&jobRequisitionId=${JOB}`;
+  const emp = await call("GET", `/v1/nurses/${nurseId}/passport?${employerGateQuery}`, empToken);
   ok("gateway: employer read → 200 (from Core canonical redactor)", emp.status === 200);
   ok("gateway: employer projection OMITS visa + financing", !/visa|financ/i.test(JSON.stringify(emp.body)));
 
   const internal = await call("GET", `/v1/nurses/${nurseId}/passport?view=internal`, opsToken);
   ok("gateway: ops internal read → 200 and CARRIES visa", internal.status === 200 && /visa/i.test(JSON.stringify(internal.body)));
 
-  const esc = await call("GET", `/v1/nurses/${nurseId}/passport?view=internal`, empToken);
+  const esc = await call("GET", `/v1/nurses/${nurseId}/passport?view=internal&programId=${PROGRAM}&jobRequisitionId=${JOB}`, empToken);
   ok("gateway: employer CANNOT escalate to internal (pinned, still no visa)", esc.status === 200 && !/visa/i.test(JSON.stringify(esc.body)));
 
   const non = await call("GET", `/v1/nurses/${nurseId}/passport?view=self`, noScopeToken);
@@ -134,7 +151,7 @@ async function main() {
   const unknown = await callBody("POST", "/v1/model-gateway/tasks", opsToken, { task: "no_such_task", input: "x" });
   ok("model-gateway: unknown task ⇒ 400", unknown.status === 400);
   const costs = await call("GET", "/v1/model-gateway/costs", opsToken);
-  ok("model-gateway: costs report meter + task catalog", costs.status === 200 && typeof costs.body.calls === "number" && Array.isArray(costs.body.tasks) && costs.body.tasks.includes("ncjmm_rationale_generation"));
+  ok("model-gateway: costs report meter + task catalog", costs.status === 200 && typeof costs.body.calls === "number" && Array.isArray(costs.body.tasks) && costs.body.tasks.some((t: { task: string }) => t.task === "ncjmm_rationale_generation"));
   ok("model-gateway: employer token lacks model:run ⇒ 403", (await callBody("POST", "/v1/model-gateway/tasks", empToken, { task: "job_description_extract", input: "x" })).status === 403);
 
   // ── Outbound webhooks: register ⇒ events fan out (signed, idempotent) ─────
@@ -166,7 +183,7 @@ async function main() {
 
   // ── revoking consent immediately denies the consent-gated employer read ───
   await call("POST", "/v1/consent/revoke", opsToken, { consentId, purpose: "employer_share", nurseId });
-  const empAfter = await call("GET", `/v1/nurses/${nurseId}/passport?view=employer`, empToken);
+  const empAfter = await call("GET", `/v1/nurses/${nurseId}/passport?${employerGateQuery}`, empToken);
   ok("gateway: after consent revoke ⇒ employer read 403 (fail-closed)", empAfter.status === 403);
 
   // ── Rate limiting: a tiny-capacity gateway returns 429 under a burst ──────

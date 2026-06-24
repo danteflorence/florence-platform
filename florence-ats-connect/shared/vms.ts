@@ -53,7 +53,7 @@ export function canSubmitToVMS(args: {
     missing_gates: missing,
     subject_to: res.ok ? VMS_SUBJECT_TO : [],
     message: res.ok
-      ? 'Ready to submit a FlorenceRN employer-safe packet to the VMS/MSP — subject to consular processing, final work authorization, employer onboarding, credentialing, occupational health, and VMS/MSP acceptance.'
+      ? 'Ready to submit a FlorenceRN employer-safe packet to the VMS/MSP — interviews, offers, and starts remain subject to consular processing, final work authorization, credentialing, onboarding, employer approval, and VMS/MSP acceptance.'
       : 'Interest can be recorded now. FlorenceRN will not submit to the VMS until visa, license, consent, QA, and channel-authorization gates are complete.',
     ok: res.ok,
   }

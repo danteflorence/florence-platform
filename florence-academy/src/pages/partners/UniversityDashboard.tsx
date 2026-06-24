@@ -22,7 +22,7 @@ import {
 } from "../../lib/partnerApi";
 
 /**
- * University partner dashboard — program-level readiness distribution, top gaps,
+ * University partner dashboard - program-level readiness distribution, top gaps,
  * and an education-only funnel. NO financial, ARR, employer, or visa fields ever
  * appear here. Mission alignment: even students who don't migrate become stronger
  * nurses at home.
@@ -117,7 +117,7 @@ function Dashboard({ o }: { o: UniversityOverview }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric label="Students activated" value={String(o.candidates)} />
         <Metric label="Assessed" value={String(o.assessed)} />
-        <Metric label="Avg readiness" value={o.avg_readiness != null ? `${Math.round(o.avg_readiness * 100)}%` : "—"} />
+        <Metric label="Avg readiness" value={o.avg_readiness != null ? `${Math.round(o.avg_readiness * 100)}%` : "-"} />
         <Metric label="Avg sections" value={`${o.avg_sections_completed} / ${o.sections_total}`} accent />
       </div>
 

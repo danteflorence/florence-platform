@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PracticeItem as PracticeItemData } from "../data/hour7";
 import QuestionWalkthrough from "./QuestionWalkthrough";
+import { PracticeItemTutorButton } from "./QuestionTutorButton";
 
 /** A single inline NCLEX-style multiple-choice practice item with rationale reveal. */
 export default function PracticeItem({ item }: { item: PracticeItemData }) {
@@ -14,11 +15,20 @@ export default function PracticeItem({ item }: { item: PracticeItemData }) {
       className="fl-card my-7 overflow-hidden"
       aria-label="Practice item"
     >
-      <header className="flex items-center gap-2 border-b border-florence-line bg-florence-indigo-soft/60 px-5 py-3">
-        <span className="fl-eyebrow text-florence-indigo-dark">
-          Practice item
-        </span>
-        <span className="text-xs text-florence-slate">Select one answer</span>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-florence-line bg-florence-indigo-soft/60 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="fl-eyebrow text-florence-indigo-dark">
+            Practice item
+          </span>
+          <span className="text-xs text-florence-slate">Select one answer</span>
+        </div>
+        <PracticeItemTutorButton
+          item={item}
+          picked={selected}
+          revealed={revealed}
+          source="Lesson practice"
+          compact
+        />
       </header>
 
       <div className="px-5 py-5">
@@ -88,7 +98,7 @@ export default function PracticeItem({ item }: { item: PracticeItemData }) {
                 isCorrect ? "text-vital-ok" : "text-vital-danger"
               }`}
             >
-              {isCorrect ? "Correct" : `Not quite — the answer is ${item.answer}`}
+              {isCorrect ? "Correct" : `Not quite - the answer is ${item.answer}`}
             </span>
           )}
         </div>

@@ -11,7 +11,7 @@
 //     points at) with scope `leads:write`.
 //   - Reads the CSV with a real RFC-4180-ish parser (the export has quoted
 //     commas inside fullnames like "Lovely Grace A.").
-//   - Maps columns by header name, not by index — so adding columns upstream
+//   - Maps columns by header name, not by index - so adding columns upstream
 //     won't silently misalign data.
 //   - Lower-cases emails. Drops rows with no email.
 //   - Sends in batches of 100. Idempotent on rerun.
@@ -40,7 +40,7 @@ function fail(msg, code = 1) {
 }
 
 // RFC-4180-ish parser. Handles quoted fields with embedded commas + escaped
-// quotes ("" inside a quoted field). NOT a general CSV — but it handles the
+// quotes ("" inside a quoted field). NOT a general CSV - but it handles the
 // Florence export shape, including ragged rows.
 function parseCsv(text) {
   const rows = [];
@@ -67,7 +67,7 @@ function parseCsv(text) {
         row.push(field);
         field = "";
       } else if (c === "\r") {
-        // ignore — handled with \n
+        // ignore - handled with \n
       } else if (c === "\n") {
         row.push(field);
         rows.push(row);
@@ -115,7 +115,7 @@ const TYPE_ALLOWED = new Set(["Imported Lead", "User", "Student Lead"]);
 
 /** Coerce a parsed row into a clean lead payload. Drops out-of-vocab values
  *  (the export occasionally has phone numbers in evaluation_status from
- *  broken-quote upstream rows — those get dropped, not propagated). */
+ *  broken-quote upstream rows - those get dropped, not propagated). */
 function rowToLead(row, headers) {
   const get = (name) => normalize(row[headers.indexOf(name)]);
   const email = (get("email") ?? "").toLowerCase();
@@ -125,7 +125,7 @@ function rowToLead(row, headers) {
   const evalStatus = get("evaluation_status");
   const type = get("type");
   const sa = get("signup");
-  // The signup column is "YYYY-MM-DD HH:MM:SS" — convert to ISO.
+  // The signup column is "YYYY-MM-DD HH:MM:SS" - convert to ISO.
   const signup_at = sa && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(sa)
     ? sa.replace(" ", "T") + "Z"
     : undefined;
@@ -179,7 +179,7 @@ async function postBatch(token, source, leads, attempt = 0) {
     body: JSON.stringify({ source, leads }),
   });
   if (res.status === 429 && attempt < 6) {
-    // Exponential backoff with jitter — handles the token-bucket refill.
+    // Exponential backoff with jitter - handles the token-bucket refill.
     const delay = Math.min(15000, 500 * Math.pow(2, attempt)) + Math.floor(Math.random() * 400);
     await new Promise((r) => setTimeout(r, delay));
     return postBatch(token, source, leads, attempt + 1);
@@ -219,7 +219,7 @@ async function main() {
     }
     leads.push(lead);
   }
-  console.log(`prepared ${leads.length} valid leads (${skipped} skipped — no email)`);
+  console.log(`prepared ${leads.length} valid leads (${skipped} skipped - no email)`);
 
   const token = await getToken();
   const source = `csv:${todayLabel()}`;

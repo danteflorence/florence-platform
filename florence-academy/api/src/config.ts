@@ -42,14 +42,14 @@ export interface Config {
   };
   /**
    * Lob webhook signing secret. Per-webhook, from the Lob dashboard.
-   * When unset, /v1/outreach/webhooks/lob responds 503 — never accept
+   * When unset, /v1/outreach/webhooks/lob responds 503 - never accept
    * unsigned webhooks in any environment.
    */
   lobWebhookSecret?: string;
   /** Drip campaign (Phase 3). */
   drip: {
     /** Guards POST /v1/drip/tick (external cron). When unset, the tick
-     *  endpoint responds 503 — never advance the drip unguarded. */
+     *  endpoint responds 503 - never advance the drip unguarded. */
     tickSecret?: string;
     /** Max emails dispatched per tick (deliverability warm-up; ramp via env). */
     sendCapPerTick: number;
@@ -124,7 +124,7 @@ export const config: Config = {
 export function reportConfigWarnings(log: (msg: string) => void): void {
   if (warnings.length === 0) return;
   log(
-    `[security] generated ephemeral dev values for ${warnings.join(", ")} — ` +
+    `[security] generated ephemeral dev values for ${warnings.join(", ")} - ` +
       `set these in the environment for any shared or production use.`,
   );
 }

@@ -38,7 +38,7 @@ export default function VerifyEmail() {
               ✓
             </div>
             <h1 className="mt-3 text-2xl font-semibold">Email verified</h1>
-            <p className="mt-1 text-sm text-florence-slate">Thanks — your email is confirmed.</p>
+            <p className="mt-1 text-sm text-florence-slate">Thanks - your email is confirmed.</p>
             <Link
               to="/academy/account"
               className="mt-5 inline-block rounded-xl bg-florence-indigo px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-florence-indigo-dark"

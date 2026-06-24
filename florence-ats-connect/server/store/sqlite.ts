@@ -6,7 +6,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 // @ts-ignore - node:sqlite typings vary by @types/node version; runtime is fine under Node 22+/24.
 import { DatabaseSync } from 'node:sqlite'
-import type { Store } from './types'
+import type { DocumentAccessGrantRecord, RestrictedDocumentRecord, Store } from './types'
 import type {
   EmployerAccount, Facility, JobRequisition, FlorenceCandidate, EmployerShareConsent,
   ApplicationPacket, ATSApplication, ProductionLedgerEvent, SyncEvent, AuditEntry, AtsConnection,
@@ -18,6 +18,7 @@ import type {
   DemandReservation, JobBenefits,
   HiringSignal, ClaimedEmployerJob, NurseMarketInterest, ClaimToken,
 } from '../../shared/demand-types'
+import type { SubmissionLock } from '../../shared/vms-types'
 
 interface Stmt { run(...p: unknown[]): unknown; get(...p: unknown[]): any; all(...p: unknown[]): any[] }
 interface DB { exec(s: string): void; prepare(s: string): Stmt; close(): void }
@@ -35,14 +36,24 @@ CREATE TABLE IF NOT EXISTS candidates (id TEXT PRIMARY KEY, readiness_band TEXT,
 CREATE TABLE IF NOT EXISTS consents (id TEXT PRIMARY KEY, candidate_id TEXT, employer_id TEXT, granted_at TEXT, revoked_at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS packets (id TEXT PRIMARY KEY, candidate_id TEXT, requisition_id TEXT, employer_id TEXT, status TEXT, created_at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ats_applications (id TEXT PRIMARY KEY, packet_id TEXT, candidate_id TEXT, requisition_id TEXT, employer_id TEXT, status TEXT, created_at TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS submission_locks (id TEXT PRIMARY KEY, candidate_id TEXT, employer_id TEXT, requisition_id TEXT, channel TEXT, submission_id TEXT, status TEXT, locked_at TEXT, expires_at TEXT, json TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sublock_active_unique ON submission_locks(candidate_id, employer_id, channel) WHERE status = 'active';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sublock_active_candidate_employer ON submission_locks(candidate_id, employer_id) WHERE status = 'active';
 CREATE TABLE IF NOT EXISTS ledger_events (id TEXT PRIMARY KEY, candidate_id TEXT, employer_id TEXT, requisition_id TEXT, stage TEXT, at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sync_events (id TEXT PRIMARY KEY, employer_id TEXT, entity_type TEXT, direction TEXT, status TEXT, at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS audit_log (id TEXT PRIMARY KEY, at TEXT, actor TEXT, entity TEXT, entity_id TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS restricted_documents (id TEXT PRIMARY KEY, candidate_id TEXT, employer_id TEXT, packet_id TEXT, document_type TEXT, status TEXT, created_at TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS document_access_grants (id TEXT PRIMARY KEY, token_hash TEXT UNIQUE, document_id TEXT, candidate_id TEXT, employer_id TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS idempotency_keys (key TEXT PRIMARY KEY, status INTEGER, body TEXT NOT NULL, created_at TEXT);
 CREATE INDEX IF NOT EXISTS idx_req_employer ON requisitions(employer_id);
 CREATE INDEX IF NOT EXISTS idx_app_employer ON ats_applications(employer_id);
+CREATE INDEX IF NOT EXISTS idx_sublock_candidate_employer ON submission_locks(candidate_id, employer_id, status);
 CREATE INDEX IF NOT EXISTS idx_ledger_candidate ON ledger_events(candidate_id);
 CREATE INDEX IF NOT EXISTS idx_consent_pair ON consents(candidate_id, employer_id);
+CREATE INDEX IF NOT EXISTS idx_restricted_doc_packet ON restricted_documents(packet_id);
+CREATE INDEX IF NOT EXISTS idx_restricted_doc_employer ON restricted_documents(employer_id, status);
+CREATE INDEX IF NOT EXISTS idx_doc_grant_hash ON document_access_grants(token_hash);
+CREATE INDEX IF NOT EXISTS idx_doc_grant_doc ON document_access_grants(document_id);
 CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, employer_id TEXT, provider TEXT, status TEXT, created_at TEXT, json TEXT NOT NULL, secret TEXT);
 CREATE INDEX IF NOT EXISTS idx_conn_employer ON connections(employer_id);
 -- Demand Radar
@@ -84,6 +95,9 @@ CREATE INDEX IF NOT EXISTS idx_claimed_employer ON claimed_employer_jobs(employe
 CREATE INDEX IF NOT EXISTS idx_nmi_market ON nurse_market_interest(market, role_category);
 CREATE INDEX IF NOT EXISTS idx_claimtoken_token ON claim_tokens(token);
 `)
+  try { db.exec('ALTER TABLE document_access_grants ADD COLUMN created_at TEXT;') } catch (err) {
+    if (!String((err as Error).message ?? err).includes('duplicate column name')) throw err
+  }
   const parse = <T>(r: any): T => JSON.parse(r.json)
   const parseAll = <T>(rows: any[]): T[] => rows.map((r) => JSON.parse(r.json))
 
@@ -135,6 +149,15 @@ CREATE INDEX IF NOT EXISTS idx_claimtoken_token ON claim_tokens(token);
       async byEmployer(eid) { return parseAll<ATSApplication>(db.prepare('SELECT json FROM ats_applications WHERE employer_id = ? ORDER BY created_at DESC').all(eid)) },
       async all() { return parseAll<ATSApplication>(db.prepare('SELECT json FROM ats_applications ORDER BY created_at DESC').all()) },
     },
+    submissionLocks: {
+      async insert(l: SubmissionLock) { db.prepare('INSERT INTO submission_locks(id, candidate_id, employer_id, requisition_id, channel, submission_id, status, locked_at, expires_at, json) VALUES(?,?,?,?,?,?,?,?,?,?)').run(l.id, l.candidateId, l.employerId, l.requisitionId ?? null, l.channel, l.submissionId ?? null, l.status, l.lockedAt, l.expiresAt ?? null, JSON.stringify(l)) },
+      async update(l: SubmissionLock) { db.prepare('UPDATE submission_locks SET status = ?, submission_id = ?, expires_at = ?, json = ? WHERE id = ?').run(l.status, l.submissionId ?? null, l.expiresAt ?? null, JSON.stringify(l), l.id) },
+      async get(id) { const r = db.prepare('SELECT json FROM submission_locks WHERE id = ?').get(id); return r ? parse<SubmissionLock>(r) : null },
+      async active(candidateId, employerId) { const r = db.prepare("SELECT json FROM submission_locks WHERE candidate_id = ? AND employer_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?) ORDER BY locked_at DESC LIMIT 1").get(candidateId, employerId, new Date().toISOString()); return r ? parse<SubmissionLock>(r) : null },
+      async byCandidate(candidateId) { return parseAll<SubmissionLock>(db.prepare('SELECT json FROM submission_locks WHERE candidate_id = ? ORDER BY locked_at DESC').all(candidateId)) },
+      async bySubmission(submissionId) { const r = db.prepare('SELECT json FROM submission_locks WHERE submission_id = ? ORDER BY locked_at DESC LIMIT 1').get(submissionId); return r ? parse<SubmissionLock>(r) : null },
+      async all() { return parseAll<SubmissionLock>(db.prepare('SELECT json FROM submission_locks ORDER BY locked_at DESC').all()) },
+    },
     ledger: {
       async insert(e: ProductionLedgerEvent) { db.prepare('INSERT INTO ledger_events(id, candidate_id, employer_id, requisition_id, stage, at, json) VALUES(?,?,?,?,?,?,?)').run(e.id, e.candidateId, e.employerId ?? null, e.jobRequisitionId ?? null, e.stage, e.at, JSON.stringify(e)) },
       async byCandidate(cid) { return parseAll<ProductionLedgerEvent>(db.prepare('SELECT json FROM ledger_events WHERE candidate_id = ? ORDER BY at').all(cid)) },
@@ -150,6 +173,30 @@ CREATE INDEX IF NOT EXISTS idx_claimtoken_token ON claim_tokens(token);
     audit: {
       async log(e: AuditEntry) { db.prepare('INSERT INTO audit_log(id, at, actor, entity, entity_id, json) VALUES(?,?,?,?,?,?)').run(e.id, e.at, e.actor, e.entity, e.entityId, JSON.stringify(e)) },
       async recent(limit = 150) { return parseAll<AuditEntry>(db.prepare('SELECT json FROM audit_log ORDER BY at DESC LIMIT ?').all(limit)) },
+    },
+    restrictedDocuments: {
+      async insert(d: RestrictedDocumentRecord) {
+        db.prepare('INSERT INTO restricted_documents(id, candidate_id, employer_id, packet_id, document_type, status, created_at, json) VALUES(?,?,?,?,?,?,?,?)')
+          .run(d.id, d.candidateId, d.employerId, d.packetId ?? null, d.documentType, d.status, d.createdAt, JSON.stringify(d))
+      },
+      async update(d: RestrictedDocumentRecord) {
+        db.prepare('UPDATE restricted_documents SET status = ?, json = ? WHERE id = ?').run(d.status, JSON.stringify(d), d.id)
+      },
+      async get(id) { const r = db.prepare('SELECT json FROM restricted_documents WHERE id = ?').get(id); return r ? parse<RestrictedDocumentRecord>(r) : null },
+      async byPacket(packetId) { return parseAll<RestrictedDocumentRecord>(db.prepare('SELECT json FROM restricted_documents WHERE packet_id = ? ORDER BY created_at DESC').all(packetId)) },
+      async all() { return parseAll<RestrictedDocumentRecord>(db.prepare('SELECT json FROM restricted_documents ORDER BY created_at DESC').all()) },
+    },
+    documentAccessGrants: {
+      async insert(g: DocumentAccessGrantRecord) {
+        db.prepare('INSERT INTO document_access_grants(id, token_hash, document_id, candidate_id, employer_id, expires_at, revoked_at, created_at, json) VALUES(?,?,?,?,?,?,?,?,?)')
+          .run(g.id, g.tokenHash, g.documentId, g.candidateId, g.employerId, g.expiresAt, g.revokedAt ?? null, g.createdAt, JSON.stringify(g))
+      },
+      async update(g: DocumentAccessGrantRecord) {
+        db.prepare('UPDATE document_access_grants SET revoked_at = ?, json = ? WHERE id = ?').run(g.revokedAt ?? null, JSON.stringify(g), g.id)
+      },
+      async get(id) { const r = db.prepare('SELECT json FROM document_access_grants WHERE id = ?').get(id); return r ? parse<DocumentAccessGrantRecord>(r) : null },
+      async byTokenHash(tokenHash) { const r = db.prepare('SELECT json FROM document_access_grants WHERE token_hash = ?').get(tokenHash); return r ? parse<DocumentAccessGrantRecord>(r) : null },
+      async byDocument(documentId) { return parseAll<DocumentAccessGrantRecord>(db.prepare('SELECT json FROM document_access_grants WHERE document_id = ? ORDER BY created_at DESC').all(documentId)) },
     },
     idempotency: {
       async get(key) { const r = db.prepare('SELECT status, body FROM idempotency_keys WHERE key = ?').get(key); return r ? { status: (r as any).status as number, body: JSON.parse((r as any).body) } : null },
@@ -288,7 +335,7 @@ CREATE INDEX IF NOT EXISTS idx_claimtoken_token ON claim_tokens(token);
       async all() { return parseAll<ClaimToken>(db.prepare('SELECT json FROM claim_tokens ORDER BY created_at DESC').all()) },
     },
     async counts() {
-      const t = ['employers', 'facilities', 'requisitions', 'candidates', 'packets', 'ats_applications', 'ledger_events', 'raw_jobs', 'demand_jobs', 'job_benefits', 'tracking_clicks', 'job_interests', 'programs', 'program_slates', 'demand_reservations', 'hiring_signals', 'claimed_employer_jobs', 'nurse_market_interest', 'claim_tokens']
+      const t = ['employers', 'facilities', 'requisitions', 'candidates', 'packets', 'ats_applications', 'submission_locks', 'ledger_events', 'restricted_documents', 'document_access_grants', 'raw_jobs', 'demand_jobs', 'job_benefits', 'tracking_clicks', 'job_interests', 'programs', 'program_slates', 'demand_reservations', 'hiring_signals', 'claimed_employer_jobs', 'nurse_market_interest', 'claim_tokens']
       const out: Record<string, number> = {}
       for (const name of t) out[name] = (db.prepare(`SELECT COUNT(*) AS n FROM ${name}`).get() as any).n
       return out

@@ -5,7 +5,7 @@
 //   node scripts/generate-walkthroughs.ts --client-need pharmacological-therapies --limit 200
 //   node scripts/generate-walkthroughs.ts --section 7 --calibrated
 //
-// Source = the question banks (src/assets/banks/*.json) — the same corpus the audio
+// Source = the question banks (src/assets/banks/*.json) - the same corpus the audio
 // extractor reads. The bank's `correct` is the ANSWER KEY; correctness is taken from
 // it, NEVER from the model. Templated items (lab-/dose-/drug-) are deterministic +
 // auto-approved; everything else is AI-drafted to status='draft' for human QA.
@@ -101,7 +101,7 @@ for (const q of all) {
   n += 1;
 }
 
-console.log(`[walkthroughs] ${dry ? "DRY — would process" : "processed"} ${n}: templated(auto-approved)=${templated}, ai-drafted=${drafted}, unchanged=${fresh}`);
+console.log(`[walkthroughs] ${dry ? "DRY - would process" : "processed"} ${n}: templated(auto-approved)=${templated}, ai-drafted=${drafted}, unchanged=${fresh}`);
 console.log(`[walkthroughs] ~${Math.round(chars / 14 / 3600 * 10) / 10}h of walkthrough narration if all approved + voiced (est.)`);
 if (!dry && drafted > 0) console.log(`[walkthroughs] ${drafted} AI drafts await two-stage QA (sme-review → approve) before audio.`);
 process.exit(0);

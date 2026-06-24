@@ -14,6 +14,7 @@ import "./index.css";
 const SectionLesson = lazy(() => import("./pages/SectionLesson"));
 const SectionEbook = lazy(() => import("./pages/SectionEbook"));
 const Practice = lazy(() => import("./pages/Practice"));
+const ClinicalTutor = lazy(() => import("./pages/ClinicalTutor"));
 const SectionDeck = lazy(() => import("./pages/SectionDeck"));
 const SectionLive = lazy(() => import("./pages/SectionLive"));
 const LiveLobby = lazy(() => import("./pages/LiveLobby"));
@@ -44,14 +45,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         (vite.config.ts) so it can deploy at the domain root OR a sub-path with
         no reconfiguration. Under history routing, a hard reload at a deep URL
         like /academy/practice resolves ./assets against /academy/ and fails to
-        boot. Routing through the URL hash keeps every reload — and the on-demand
-        bank fetches — resolving against the same index.html, at any deploy path,
+        boot. Routing through the URL hash keeps every reload - and the on-demand
+        bank fetches - resolving against the same index.html, at any deploy path,
         with no server-side SPA fallback required. */}
     <HashRouter>
       <ScrollToTop />
       <CandidateProvider>
       <Routes>
-        {/* Full-screen presenter for ANY section — rendered OUTSIDE the brand
+        {/* Full-screen presenter for ANY section - rendered OUTSIDE the brand
             chrome so the deck owns the whole viewport like a slide projector. */}
         <Route
           path="academy/:sectionSlug/present"
@@ -61,7 +62,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Live synced deck for any section — also full-screen. */}
+        {/* Live synced deck for any section - also full-screen. */}
         <Route
           path="academy/:sectionSlug/live"
           element={
@@ -70,7 +71,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Internal Ops console — full-screen, NOT linked from the public app.
+        {/* Internal Ops console - full-screen, NOT linked from the public app.
             Authenticates with an operator API client entered at runtime. */}
         <Route
           path="ops/control-tower"
@@ -80,7 +81,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Instructor Console — full-screen, NOT linked from the public app.
+        {/* Instructor Console - full-screen, NOT linked from the public app.
             Own API client with a narrower scope set than ops. */}
         <Route
           path="instructor"
@@ -90,7 +91,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Partner portals — full-screen, NOT linked from the public app.
+        {/* Partner portals - full-screen, NOT linked from the public app.
             Each authenticates with its own read-scoped API client at runtime. */}
         <Route
           path="employer"
@@ -117,11 +118,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Public marketing landing — rendered OUTSIDE App so it doesn't ship
+        {/* Public marketing landing - rendered OUTSIDE App so it doesn't ship
             the enrolled-student header chrome. Redirects authenticated
             students to /learn inside the component. */}
         <Route index element={<LandingHome />} />
-        {/* Dedicated signup conversion route — public, outside App shell. */}
+        {/* Dedicated signup conversion route - public, outside App shell. */}
         <Route
           path="signup"
           element={
@@ -130,7 +131,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Suspense>
           }
         />
-        {/* Partner activation — QR + URL on the Lob outreach postcard land here.
+        {/* Partner activation - QR + URL on the Lob outreach postcard land here.
             Public; the FLOR-XXXXX code is the only auth. */}
         <Route
           path="activate"
@@ -141,7 +142,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           }
         />
         <Route element={<App />}>
-          {/* Enrolled-student Curriculum Navigator — the old home, now at /learn. */}
+          {/* Enrolled-student Curriculum Navigator - the old home, now at /learn. */}
           <Route path="learn" element={<AcademyHome />} />
           {/* Friendly alias for muscle memory + bookmarks. */}
           <Route path="academy" element={<Navigate to="/learn" replace />} />
@@ -150,6 +151,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={
               <Suspense fallback={<PageFallback />}>
                 <Practice />
+              </Suspense>
+            }
+          />
+          <Route
+            path="academy/tutor"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <ClinicalTutor />
               </Suspense>
             }
           />
@@ -191,7 +200,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             path="academy/hour-7-cardiac"
             element={<Navigate to="/academy/section-7-cardiac" replace />}
           />
-          {/* Interactive audio e-book for a section — more specific than the
+          {/* Interactive audio e-book for a section - more specific than the
               generic :sectionSlug reader below, so it must be registered first. */}
           <Route
             path="academy/:sectionSlug/ebook"
@@ -201,7 +210,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               </Suspense>
             }
           />
-          {/* Generic section reader — any section slug. Static routes above win
+          {/* Generic section reader - any section slug. Static routes above win
               by specificity; unknown slugs render a friendly "coming soon". */}
           <Route
             path="academy/:sectionSlug"

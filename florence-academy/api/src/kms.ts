@@ -28,7 +28,7 @@ export class KmsKeyProvider implements KeyProvider {
           const spec = "@aws-sdk/client-kms"; // non-literal: optional dependency
           return await import(spec);
         } catch {
-          throw new Error("@aws-sdk/client-kms is not installed — run `npm i @aws-sdk/client-kms`");
+          throw new Error("@aws-sdk/client-kms is not installed - run `npm i @aws-sdk/client-kms`");
         }
       })();
     }

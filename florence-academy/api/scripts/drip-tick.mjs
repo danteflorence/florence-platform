@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Drip tick — what the external cron calls (hourly is a good default).
+// Drip tick - what the external cron calls (hourly is a good default).
 //
 // USAGE
 //   API_URL=https://api.academy.florenceeducation.com \
@@ -9,7 +9,7 @@
 // SAFETY
 //   - The endpoint is guarded by DRIP_TICK_SECRET (the API returns 503 if the
 //     secret is unset, 401 on mismatch). The secret never leaves this call.
-//   - `cap` (optional) overrides DRIP_SEND_CAP_PER_TICK for this run — useful
+//   - `cap` (optional) overrides DRIP_SEND_CAP_PER_TICK for this run - useful
 //     for a small warm-up batch before widening.
 //   - Against the Mock email provider (no EMAIL_RELAY_URL) this is fully safe:
 //     nothing actually mails, the API just logs + advances lifecycle state.

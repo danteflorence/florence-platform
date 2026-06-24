@@ -19,8 +19,6 @@ export interface SubmitContext {
   candidate?: FlorenceCandidate | null
   /** Resume PDF riding along with the submission. */
   resume?: ResumeFile
-  /** Pre-generated public token for packet/resume links (persisted on the application). */
-  resumeToken?: string
 }
 
 export interface ChannelOutcome {
@@ -44,12 +42,12 @@ export interface SubmissionChannel {
 const manualLinkChannel: SubmissionChannel = {
   mode: 'manual_link',
   async submit(packet, requisition, employer, ctx) {
-    const token = ctx.resumeToken ?? ctx.newId()
+    if (!ctx.resume?.url) throw new Error('Document Vault signed URL required for manual packet handoff.')
     return {
       submissionMode: 'manual_link',
       // Resolves to the packet's resume PDF — the recruiter downloads it and
       // keys/uploads it into their own ATS. Zero integration required.
-      packetLink: `${ctx.baseUrl}/api/p/${token}/resume.pdf`,
+      packetLink: ctx.resume.url,
       status: 'submitted',
       atsStage: 'submitted (manual hand-off)',
       syncStatus: 'success',

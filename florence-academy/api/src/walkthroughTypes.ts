@@ -1,4 +1,4 @@
-// Clinical Judgment Walkthrough — the data model that turns every question into a
+// Clinical Judgment Walkthrough - the data model that turns every question into a
 // mini clinical-judgment lesson: the 6 NCJMM steps, per-choice "why" + the reasoning
 // ERROR a learner makes if they pick it, what to review next, and the QA workflow
 // state. A separate record keyed by questionId (not a field on Question) because the
@@ -9,7 +9,7 @@
 
 /**
  * The reasoning-error taxonomy. When a learner picks a distractor, we name the
- * cognitive error — this is what powers "what error you made" + error-typed
+ * cognitive error - this is what powers "what error you made" + error-typed
  * remediation. `null` on the correct option.
  */
 export type ErrorType =
@@ -35,7 +35,7 @@ export const ERROR_TYPES: readonly ErrorType[] = [
 export const ERROR_TYPE_LABEL: Record<ErrorType, { label: string; meaning: string }> = {
   missed_cue: { label: "Missed cue", meaning: "You didn't flag the clinically significant data in the stem." },
   misread_cue: { label: "Misread cue", meaning: "You saw the cue but interpreted it incorrectly." },
-  priority_error: { label: "Priority error", meaning: "A reasonable action — but not the first or safest one." },
+  priority_error: { label: "Priority error", meaning: "A reasonable action - but not the first or safest one." },
   scope_error: { label: "Scope / delegation error", meaning: "Outside the RN's scope or wrongly delegated." },
   safety_error: { label: "Safety error", meaning: "An unsafe delay or a low-priority action when something urgent was needed." },
   content_gap: { label: "Content gap", meaning: "The underlying knowledge wasn't there." },
@@ -87,7 +87,7 @@ export interface ClinicalJudgment {
 /** Per answer-option analysis: why it's right/wrong + the error if chosen + remediation tags. */
 export interface AnswerChoiceAnalysis {
   optionIndex: number;
-  isCorrect: boolean; // authoritative — comes from gradeQuestion, never the model
+  isCorrect: boolean; // authoritative - comes from gradeQuestion, never the model
   why_wrong_or_right: string;
   error_type_if_chosen: ErrorType | null; // null on the correct option
   remediation_tags: string[];
@@ -106,7 +106,7 @@ export interface Walkthrough {
   question_id: string;
   client_need: string;
   cjmm: string | null; // the question's primary tagged step
-  standard_rationale: string; // the existing quick rationale (30–60s audio source)
+  standard_rationale: string; // the existing quick rationale (30-60s audio source)
   clinical_judgment: ClinicalJudgment;
   answer_choice_analysis: AnswerChoiceAnalysis[];
   teach_back: string;
@@ -120,7 +120,7 @@ export interface Walkthrough {
   approved_by: string | null;
   approved_at: string | null;
   review_note: string | null;
-  content_hash: string; // over the body — idempotency + audio cache key
+  content_hash: string; // over the body - idempotency + audio cache key
   generated_at: string;
   created_at: string;
   updated_at: string;

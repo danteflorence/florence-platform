@@ -1,6 +1,6 @@
 // ───────────────────────────────────────────────────────────────────────────
 // Live A/V transport (Agora). The instructor joins as HOST (publishes camera +
-// mic); students join as AUDIENCE (subscribe-only) — Agora's "live" host/audience
+// mic); students join as AUDIENCE (subscribe-only) - Agora's "live" host/audience
 // model scales to large, globally-distributed cohorts cheaply. Slides, polls and
 // Q&A stay on the existing Socket.IO live server; this module is ONLY the media.
 //

@@ -1,8 +1,8 @@
-// Audio manifest client — maps a content key (question rationale / lesson
+// Audio manifest client - maps a content key (question rationale / lesson
 // segment) to a playable clip URL. Fetched once and cached for the session;
 // API-relative URLs are resolved against the API base. When no audio has been
 // generated (or the API is down), every lookup simply returns null and the UI
-// renders without a player — audio is a progressive enhancement, never required.
+// renders without a player - audio is a progressive enhancement, never required.
 
 import { apiBaseUrl } from "./academyAuth";
 

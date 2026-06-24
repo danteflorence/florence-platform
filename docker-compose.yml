@@ -111,7 +111,7 @@ services:
       PUBLIC_APP_URL: "https://academy.${BASE_DOMAIN}"
       DATABASE_URL: postgres://florence:${PG_PASSWORD}@academy-pg:5432/florence_academy
       FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE}
-      WEBHOOK_SECRET: ${FIELD_ENC_PASSPHRASE}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?set WEBHOOK_SECRET in .env}
       # Live classroom A/V (Agora). Blank → live page runs slides-only (no video).
       AGORA_APP_ID: ${AGORA_APP_ID:-}
       AGORA_APP_CERTIFICATE: ${AGORA_APP_CERTIFICATE:-}

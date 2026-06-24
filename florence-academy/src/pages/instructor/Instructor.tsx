@@ -18,14 +18,14 @@ import { SECTIONS } from "../../data/blueprint";
 
 // ── Top-level page ──────────────────────────────────────────────────────────
 /**
- * /instructor — the instructor's home for running a live cohort.
+ * /instructor - the instructor's home for running a live cohort.
  *
  * INTERNAL ONLY. NOT linked from the public app. Connects with an instructor
  * API client entered at runtime (never bundled), scope set narrower than ops.
  *
  * Day-one walkthrough:
  *   1. Sign in (operator API client + secret)
- *   2. Land on today's cohort — roster, deposit-paid count, next live section
+ *   2. Land on today's cohort - roster, deposit-paid count, next live section
  *   3. Run the pre-class checklist
  *   4. Hit "Start live session" → routes into the slide presenter
  *   5. Mark attendance during/after class
@@ -262,7 +262,7 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
       <h1 className="mt-2 font-serif text-2xl font-semibold">Sign in to teach</h1>
       <p className="mt-2 text-sm text-florence-slate">
         Enter your operator API client credentials. The token is held only in
-        this tab&apos;s memory — never bundled with the app and never saved to
+        this tab&apos;s memory - never bundled with the app and never saved to
         disk.
       </p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl border border-florence-line bg-white p-6">
@@ -406,7 +406,7 @@ function CohortConsole({
   const nextSection = SECTIONS.find((s) => s.n === watermark + 1) ?? null;
   const nextSectionN = nextSection?.n ?? 0;
   // Split the roster: active students (the ones you teach today) vs former
-  // students (withdrawn). The roster pane shows the active list — withdrawn
+  // students (withdrawn). The roster pane shows the active list - withdrawn
   // candidates live in a collapsed "Former students" section below.
   const activeRoster = useMemo(
     () => (roster ?? []).filter((r) => r.enrollment_status !== "withdrawn"),
@@ -465,7 +465,7 @@ function CohortConsole({
       setCopilot(cp);
       setCopilotMemo(formatMemo(cp, cohort, nextSection?.title));
     } catch (e) {
-      setCopilotMemo(`Couldn't reach the copilot endpoint — ${e instanceof Error ? e.message : "unknown error"}.`);
+      setCopilotMemo(`Couldn't reach the copilot endpoint - ${e instanceof Error ? e.message : "unknown error"}.`);
     }
   }
 
@@ -555,7 +555,7 @@ function CohortHeader({
           <>This cohort has completed the curriculum.</>
         )}
       </p>
-      {/* Curriculum progress strip — visual at-a-glance of cohort cadence. */}
+      {/* Curriculum progress strip - visual at-a-glance of cohort cadence. */}
       <div className="mt-3" aria-label={`Cohort curriculum progress: ${pctCovered}% covered`}>
         <div className="flex items-baseline justify-between">
           <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-florence-slate">
@@ -1087,7 +1087,7 @@ function formatMemo(
     lines.push(`Watch list (${cp.fallers.length}):`);
     for (const f of cp.fallers.slice(0, 10)) {
       lines.push(
-        `  · ${f.full_name ?? f.candidate_id.slice(0, 8)} — ${f.band}${f.readiness != null ? `, ${Math.round(f.readiness * 100)}%` : ""}`,
+        `  · ${f.full_name ?? f.candidate_id.slice(0, 8)} - ${f.band}${f.readiness != null ? `, ${Math.round(f.readiness * 100)}%` : ""}`,
       );
     }
   }

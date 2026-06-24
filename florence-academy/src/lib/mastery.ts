@@ -1,5 +1,5 @@
 /**
- * Per-subscale mastery model — the foundation of the closed-loop pass-rate engine.
+ * Per-subscale mastery model - the foundation of the closed-loop pass-rate engine.
  *
  * The CAT engine (`cat.ts`) estimates ONE overall ability θ. But the NCLEX gap
  * for internationally-educated nurses is concentrated in specific Client Needs
@@ -10,7 +10,7 @@
  * This reuses `estimateAbility` per partition of the response set, so the same
  * validated Rasch/EAP math gives a per-Client-Need and per-CJMM-step ability with
  * its own standard error and pass-probability. `masteryGaps` is the structured
- * successor to the string-only `focus_areas` — it returns weakest-first subscales
+ * successor to the string-only `focus_areas` - it returns weakest-first subscales
  * so the gate + remediation dispatch (P-T2) can act on them.
  *
  * Pure; no React, no I/O.
@@ -31,7 +31,7 @@ export interface SubscaleMastery {
   key: ClientNeed | CjmmStep;
   /** Posterior-mean ability for this subscale (logits). */
   theta: number;
-  /** Standard error — wide when few items have been seen in this subscale. */
+  /** Standard error - wide when few items have been seen in this subscale. */
   se: number;
   /** Projected pass probability for this subscale. */
   passProb: number;
@@ -42,7 +42,7 @@ export interface SubscaleMastery {
 /**
  * Mastery thresholds (logits). Default 0.0 = the NCLEX passing standard the CAT
  * engine uses as `passTheta`. Env-overridable; deliberately NOT a hidden constant
- * (the readiness gate calibrates these against real outcomes — see P-T4 + the
+ * (the readiness gate calibrates these against real outcomes - see P-T4 + the
  * cohort data asset). The minimum item count guards against acting on a θ that is
  * really just prior + noise.
  */

@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Florence Academy data API — enrollment, performance, and financial records for CRM sync and (later) underwriting. Reference service: Node + TypeScript, zero runtime dependencies (Node built-ins only).",
+  "description": "Florence Academy data API - enrollment, performance, and financial records for CRM sync and (later) underwriting. Reference service: Node + TypeScript, zero runtime dependencies (Node built-ins only).",
   "scripts": {
     "start": "node src/index.ts",
     "dev": "node --watch src/index.ts",
+    "build": "tsc -p tsconfig.json --noEmit",
     "migrate": "node db/migrate.mjs",
     "audio:extract": "node scripts/extract-content.ts",
     "audio:budget": "node scripts/audio-budget.ts",

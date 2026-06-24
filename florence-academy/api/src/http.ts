@@ -1,4 +1,4 @@
-// Low-level HTTP plumbing over node:http — no framework. Request context,
+// Low-level HTTP plumbing over node:http - no framework. Request context,
 // response helpers (with security headers), body parsing with a size cap,
 // token-bucket rate limiting, idempotency, small validators, and a tiny router.
 
@@ -33,13 +33,13 @@ export interface ReqCtx {
   query: URLSearchParams;
   headers: IncomingMessage["headers"];
   body: unknown;
-  /** Raw request body string — retained for signature-verified webhooks (Stripe). */
+  /** Raw request body string - retained for signature-verified webhooks (Stripe). */
   rawBody?: string;
   auth: AuthContext | null;
   requestId: string;
   ip: string;
   status: number;
-  /** The body passed to send() — retained so idempotent writes can be replayed. */
+  /** The body passed to send() - retained so idempotent writes can be replayed. */
   responseBody?: unknown;
   resourceType?: string;
   resourceId?: string;
@@ -170,7 +170,7 @@ export function authRateLimitOk(key: string): boolean {
   return true;
 }
 
-// Per-identifier (email) failed-login lockout — defeats credential stuffing even
+// Per-identifier (email) failed-login lockout - defeats credential stuffing even
 // from rotating IPs. N failures inside a window locks the account for a cooldown.
 const loginFails = new Map<string, { count: number; first: number; lockedUntil: number }>();
 const LOCK_THRESHOLD = 6;

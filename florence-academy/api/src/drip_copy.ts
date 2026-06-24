@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Candidate drip campaign copy (Phase 3) — single source of truth for the
+// Candidate drip campaign copy (Phase 3) - single source of truth for the
 // email sequence that invites internationally-educated nurses (imported as
 // `leads`) to the live NCLEX-RN bootcamp.
 //
@@ -9,7 +9,7 @@
 //   - Substitutions are simple {var} replacement; missing vars degrade
 //     gracefully (the sentence still reads).
 //
-// SEQUENCE (re-permission first — the operator default):
+// SEQUENCE (re-permission first - the operator default):
 //   step 0  invited  Welcome + "what school did you train at?" enrichment.
 //                    The ONLY email an "invited" lead gets until they opt in.
 //   step 1+ engaged  Sent only after the lead clicks (consent). Value sequence.
@@ -47,14 +47,14 @@ interface StageSpec {
    *  undefined = no transition (stay in current stage). */
   advanceTo?: "engaged";
   subject: (c: DripContext) => string;
-  /** Body paragraphs (no greeting, no unsubscribe — those are added). */
+  /** Body paragraphs (no greeting, no unsubscribe - those are added). */
   paragraphs: (c: DripContext) => string[];
 }
 
 const greeting = (c: DripContext) => `Hi ${c.firstname || "there"},`;
 
 const STAGES: StageSpec[] = [
-  // ── Step 0 — Welcome + school enrichment (the opt-in / re-permission email) ──
+  // ── Step 0 - Welcome + school enrichment (the opt-in / re-permission email) ──
   {
     subject: () => "You trained as a nurse. The NCLEX-RN is the next step.",
     paragraphs: (c) => [
@@ -63,7 +63,7 @@ const STAGES: StageSpec[] = [
       "Picking your school also unlocks any partner benefit your school qualifies for.",
     ],
   },
-  // ── Step 1 — Who we are / what the bootcamp is (engaged only) ──
+  // ── Step 1 - Who we are / what the bootcamp is (engaged only) ──
   {
     subject: () => "A live cohort, not another video library",
     paragraphs: (c) => [
@@ -72,7 +72,7 @@ const STAGES: StageSpec[] = [
       `See the schedule and what a week looks like: ${c.learnUrl}`,
     ],
   },
-  // ── Step 2 — Offer ($75 partner rate when the school qualifies) ──
+  // ── Step 2 - Offer ($75 partner rate when the school qualifies) ──
   {
     subject: (c) =>
       c.isPartnerSchool
@@ -89,7 +89,7 @@ const STAGES: StageSpec[] = [
             `Reserve your seat: ${c.signupUrl}`,
           ],
   },
-  // ── Step 3 — Cohort-aware nudge ──
+  // ── Step 3 - Cohort-aware nudge ──
   {
     subject: (c) =>
       c.cohortLabel ? `The ${c.cohortLabel} starts soon` : "The next cohort starts soon",
@@ -100,7 +100,7 @@ const STAGES: StageSpec[] = [
       `Reserve your seat: ${c.signupUrl}`,
     ],
   },
-  // ── Step 4 — Reminder ──
+  // ── Step 4 - Reminder ──
   {
     subject: () => "Still planning to take the NCLEX-RN?",
     paragraphs: (c) => [
@@ -108,7 +108,7 @@ const STAGES: StageSpec[] = [
       `Here is everything in one place: ${c.signupUrl}`,
     ],
   },
-  // ── Step 5 — Last call ──
+  // ── Step 5 - Last call ──
   {
     subject: (c) =>
       c.cohortLabel ? `Last call for the ${c.cohortLabel}` : "Last call for the next cohort",

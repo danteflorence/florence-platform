@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { completeMockCheckout } from "../lib/academyAuth";
 
 /**
- * Mock hosted-checkout page — stands in for the payment provider's hosted page
+ * Mock hosted-checkout page - stands in for the payment provider's hosted page
  * while no live processor is configured. No card is collected and no money moves;
  * "Pay" calls the dev-only mock-complete endpoint. Wiring Stripe replaces this
  * screen entirely (the API returns Stripe's URL instead of this route).

@@ -2,7 +2,7 @@ import { LEVELS, type DifficultyLevel } from "../../lib/cat";
 
 /**
  * Lets the learner (or their instructor) choose a STARTING difficulty before a
- * session — or hand the choice to FlorenceRN's adaptive engine. Whatever they
+ * session - or hand the choice to FlorenceRN's adaptive engine. Whatever they
  * pick is only a starting point: the session climbs or eases from there based on
  * how they actually perform, and the rationale is always shown afterward.
  */
@@ -29,7 +29,7 @@ export default function LevelChooser({
 
       <p className="fl-eyebrow">{title}</p>
       <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">
-        Where should we <span className="italic text-florence-indigo">start?</span>
+        Where should we start?
       </h1>
       <p className="mt-3 max-w-2xl text-florence-slate">{subtitle}</p>
 
@@ -72,7 +72,7 @@ export default function LevelChooser({
 
       <p className="mt-6 text-[11px] leading-relaxed text-florence-slate/70">
         Your choice only sets the first question's difficulty. From there the
-        session adapts to your performance, and you'll always see the rationale —
+        session adapts to your performance, and you'll always see the rationale -
         whether you got it right or wrong.
       </p>
     </div>

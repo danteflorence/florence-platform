@@ -14,11 +14,40 @@ import { principalFromRequest, isStaff, type CorePrincipal } from '../../coreAut
 import { nextActions } from '../../agents/workflow'
 import { checkReadinessGate } from '../../readinessGate'
 import { PATHWAY_OPENAPI } from './openapi'
+import {
+  createI901OrderSchema,
+  i901AttestationSchema,
+  i901QaDecisionSchema,
+  i901ReceiptSchema,
+  patchI901OrderSchema,
+  sevismateHandoffSchema,
+} from '../../../shared/schema'
+import {
+  ConsularPaymentError,
+  approveI901Receipt,
+  attestI901Order,
+  consularPaymentsDashboard,
+  consularPaymentsReconciliation,
+  createI901Order,
+  createSevismateHandoff,
+  detailForOrder,
+  patchI901Order,
+  recordI901Receipt,
+  rejectI901Receipt,
+  sevismateCsv,
+} from '../../consularPayments'
+import { store } from '../../db'
 
 export const apiV1 = Router()
 
 const h = (fn: (req: Request, res: Response) => unknown | Promise<unknown>) =>
-  (req: Request, res: Response) => { Promise.resolve(fn(req, res)).catch((err) => { if (!res.headersSent) res.status(500).json({ error: String(err?.message ?? err) }) }) }
+  (req: Request, res: Response) => {
+    Promise.resolve(fn(req, res)).catch((err) => {
+      if (res.headersSent) return
+      if (err instanceof ConsularPaymentError) return res.status(err.status).json({ error: err.message, details: err.details })
+      res.status(500).json({ error: String(err?.message ?? err) })
+    })
+  }
 
 // Authorize a per-candidate read: STAFF may read anyone; a candidate token may read
 // only its own bound candidate (principal.cand). Fail-closed (401 then 403).
@@ -27,6 +56,20 @@ async function authFor(req: Request, res: Response, candidateId: string): Promis
   if (!p) { res.status(401).json({ error: 'authentication required' }); return null }
   if (isStaff(p) || p.cand === candidateId) return p
   res.status(403).json({ error: 'forbidden' }); return null
+}
+
+async function authStaff(req: Request, res: Response): Promise<CorePrincipal | null> {
+  const p = await principalFromRequest(req)
+  if (!p) { res.status(401).json({ error: 'authentication required' }); return null }
+  if (isStaff(p)) return p
+  res.status(403).json({ error: 'staff role required' })
+  return null
+}
+
+async function authForOrder(req: Request, res: Response, orderId: string): Promise<CorePrincipal | null> {
+  const order = store.consularPaymentOrders.get(orderId)
+  if (!order) { res.status(404).json({ error: 'payment order not found' }); return null }
+  return authFor(req, res, order.candidateId)
 }
 
 // Public contract.
@@ -60,4 +103,84 @@ apiV1.get('/pathway/:id/readiness', h(async (req, res) => {
   const p = await authFor(req, res, req.params.id); if (!p) return
   const gate = await checkReadinessGate(req.params.id)
   res.json({ candidateId: req.params.id, ...gate })
+}))
+
+// --- Consular Payments: I-901 SEVIS fee -----------------------------------
+apiV1.get('/consular/payments/dashboard', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  res.json(consularPaymentsDashboard())
+}))
+
+apiV1.get('/consular/payments/reconciliation', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  res.json(consularPaymentsReconciliation())
+}))
+
+apiV1.get('/consular/payments/i901/handoff/sevismate.csv', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  res.type('text/csv').send(sevismateCsv())
+}))
+
+apiV1.post('/consular/payments/i901/orders', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  const parsed = createI901OrderSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  const order = createI901Order(parsed.data)
+  res.json(detailForOrder(order))
+}))
+
+apiV1.get('/consular/payments/i901/orders/:orderId', h(async (req, res) => {
+  const p = await authForOrder(req, res, req.params.orderId); if (!p) return
+  const order = store.consularPaymentOrders.get(req.params.orderId)
+  if (!order) return res.status(404).json({ error: 'payment order not found' })
+  res.json(detailForOrder(order))
+}))
+
+apiV1.patch('/consular/payments/i901/orders/:orderId', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  const parsed = patchI901OrderSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  const body = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== null))
+  const order = patchI901Order(req.params.orderId, body)
+  res.json(detailForOrder(order))
+}))
+
+apiV1.post('/consular/payments/i901/:orderId/attest', h(async (req, res) => {
+  const p = await authForOrder(req, res, req.params.orderId); if (!p) return
+  const parsed = i901AttestationSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  const requiredFields = new Set(['legal_name', 'date_of_birth', 'sevis_id', 'school_code', 'form_type', 'program_start_date'])
+  if (!parsed.data.confirmedFields.every((f) => requiredFields.has(f)) || parsed.data.confirmedFields.length < requiredFields.size) {
+    return res.status(400).json({ error: 'confirm every required I-901 field before handoff' })
+  }
+  const order = attestI901Order(req.params.orderId, parsed.data.signatureName)
+  res.json(detailForOrder(order))
+}))
+
+apiV1.post('/consular/payments/i901/:orderId/handoff/sevismate', h(async (req, res) => {
+  const p = await authForOrder(req, res, req.params.orderId); if (!p) return
+  const parsed = sevismateHandoffSchema.safeParse(req.body ?? {})
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  res.json(createSevismateHandoff(req.params.orderId, parsed.data.integrationMode))
+}))
+
+apiV1.post('/consular/payments/i901/:orderId/receipt', h(async (req, res) => {
+  const p = await authForOrder(req, res, req.params.orderId); if (!p) return
+  const parsed = i901ReceiptSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  res.json(recordI901Receipt(req.params.orderId, parsed.data))
+}))
+
+apiV1.post('/consular/payments/i901/:orderId/qa-approve', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  const parsed = i901QaDecisionSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  res.json(approveI901Receipt(req.params.orderId, parsed.data.reviewer))
+}))
+
+apiV1.post('/consular/payments/i901/:orderId/qa-reject', h(async (req, res) => {
+  const p = await authStaff(req, res); if (!p) return
+  const parsed = i901QaDecisionSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  res.json(rejectI901Receipt(req.params.orderId, parsed.data.reviewer, parsed.data.notes))
 }))

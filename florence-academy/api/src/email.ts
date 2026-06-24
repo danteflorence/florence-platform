@@ -1,4 +1,4 @@
-// Email delivery abstraction (transactional — currently just verification).
+// Email delivery abstraction (transactional - currently just verification).
 //
 // Like payments, the real path is provider-agnostic and DORMANT by default: with
 // no EMAIL_RELAY_URL set, a Mock provider logs the message and retains the last
@@ -10,7 +10,7 @@ export interface EmailMessage {
   subject: string;
   text: string;
   html?: string;
-  /** Extra SMTP headers forwarded to the relay — e.g. List-Unsubscribe /
+  /** Extra SMTP headers forwarded to the relay - e.g. List-Unsubscribe /
    *  List-Unsubscribe-Post (RFC 8058) for one-click opt-out. Optional;
    *  back-compatible with relays that ignore unknown fields. */
   headers?: Record<string, string>;

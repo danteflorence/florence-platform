@@ -29,7 +29,7 @@ export function createServer(deps: Deps): HttpServer | HttpsServer {
   // Guarantee the auth dependency is configured for ANY boot path. The production
   // entrypoint (index.ts) already calls this; doing it here (idempotent, reads env
   // with safe defaults) means tests/embeds that build the server directly don't hit
-  // an unconfigured coreAuth — which previously threw and surfaced as a 500 on the
+  // an unconfigured coreAuth - which previously threw and surfaced as a 500 on the
   // first authenticated request (and on every principalFromRequest route).
   configureCoreAuthFromEnv();
   const handler = (req: IncomingMessage, res: ServerResponse) => {

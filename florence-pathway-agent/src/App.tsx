@@ -119,9 +119,9 @@ function Layout() {
                 {candidates.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.nationality}</option>)}
               </select>
             )}
-            <Badge tone={meta?.llmMode === 'anthropic' ? 'success' : 'neutral'}>
+            <Badge tone={meta?.llmMode === 'model_gateway' ? 'success' : 'neutral'}>
               <Icon.sparkle className="h-3 w-3" />
-              {meta ? (meta.llmMode === 'anthropic' ? 'Claude' : 'Heuristic') : '…'}
+              {meta ? (meta.llmMode === 'model_gateway' ? 'Model Gateway' : 'Heuristic') : '…'}
             </Badge>
             {staff && (
               <button

@@ -136,7 +136,7 @@ describe("buildRoster", () => {
   it("ranks weakest client needs first and sets a next best action", () => {
     const b = byName("B");
     expect(b.focusAreas[0]).toBe("pharmacological-therapies"); // 0.3 < 0.8
-    expect(b.nextAction).toBe("Remediation — Pharmacological Therapies");
+    expect(b.nextAction).toBe("Remediation - Pharmacological Therapies");
     expect(byName("A").nextAction).toBe("Route to employer interview");
     expect(byName("C").nextAction).toBe("Assign a baseline diagnostic");
   });
@@ -148,6 +148,6 @@ describe("nextBestAction", () => {
     expect(nextBestAction("registered", "none", false, undefined)).toMatch(/baseline diagnostic/);
     expect(nextBestAction("registered", "yellow", false, undefined)).toMatch(/deposit/);
     expect(nextBestAction("attending", "green", true, undefined)).toMatch(/employer interview/);
-    expect(nextBestAction("attending", "orange", true, "Pharmacology")).toBe("Remediation — Pharmacology");
+    expect(nextBestAction("attending", "orange", true, "Pharmacology")).toBe("Remediation - Pharmacology");
   });
 });

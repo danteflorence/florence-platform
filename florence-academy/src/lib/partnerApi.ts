@@ -1,6 +1,6 @@
 // ───────────────────────────────────────────────────────────────────────────
 // Partner-portal client (employer + university). Each portal authenticates with
-// its own read-scoped API client (entered at runtime, held in sessionStorage —
+// its own read-scoped API client (entered at runtime, held in sessionStorage -
 // never bundled) and sees ONLY education readiness. No financial / ARR / visa
 // fields ever reach these surfaces.
 // ───────────────────────────────────────────────────────────────────────────

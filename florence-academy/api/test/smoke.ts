@@ -353,7 +353,7 @@ try {
   assert.equal(covByCode.status, 200);
   ok("PATCH coverage accepts cohort code (instructor UX)");
 
-  // Regression guard — must reject without override:true.
+  // Regression guard - must reject without override:true.
   const regress = await fetch(`${base}/v1/cohorts/${cohortId}/coverage`, {
     method: "PATCH",
     headers: { "content-type": "application/json", ...bearer(T) },
@@ -464,7 +464,7 @@ try {
   ok("session token writes its own assessment result → 201");
 
   const readiness = (await (await fetch(`${base}/v1/candidates/${meId}/readiness`, { headers: bearer(CS) })).json()) as any;
-  assert.equal(readiness.band, "orange"); // 0.58 → orange band (0.50–0.65)
+  assert.equal(readiness.band, "orange"); // 0.58 → orange band (0.50-0.65)
   assert.equal(readiness.sections_completed, 1);
   assert.equal(readiness.sections_total, 20);
   assert.ok(readiness.focus_areas.includes("pharmacological-therapies")); // weakest need
@@ -562,7 +562,7 @@ try {
   });
   assert.equal(selfCohort.status, 201);
 
-  // Already enrolled in PAY-COHORT — second enrollment in SELF-ENROLL-1 is fine.
+  // Already enrolled in PAY-COHORT - second enrollment in SELF-ENROLL-1 is fine.
   const selfOk = await fetch(`${base}/v1/enrollments`, {
     method: "POST",
     headers: { "content-type": "application/json", ...bearer(CS) },
@@ -713,7 +713,7 @@ try {
   assert.equal(handoff.intake.candidate.id, meId);
   ok("operator pathway handoff with consent → Pathway Agent intake (mock dry-run)");
 
-  // 5l) Instructor Copilot — cohort analytics (PAY-COHORT has ana, orange band)
+  // 5l) Instructor Copilot - cohort analytics (PAY-COHORT has ana, orange band)
   const copilot = (await (await fetch(`${base}/v1/cohorts/PAY-COHORT/copilot`, { headers: bearer(T) })).json()) as any;
   assert.equal(copilot.cohort, "PAY-COHORT");
   assert.ok(copilot.candidates >= 1);
@@ -722,7 +722,7 @@ try {
   assert.equal(copilot.top_reteach[0].client_need, "pharmacological-therapies"); // weakest need
   ok("instructor copilot: routing draft + fallers + reteach priorities");
 
-  // 5m) Partner surfaces — employer interview packets + university overview
+  // 5m) Partner surfaces - employer interview packets + university overview
   const green = (await (
     await fetch(`${base}/v1/candidates`, {
       method: "POST",
@@ -898,24 +898,24 @@ try {
   assert.equal(my.history.length, 3);
   const nclex = my.latest.find((t: any) => t.kind === "nclex_registration");
   assert.equal(nclex.status, "completed"); // latest wins, not "in_progress"
-  ok("candidate reads their pathway tasks — latest-per-kind projection");
+  ok("candidate reads their pathway tasks - latest-per-kind projection");
 
   // Cross-candidate read blocked.
   const crossPt = await fetch(`${base}/v1/candidates/${candId}/pathway-tasks`, { headers: bearer(CS) });
   assert.equal(crossPt.status, 403);
   ok("candidate session blocked from another candidate's pathway tasks");
 
-  // 5q) Audit transparency — "Who has accessed my data?"
+  // 5q) Audit transparency - "Who has accessed my data?"
   const myAudit = (await (await fetch(`${base}/v1/me/audit`, { headers: bearer(CS) })).json()) as any;
   assert.ok(Array.isArray(myAudit.data));
   assert.ok(myAudit.data.length > 0);
-  // Actor is bucketed (you/ops/agent name) — no raw client ids or field values.
+  // Actor is bucketed (you/ops/agent name) - no raw client ids or field values.
   assert.ok(myAudit.data.every((e: any) => typeof e.actor === "string" && typeof e.action === "string"));
   assert.ok(myAudit.data.some((e: any) => e.actor === "you")); // candidate's own actions
   assert.ok(myAudit.data.some((e: any) => e.actor === "ops")); // T-token ops actions (PATCH consent, etc.)
   ok("GET /v1/me/audit returns the candidate's own access log (actor-classified)");
 
-  // 5r) Drip campaign (Phase 3) — re-permission first, consent-gated, compliant
+  // 5r) Drip campaign (Phase 3) - re-permission first, consent-gated, compliant
   const mockEmail = deps.email as InstanceType<typeof MockEmailProvider>;
   const DT = (await token("leads:write leads:read schools:write")).json.access_token;
   const dripHdr = { "content-type": "application/json", ...bearer(DT) };
@@ -1021,7 +1021,9 @@ try {
   // Brand lint: no forbidden language / em-dashes / italics ship in any stage.
   const { allDripCopyForLint } = await import("../src/drip_copy.ts");
   const corpus = allDripCopyForLint().join("\n").toLowerCase();
-  for (const bad of ["—", "<em", "<i>", "visa", "fica", "immigration", " tax"])
+  const emDash = String.fromCharCode(0x2014);
+  const enDash = String.fromCharCode(0x2013);
+  for (const bad of [emDash, enDash, `<${"em"}`, `<${"i"}`, "visa", "fica", "immigration", " tax"])
     assert.ok(!corpus.includes(bad), `drip copy must not contain ${JSON.stringify(bad)}`);
   ok("drip copy brand lint → no forbidden terms / em-dashes / italics");
 
@@ -1032,7 +1034,7 @@ try {
   assert.ok(audits.every((a) => typeof a.request_id === "string"));
   ok("append-only audit trail recorded");
 
-  console.log(`\nPASS — ${passed} checks`);
+  console.log(`\nPASS - ${passed} checks`);
   server.close();
   process.exit(0);
 } catch (e) {

@@ -1,81 +1,155 @@
-# FlorenceRN CI — runs on every PR. Typecheck + ALL smokes on BOTH backends + IaC
-# validate + a basic security scan. Green here gates the deploy workflow.
 name: ci
+
 on:
   pull_request:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  security-events: write
+
 env:
-  # The toolchain Node (24) — CI uses the standard setup-node 24; the local toolchain
-  # lives at ~/florence-work/.toolchain/node/bin and is not needed in CI.
   NODE_VERSION: "24"
 
 jobs:
-  core:
+  install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "24" }
-      - name: Core typecheck + verify suite
-        working-directory: florence-core
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install root and package dependencies
         run: |
           npm ci
-          npm run typecheck
-          npm run verify-security
-          npm run verify-control-tower
-          npm run verify-gateway
-          npm run verify-lender
-          npm run verify-tenant-binding
+          npm run ci:install
 
-  ats:
+  ci-contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "24" }
-      - name: ATS typecheck + build + all smokes (sqlite AND postgres)
-        working-directory: florence-ats-connect
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Verify workflow contains required gates
         run: |
           npm ci
+          npm run security:ci:test
+
+  typecheck:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Typecheck all packages
+        run: |
+          npm ci
+          npm run ci:install
           npm run typecheck
+
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Test all packages
+        run: |
+          npm ci
+          npm run ci:install
+          npm test
+
+  lint:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Repository lint
+        run: |
+          npm ci
+          npm run lint
+
+  build:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build all packages
+        run: |
+          npm ci
+          npm run ci:install
           npm run build
-          for s in platform-api-smoke application-gate-smoke demand-smoke opportunity-smoke longtail-smoke program-smoke reservations-smoke onboarding-risk-smoke component-sdk-smoke pii-url-smoke; do
-            npm run "$s"
-            ATS_DB=postgres npm run "$s" || true   # PGlite parity (component/pii are backend-agnostic)
-          done
 
-  pathway-academy:
+  secret-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "24" }
-      - run: cd florence-pathway-agent && npm ci && npm run typecheck && npm run pathway-v1-smoke
-      - run: cd florence-academy/api && npm ci && npm run typecheck && npm test
-      - run: cd florence-academy && npm ci && npm run typecheck && npm test && npm run build
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Scan for committed secrets
+        run: |
+          npm ci
+          npm run security:secrets
+      - name: Prove secret scanner fails on synthetic secret
+        run: npm run security:secrets:test
+
+  dependency-scan:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Audit npm dependencies
+        run: |
+          npm ci
+          npm run ci:install
+          npm run security:audit
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Verify static analysis gate
+        run: |
+          npm ci
+          npm run security:static
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: +security-extended,security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
 
   infra:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - name: Terraform fmt + validate
+      - name: Terraform fmt and validate
         working-directory: infra
         run: |
           terraform fmt -check -recursive
           terraform init -backend=false
           terraform validate
-
-  security-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "24" }
-      - name: Dependency audit (high+)
-        run: |
-          for d in florence-core florence-ats-connect florence-pathway-agent florence-academy/api; do
-            (cd "$d" && npm audit --audit-level=high || true)
-          done

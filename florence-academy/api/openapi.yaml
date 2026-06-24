@@ -10,7 +10,7 @@ info:
     Idempotency-Key; performance results are append-only and immutable.
 servers:
   - url: https://api.florence.academy/v1
-    description: Production (placeholder — provision per data-residency decision)
+    description: Production (placeholder - provision per data-residency decision)
   - url: http://localhost:8088/v1
     description: Local reference service
 
@@ -166,7 +166,7 @@ paths:
 
   /payments:
     get:
-      summary: List payments (tokens & references only — no raw instrument data)
+      summary: List payments (tokens & references only - no raw instrument data)
       tags: [payments]
       security: [{ oauth2: [payments:read] }]
       parameters:
@@ -261,7 +261,7 @@ paths:
     post:
       summary: Revoke a token before its TTL (logout / kill)
       description: >
-        No body revokes the presented token (logout) — any authenticated token
+        No body revokes the presented token (logout) - any authenticated token
         may do that. Revoking a different `jti` requires tokens:mint. Revocation
         is enforced on every request via a denylist until the token's expiry.
       tags: [candidates]
@@ -378,7 +378,7 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     get:
-      summary: Roster — enrollments for the cohort + capacity/count
+      summary: Roster - enrollments for the cohort + capacity/count
       tags: [enrollments]
       security: [{ oauth2: [cohorts:read] }]
       responses:
@@ -537,7 +537,7 @@ components:
           description: ID of a prior result this row corrects (append-only).
         content_hash:
           type: string
-          description: SHA-256 of the canonical payload — tamper-evidence.
+          description: SHA-256 of the canonical payload - tamper-evidence.
         created_at: { type: string, format: date-time }
     AssessmentResultCreate:
       type: object

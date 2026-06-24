@@ -13,6 +13,7 @@ export const UNIFIED_SCOPES = [
   "passport:read:self", "passport:read:internal", "passport:read:employer",
   "passport:read:candidate", "passport:read:lender", "passport:read:university",
   "passport:write",
+  "documents:read", "documents:write",
   // ── Consent (Core canonical) ──────────────────────────────────────────────
   "consent:read", "consent:write",
   // ── Production Ledger / events (Core canonical) ───────────────────────────

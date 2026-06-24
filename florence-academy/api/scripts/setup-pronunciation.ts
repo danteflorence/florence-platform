@@ -19,10 +19,10 @@ const FILE = join(HERE, "..", "data", "clinical-pronunciation.json");
 const dry = process.argv.includes("--dry");
 
 const doc = JSON.parse(readFileSync(FILE, "utf8")) as { name: string; rules: PronRule[] };
-console.log(`[audio] pronunciation dictionary "${doc.name}" — ${doc.rules.length} rules`);
+console.log(`[audio] pronunciation dictionary "${doc.name}" - ${doc.rules.length} rules`);
 
 if (dry || !elevenlabsConfigured()) {
-  console.log(dry ? "  --dry: not uploading." : "  ELEVENLABS_API_KEY not set — printing sample, not uploading.");
+  console.log(dry ? "  --dry: not uploading." : "  ELEVENLABS_API_KEY not set - printing sample, not uploading.");
   for (const r of doc.rules.slice(0, 8)) {
     console.log(`   ${r.string_to_replace.padEnd(16)} → ${r.type === "alias" ? r.alias : `${r.phoneme} (${r.alphabet})`}`);
   }

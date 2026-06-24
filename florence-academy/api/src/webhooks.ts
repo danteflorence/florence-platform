@@ -39,7 +39,7 @@ export interface DeadLetter {
 export interface EmitterOptions {
   maxAttempts?: number;
   baseDelayMs?: number;
-  /** Disable HTTP delivery (record-only) — used by the in-process smoke test. */
+  /** Disable HTTP delivery (record-only) - used by the in-process smoke test. */
   deliver?: boolean;
 }
 

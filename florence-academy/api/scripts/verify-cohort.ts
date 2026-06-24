@@ -8,7 +8,7 @@ import { cohortPassRates, publishedReport, corridorOf, type CohortInput } from "
 
 let pass = 0, fail = 0;
 const ok = (label: string, cond: boolean, extra?: string) => {
-  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` — ${extra}` : ""}`);
+  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` - ${extra}` : ""}`);
   cond ? (pass += 1) : (fail += 1);
 };
 
@@ -57,5 +57,5 @@ ok("first-time rate uses the EARLIEST sit (fail), not the later pass", rs.sits =
 const report = publishedReport(stats, { stampIso: "2026-06-14T00:00:00Z" });
 ok("published report drops suppressed cells", report.corridors.every((c) => !c.suppressed) && report.corridors.some((c) => c.corridor === "Philippines") && !report.corridors.some((c) => c.corridor === "India"));
 
-console.log(`\n${fail ? "COHORT FAILED" : "COHORT PASSED"} — ${pass} passed, ${fail} failed`);
+console.log(`\n${fail ? "COHORT FAILED" : "COHORT PASSED"} - ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

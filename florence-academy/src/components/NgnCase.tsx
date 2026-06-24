@@ -291,7 +291,7 @@ function Dropdown({
                 : "border-florence-indigo/40 bg-florence-indigo-soft/40 text-florence-indigo-dark"
             }`}
           >
-            <option value={-1}>— select —</option>
+            <option value={-1}>- select -</option>
             {blank.options.map((o, oi) => (
               <option key={oi} value={oi}>
                 {o}
@@ -541,7 +541,7 @@ function Trend({
                     : "border-florence-line"
                 }`}
               >
-                <option value={-1}>— select —</option>
+                <option value={-1}>- select -</option>
                 {cl.options.map((o, oi) => (
                   <option key={oi} value={oi}>
                     {o}
@@ -701,7 +701,7 @@ export default function NgnCase() {
         {allSubmitted && (
           <div className="mt-5 animate-fade-up rounded-xl border border-florence-teal bg-florence-teal-soft px-5 py-4">
             <p className="font-serif text-lg text-florence-ink">
-              Case complete — {score}/{NGN_ITEMS.length} items correct
+              Case complete - {score}/{NGN_ITEMS.length} items correct
             </p>
             <p className="mt-1 text-sm text-florence-ink/90">
               You worked one patient through all six steps of clinical judgment:

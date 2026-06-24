@@ -26,13 +26,13 @@ specific, tied to retrieval) — not generic lectures.
 ```bash
 cd florence-academy/api
 # 0) one-time live setup (when you have the grant key)
-export ELEVENLABS_API_KEY=…            # (+ optional ELEVENLABS_VOICE_ID / ELEVENLABS_DICTIONARY_ID)
-export DATABASE_URL=postgres://…       # walkthrough audio reads APPROVED rows from the store
+export ELEVENLABS_API_KEY=<ELEVENLABS_API_KEY>            # (+ optional ELEVENLABS_VOICE_ID / ELEVENLABS_DICTIONARY_ID)
+export DATABASE_URL=<DATABASE_URL>       # walkthrough audio reads APPROVED rows from the store
 npm run migrate                        # create tables (incl. question_walkthroughs)
 npm run audio:dict                     # build the clinical pronunciation dictionary
 
 # 1) draft walkthroughs in tranches (AI drafts → human QA before audio)
-ANTHROPIC_API_KEY=… npm run walkthroughs:generate -- --client-need management-of-care --calibrated --limit 200
+ANTHROPIC_API_KEY=<ANTHROPIC_API_KEY> npm run walkthroughs:generate -- --client-need management-of-care --calibrated --limit 200
 #    → QA in the app (sme-review → approve) via /v1/walkthroughs
 
 # 2) (re)build the content manifest + see the budget

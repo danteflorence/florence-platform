@@ -6,7 +6,7 @@ import { useLesson } from "../lib/useLesson";
 import type { Lesson } from "../data/lessonTypes";
 
 /**
- * Any section in presenter mode — the lesson rendered as a full-bleed slide deck
+ * Any section in presenter mode - the lesson rendered as a full-bleed slide deck
  * the instructor walks through. Resolves the lesson from the URL slug; the deck
  * is a pure transform of it (see lib/deck.buildDeck).
  */

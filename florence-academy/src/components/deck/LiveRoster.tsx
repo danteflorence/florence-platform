@@ -5,7 +5,7 @@ const letter = (i: number) => String.fromCharCode(65 + i); // 0→A, 1→B …
 
 /**
  * Instructor-only live roster: who's in the room and, while a poll is live, what
- * each student picked — updating in real time. Built from the `roster` channel
+ * each student picked - updating in real time. Built from the `roster` channel
  * the server sends only to instructors, so classmate answers never leak to the
  * room. Starts collapsed as a small pill so it never covers the slide.
  */
@@ -23,7 +23,7 @@ export default function LiveRoster({ roster }: { roster: RosterView | null }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={false}
-        aria-label={`Show the live class roster — ${
+        aria-label={`Show the live class roster - ${
           live ? `${answered} of ${total} answered` : `${total} present`
         }`}
         className="fixed right-4 top-16 z-30 inline-flex items-center gap-2 rounded-full border border-florence-line bg-white/95 px-3 py-1.5 text-sm font-semibold text-florence-ink shadow-card backdrop-blur transition-colors hover:bg-florence-mist"
@@ -59,7 +59,7 @@ export default function LiveRoster({ roster }: { roster: RosterView | null }) {
             className="rounded-lg px-1.5 text-florence-slate transition-colors hover:bg-florence-mist hover:text-florence-ink"
             title="Collapse"
           >
-            <span aria-hidden>–</span>
+            <span aria-hidden>-</span>
           </button>
         </span>
       </div>
@@ -108,7 +108,7 @@ function StatusChip({ s, live }: { s: StudentStatus; live: boolean }) {
       : s.correct === false
         ? "bg-vital-danger text-white"
         : "bg-florence-teal text-white";
-  const picks = s.choices.length ? s.choices.map(letter).join(" ") : "—";
+  const picks = s.choices.length ? s.choices.map(letter).join(" ") : "-";
   const word =
     s.correct === true ? "Correct" : s.correct === false ? "Incorrect" : "Answered";
   return (

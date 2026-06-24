@@ -1,6 +1,6 @@
 // Payment provider abstraction for the $100 seat deposit.
 //
-// SECURITY: card data NEVER touches this service — checkout always happens on the
+// SECURITY: card data NEVER touches this service - checkout always happens on the
 // provider's HOSTED page. We only create a session and record the result. The
 // real Stripe provider is DORMANT unless STRIPE_SECRET_KEY is set; otherwise a
 // local mock drives the full flow offline with no money movement.
@@ -36,7 +36,7 @@ export interface PaymentProvider {
   verifyWebhook(rawBody: string, signature: string | undefined): WebhookResult | null;
 }
 
-// ── Mock provider — offline dev/test; default when no Stripe key ─────────────
+// ── Mock provider - offline dev/test; default when no Stripe key ─────────────
 export class MockPaymentProvider implements PaymentProvider {
   readonly name = "mock";
   readonly isMock = true;
@@ -58,7 +58,7 @@ export class MockPaymentProvider implements PaymentProvider {
   }
 }
 
-// ── Stripe provider — real Checkout; dormant unless a secret key is present ──
+// ── Stripe provider - real Checkout; dormant unless a secret key is present ──
 export class StripePaymentProvider implements PaymentProvider {
   readonly name = "stripe";
   readonly isMock = false;
@@ -79,7 +79,7 @@ export class StripePaymentProvider implements PaymentProvider {
     form.set("line_items[0][quantity]", "1");
     form.set("line_items[0][price_data][currency]", req.currency);
     form.set("line_items[0][price_data][unit_amount]", String(req.amountCents));
-    form.set("line_items[0][price_data][product_data][name]", "Florence Academy — seat deposit");
+    form.set("line_items[0][price_data][product_data][name]", "Florence Academy - seat deposit");
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {

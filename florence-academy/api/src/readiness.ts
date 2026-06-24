@@ -1,4 +1,4 @@
-// Readiness scoring — pure derivation of a learner-facing "passport v0" snapshot
+// Readiness scoring - pure derivation of a learner-facing "passport v0" snapshot
 // from append-only assessment_results + per-section progress. No financial fields
 // ever enter this projection (see types.ts ReadinessSnapshot).
 
@@ -10,11 +10,11 @@ import type {
   RouteClass,
 } from "./types.ts";
 
-/** The Academy's full course length — used as the progress denominator. */
+/** The Academy's full course length - used as the progress denominator. */
 export const DEFAULT_SECTIONS_TOTAL = 20;
 
 /**
- * Day-5 READINESS routing from the band — interview-ready / repeat / bridge /
+ * Day-5 READINESS routing from the band - interview-ready / repeat / bridge /
  * credential-repair. This is NOT pathway/visa routing (university, state board,
  * employer, visa timing); that's the Florence Pathway Agent's job once a
  * candidate is handed off.
@@ -46,7 +46,7 @@ const NEED_LABEL: Record<string, string> = {
 };
 
 /**
- * Learner-facing STUDY next-best-action (no pathway/visa/employer steps — those
+ * Learner-facing STUDY next-best-action (no pathway/visa/employer steps - those
  * are the Pathway Agent's). Drives the "what should I do next" on the Passport.
  */
 export function learnerNextAction(band: ReadinessBand, focusAreas: string[]): string {
@@ -58,9 +58,9 @@ export function learnerNextAction(band: ReadinessBand, focusAreas: string[]): st
     case "orange":
       return top ? `Focus your studying on ${top}.` : "Work through remediation on your weakest areas.";
     case "yellow":
-      return top ? `You're close — sharpen ${top}, then take another practice exam.` : "You're close — take another practice exam.";
+      return top ? `You're close - sharpen ${top}, then take another practice exam.` : "You're close - take another practice exam.";
     case "green":
-      return "You're exam-ready — keep sharp with a timed practice set.";
+      return "You're exam-ready - keep sharp with a timed practice set.";
   }
 }
 

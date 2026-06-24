@@ -1,7 +1,7 @@
 // Seed the Data API with a realistic demo cohort so the internal Control Tower
 // renders a believable funnel. Talks to a RUNNING API over HTTP using an M2M
 // client (default: the demo client). Deterministic (seeded RNG) so reruns look
-// the same — but candidates have no natural key, so run against a fresh API
+// the same - but candidates have no natural key, so run against a fresh API
 // (the in-memory store resets on restart) to avoid duplicates.
 //
 //   node scripts/seed.mjs
@@ -11,7 +11,7 @@ const BASE = (process.env.API_URL || "http://localhost:8088").replace(/\/$/, "")
 const CLIENT_ID = process.env.SEED_CLIENT_ID || "demo-crm";
 const CLIENT_SECRET = process.env.SEED_CLIENT_SECRET || "overnight-demo-secret";
 
-// mulberry32 — tiny deterministic PRNG (so the demo data is reproducible).
+// mulberry32 - tiny deterministic PRNG (so the demo data is reproducible).
 let _s = 0xc0ffee;
 const rnd = () => {
   _s = (_s + 0x6d2b79f5) | 0;
@@ -27,31 +27,31 @@ const weighted = (pairs) => {
   return pairs[0][0];
 };
 
-// v0 University Affiliate Network — Philippines directory. Eligible-only; no
-// logos, no contact emails, no email-domain auto-verification (deliberately —
+// v0 University Affiliate Network - Philippines directory. Eligible-only; no
+// logos, no contact emails, no email-domain auto-verification (deliberately -
 // each domain must be confirmed before it goes in). Edit names/slugs here when
 // they change; the public picker reads them via GET /v1/schools.
 const PH_SCHOOLS = [
   { slug: "FLR-PH-SILLIMAN", name: "Silliman University", city: "Dumaguete City" },
   { slug: "FLR-PH-SLU-BAGUIO", name: "Saint Louis University", city: "Baguio City" },
-  { slug: "FLR-PH-TRINITY-STLUKES", name: "Trinity University of Asia — St. Luke's College of Nursing", city: "Quezon City" },
+  { slug: "FLR-PH-TRINITY-STLUKES", name: "Trinity University of Asia - St. Luke's College of Nursing", city: "Quezon City" },
   { slug: "FLR-PH-UST", name: "University of Santo Tomas", city: "Manila" },
   { slug: "FLR-PH-STPAUL-TUG", name: "St. Paul University", city: "Tuguegarao City" },
   { slug: "FLR-PH-CPU", name: "Central Philippine University", city: "Iloilo City" },
   { slug: "FLR-PH-CDU", name: "Cebu Doctors' University", city: "Mandaue City" },
-  { slug: "FLR-PH-DLSU-DASMA", name: "De La Salle University — Dasmariñas Health Sciences", city: "Dasmariñas City" },
+  { slug: "FLR-PH-DLSU-DASMA", name: "De La Salle University - Dasmariñas Health Sciences", city: "Dasmariñas City" },
   { slug: "FLR-PH-STMARYS", name: "Saint Mary's University", city: "Bayombong" },
   { slug: "FLR-PH-SAN-PEDRO", name: "San Pedro College", city: "Davao City" },
   { slug: "FLR-PH-DAVAO-DRS", name: "Davao Doctors College", city: "Davao City" },
   { slug: "FLR-PH-LORMA", name: "Lorma College", city: "La Union" },
-  { slug: "FLR-PH-OLFU-QC", name: "Our Lady of Fatima University — Quezon City", city: "Quezon City" },
-  { slug: "FLR-PH-OLFU-VAL", name: "Our Lady of Fatima University — Valenzuela", city: "Valenzuela" },
+  { slug: "FLR-PH-OLFU-QC", name: "Our Lady of Fatima University - Quezon City", city: "Quezon City" },
+  { slug: "FLR-PH-OLFU-VAL", name: "Our Lady of Fatima University - Valenzuela", city: "Valenzuela" },
   { slug: "FLR-PH-MEDINA", name: "Medina College", city: "Pagadian City" },
   { slug: "FLR-PH-SWU", name: "Southwestern University", city: "Cebu City" },
   { slug: "FLR-PH-WMSU", name: "Western Mindanao State University", city: "Zamboanga City" },
   { slug: "FLR-PH-MMSU", name: "Mariano Marcos State University", city: "Batac" },
-  { slug: "FLR-PH-MSU-ILIGAN", name: "Mindanao State University — Iligan", city: "Iligan City" },
-  { slug: "FLR-PH-MSU-MARAWI", name: "Mindanao State University — Marawi", city: "Marawi City" },
+  { slug: "FLR-PH-MSU-ILIGAN", name: "Mindanao State University - Iligan", city: "Iligan City" },
+  { slug: "FLR-PH-MSU-MARAWI", name: "Mindanao State University - Marawi", city: "Marawi City" },
   { slug: "FLR-PH-UC-BAGUIO", name: "University of the Cordilleras", city: "Baguio City" },
   { slug: "FLR-PH-CNU", name: "Cebu Normal University", city: "Cebu City" },
   { slug: "FLR-PH-WVSU", name: "West Visayas State University", city: "Iloilo City" },
@@ -63,7 +63,7 @@ const PH_SCHOOLS = [
   { slug: "FLR-PH-AMANDO-COPE", name: "Amando Cope College", city: "Tabaco City, Albay" },
   { slug: "FLR-PH-AUF", name: "Angeles University Foundation", city: "Angeles City" },
   { slug: "FLR-PH-AKLAN-STATE", name: "Aklan State University", city: "Banga, Aklan" },
-  { slug: "FLR-PH-UST-LEGAZPI", name: "University of Santo Tomas — Legazpi", city: "Legazpi, Albay" },
+  { slug: "FLR-PH-UST-LEGAZPI", name: "University of Santo Tomas - Legazpi", city: "Legazpi, Albay" },
   { slug: "FLR-PH-ARAULLO", name: "Araullo University", city: "Cabanatuan" },
   { slug: "FLR-PH-ARELLANO", name: "Arellano University", city: "Manila" },
   { slug: "FLR-PH-ACT", name: "Asian College of Technology", city: "Cebu City" },
@@ -107,19 +107,19 @@ const PH_SCHOOLS = [
   { slug: "FLR-PH-HOLY-NAME", name: "Holy Name University", city: "Tagbilaran" },
   { slug: "FLR-PH-IFUGAO-ISCAF", name: "Ifugao State College", city: "Lamut, Ifugao" },
   { slug: "FLR-PH-IDC", name: "Iloilo Doctors College", city: "Iloilo City" },
-  { slug: "FLR-PH-ICC-ALBAY", name: "Immaculate Conception College — Albay", city: "Albay" },
-  { slug: "FLR-PH-ICC-CABA", name: "Immaculate Conception College — Cabanatuan", city: "Cabanatuan" },
+  { slug: "FLR-PH-ICC-ALBAY", name: "Immaculate Conception College - Albay", city: "Albay" },
+  { slug: "FLR-PH-ICC-CABA", name: "Immaculate Conception College - Cabanatuan", city: "Cabanatuan" },
   { slug: "FLR-PH-JOSE-FELICIANO", name: "Jose C. Feliciano College", city: "Pampanga" },
   { slug: "FLR-PH-JRU", name: "Jose Rizal University", city: "Mandaluyong" },
   { slug: "FLR-PH-KESTER-GRANT", name: "Kester Grant College", city: "Iligan" },
-  { slug: "FLR-PH-LSU-OZAMIZ", name: "La Salle University — Ozamiz City", city: "Ozamiz" },
+  { slug: "FLR-PH-LSU-OZAMIZ", name: "La Salle University - Ozamiz City", city: "Ozamiz" },
   { slug: "FLR-PH-LA-FORTUNA", name: "La Fortuna College", city: "Cabanatuan" },
   { slug: "FLR-PH-LICEO-CAGAYAN", name: "Liceo de Cagayan University", city: "Cagayan de Oro" },
   { slug: "FLR-PH-LOURDES", name: "Lourdes College", city: "Cagayan de Oro" },
   { slug: "FLR-PH-LIT-LAGUNA", name: "Lyceum Institute of Technology", city: "Laguna" },
   { slug: "FLR-PH-LB", name: "Lyceum of Batangas", city: "Batangas City" },
   { slug: "FLR-PH-LPU-MANILA", name: "Lyceum of the Philippines University", city: "Manila" },
-  { slug: "FLR-PH-LYC-CABRINI", name: "Lyceum — St. Cabrini College of Allied Medicine", city: "Batangas" },
+  { slug: "FLR-PH-LYC-CABRINI", name: "Lyceum - St. Cabrini College of Allied Medicine", city: "Batangas" },
   { slug: "FLR-PH-MAMC", name: "Manila Adventist Medical Center and Colleges", city: "Pasay" },
   { slug: "FLR-PH-MCU", name: "Manila Central University", city: "Caloocan" },
   { slug: "FLR-PH-TYTANA", name: "Manila Tytana Colleges", city: "Pasay" },
@@ -179,7 +179,7 @@ const PH_SCHOOLS = [
   { slug: "FLR-PH-UILOILO", name: "University of Iloilo", city: "Iloilo City" },
   { slug: "FLR-PH-ULASALETTE", name: "University of La Salette", city: "Santiago City" },
   { slug: "FLR-PH-UMINDANAO", name: "University of Mindanao", city: "Davao City" },
-  { slug: "FLR-PH-UPHSD-MOLINO", name: "University of Perpetual Help System Dalta — Molino", city: "Bacoor" },
+  { slug: "FLR-PH-UPHSD-MOLINO", name: "University of Perpetual Help System Dalta - Molino", city: "Bacoor" },
   { slug: "FLR-PH-USA-ILOILO", name: "University of San Agustin", city: "Iloilo City" },
   { slug: "FLR-PH-USC-CEBU", name: "University of San Carlos", city: "Cebu City" },
   { slug: "FLR-PH-USJR", name: "University of San Jose-Recoletos", city: "Cebu City" },
@@ -192,13 +192,13 @@ const PH_SCHOOLS = [
   { slug: "FLR-PH-UV-CEBU", name: "University of the Visayas", city: "Cebu City" },
   { slug: "FLR-PH-VSU", name: "Visayas State University", city: "Baybay City, Leyte" },
   { slug: "FLR-PH-WESLEYAN", name: "Wesleyan University Philippines", city: "Cabanatuan" },
-  { slug: "FLR-PH-XU-ADCC", name: "Xavier University — Ateneo de Cagayan", city: "Cagayan de Oro" },
+  { slug: "FLR-PH-XU-ADCC", name: "Xavier University - Ateneo de Cagayan", city: "Cagayan de Oro" },
 ];
 
-// ── Kenya — NCK Approved Training Institutions ───────────────────────────────
+// ── Kenya - NCK Approved Training Institutions ───────────────────────────────
 // Source: Nursing Council of Kenya approved-institutions list (provided by
 // operator). county[] left blank where the source listed a county tag (used as
-// "city" here since the API has no county field). Numbered 1–171 per NCK.
+// "city" here since the API has no county field). Numbered 1-171 per NCK.
 const KE_SCHOOLS = [
   { slug: "FLR-KE-AGA-KHAN-UNI", name: "Aga Khan University", city: "Nairobi" },
   { slug: "FLR-KE-AIC-KAPSOWAR", name: "AIC Kapsowar School of Nursing", city: "Elgeyo Marakwet" },
@@ -220,7 +220,7 @@ const KE_SCHOOLS = [
   { slug: "FLR-KE-EGERTON", name: "Egerton University", city: "Nakuru" },
   { slug: "FLR-KE-EQUIP-AFRICA", name: "Equip Africa College of Medical and Health Sciences", city: "Trans Nzoia" },
   { slug: "FLR-KE-FAFA-MTC", name: "Fafa MTC", city: "Kakamega" },
-  { slug: "FLR-KE-FIDENZA-KYENI", name: "Fidenza School of Nursing — Kyeni", city: "Embu" },
+  { slug: "FLR-KE-FIDENZA-KYENI", name: "Fidenza School of Nursing - Kyeni", city: "Embu" },
   { slug: "FLR-KE-FORTIS-MTC", name: "Fortis Medical Training College", city: "Nairobi" },
   { slug: "FLR-KE-GERTRUDES", name: "Gertrude's Institute of Child Health and Research", city: "Nairobi" },
   { slug: "FLR-KE-GOSHEN-MED", name: "Goshen Medical College", city: "Kiambu" },
@@ -323,7 +323,7 @@ const KE_SCHOOLS = [
   { slug: "FLR-KE-MURANGA-UNI", name: "Murang'a University", city: "Murang'a" },
   { slug: "FLR-KE-NAIROBI-WEST-HC", name: "Nairobi West Hospital College of Health Sciences", city: "Nairobi" },
   { slug: "FLR-KE-NAKURU-HC", name: "Nakuru College of Health Sciences and Management", city: "Nakuru" },
-  { slug: "FLR-KE-NDU-KDF", name: "National Defence University — Kenya Defence College of Health Sciences", city: "Nairobi" },
+  { slug: "FLR-KE-NDU-KDF", name: "National Defence University - Kenya Defence College of Health Sciences", city: "Nairobi" },
   { slug: "FLR-KE-NAZARETH-MED", name: "Nazareth Medical College", city: "Kiambu" },
   { slug: "FLR-KE-NEP-HC-GARISSA", name: "NEP College of Health Sciences", city: "Garissa" },
   { slug: "FLR-KE-NEP-MEWA", name: "NEP Mewa College of Professional Studies", city: "Mombasa" },
@@ -341,7 +341,7 @@ const KE_SCHOOLS = [
   { slug: "FLR-KE-PCEA-NAKURU-WEST", name: "PCEA Nakuru West", city: "Nakuru" },
   { slug: "FLR-KE-PCEA-NAKURU-WEST-SON", name: "PCEA Nakuru West School of Nursing", city: "Nakuru" },
   { slug: "FLR-KE-PCEA-TUMUTUMU", name: "PCEA Tumutumu Hospital Training College", city: "Nyeri" },
-  { slug: "FLR-KE-PRES-RUBATE", name: "Presbyterian College of Health Sciences — Rubate", city: "Tharaka Nithi" },
+  { slug: "FLR-KE-PRES-RUBATE", name: "Presbyterian College of Health Sciences - Rubate", city: "Tharaka Nithi" },
   { slug: "FLR-KE-PRETATA", name: "Pretata Institute of Professional Studies", city: "Thika" },
   { slug: "FLR-KE-PUMWANI", name: "Pumwani Maternity College of Nursing and Midwifery", city: "Nairobi" },
   { slug: "FLR-KE-PWANI", name: "Pwani University", city: "Kilifi" },
@@ -373,13 +373,13 @@ const KE_SCHOOLS = [
   { slug: "FLR-KE-ZETECH", name: "Zetech University", city: "Nairobi" },
 ];
 
-// United Kingdom — Guardian 2026 "Best UK universities for general nursing"
-// league table (rows 1–76, including ties at 51 and 57) plus the 11 "Other
+// United Kingdom - Guardian 2026 "Best UK universities for general nursing"
+// league table (rows 1-76, including ties at 51 and 57) plus the 11 "Other
 // universities that teach this subject" listed at the bottom of the page.
-// 87 institutions total. No metrics persisted — we only need the institution
+// 87 institutions total. No metrics persisted - we only need the institution
 // roster to attribute candidates.
 const UK_SCHOOLS = [
-  // Ranked 1–25
+  // Ranked 1-25
   { slug: "FLR-UK-EDINBURGH", name: "University of Edinburgh", city: "Edinburgh" },
   { slug: "FLR-UK-NORTHUMBRIA", name: "Northumbria University", city: "Newcastle upon Tyne" },
   { slug: "FLR-UK-OXFORD-BROOKES", name: "Oxford Brookes University", city: "Oxford" },
@@ -405,7 +405,7 @@ const UK_SCHOOLS = [
   { slug: "FLR-UK-SURREY", name: "University of Surrey", city: "Guildford" },
   { slug: "FLR-UK-LJMU", name: "Liverpool John Moores University", city: "Liverpool" },
   { slug: "FLR-UK-NOTTINGHAM", name: "University of Nottingham", city: "Nottingham" },
-  // Ranked 26–50
+  // Ranked 26-50
   { slug: "FLR-UK-BUCKS-NEW", name: "Buckinghamshire New University", city: "High Wycombe" },
   { slug: "FLR-UK-LSBU", name: "London South Bank University", city: "London" },
   { slug: "FLR-UK-HERTFORDSHIRE", name: "University of Hertfordshire", city: "Hatfield" },
@@ -431,7 +431,7 @@ const UK_SCHOOLS = [
   { slug: "FLR-UK-BCU", name: "Birmingham City University", city: "Birmingham" },
   { slug: "FLR-UK-HULL", name: "University of Hull", city: "Hull" },
   { slug: "FLR-UK-MIDDLESEX", name: "Middlesex University", city: "London" },
-  // Ranked 51–76 (rows 51 and 57 are ties)
+  // Ranked 51-76 (rows 51 and 57 are ties)
   { slug: "FLR-UK-DERBY", name: "University of Derby", city: "Derby" },
   { slug: "FLR-UK-SOUTH-WALES", name: "University of South Wales", city: "Pontypridd" },
   { slug: "FLR-UK-SHEFFIELD-HALLAM", name: "Sheffield Hallam University", city: "Sheffield" },
@@ -458,7 +458,7 @@ const UK_SCHOOLS = [
   { slug: "FLR-UK-RGU", name: "Robert Gordon University", city: "Aberdeen" },
   { slug: "FLR-UK-UWS", name: "University of the West of Scotland", city: "Paisley" },
   { slug: "FLR-UK-STIRLING", name: "University of Stirling", city: "Stirling" },
-  // "Other universities that teach this subject" — not ranked in 2026 table
+  // "Other universities that teach this subject" - not ranked in 2026 table
   { slug: "FLR-UK-ABERYSTWYTH", name: "Aberystwyth University", city: "Aberystwyth" },
   { slug: "FLR-UK-ASTON", name: "Aston University", city: "Birmingham" },
   { slug: "FLR-UK-BRUNEL", name: "Brunel University of London", city: "Uxbridge" },
@@ -505,7 +505,7 @@ const STAGE_MIX = [
   ["withdrawn", 0.06],
 ];
 
-// Readiness band ranges by stage — later stages skew more exam-ready.
+// Readiness band ranges by stage - later stages skew more exam-ready.
 const READINESS = {
   registered: [0.3, 0.5],
   deposit_paid: [0.4, 0.62],
@@ -630,7 +630,7 @@ async function main() {
         }
       }
 
-      // Production outcomes — only for completed cohort members who cleared.
+      // Production outcomes - only for completed cohort members who cleared.
       if (status === "completed" && lastReadiness != null) {
         const passed = lastReadiness >= 0.6 && rnd() < 0.85;
         await post("/v1/outcomes", t, {

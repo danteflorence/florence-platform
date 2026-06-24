@@ -15,7 +15,7 @@ Core, and disclosure is **fail-closed on a live Core consent**.
 | `id`, `nurse_id` | canonical subject |
 | `purpose` | `employer_share` \| `underwriting` \| `education` \| `visa` \| `demand_radar` |
 | `recipient_category` | `employer` \| `lender` \| `university` \| `internal` |
-| `recipient_org_id` | the specific org (null = category-wide) |
+| `recipient_org_id` | the exact recipient org for external shares; null is reserved for internal or aggregate cases |
 | `allowed_fields` | the fields the candidate authorized |
 | `consent_text_version` + `consent_text_hash` | exact wording the candidate saw |
 | `ip_hash`, `device_hash` | provenance (hashed, never raw) |
@@ -26,9 +26,9 @@ Core, and disclosure is **fail-closed on a live Core consent**.
 
 | Purpose | Audience it unlocks | Notes |
 |---|---|---|
-| `employer_share` | employer view | per-employer or category-wide |
+| `employer_share` | employer view | named employer org required |
 | `underwriting` | lender view | financing/visa-timing disclosure |
-| `education` | university named-student view | aggregates need no per-student consent |
+| `education` | university named-student view | named university org required; aggregates need no per-student consent |
 | `visa` | pathway workflow support | |
 | `demand_radar` | Demand Radar interest routing | already wired in Pathway consent scopes |
 
@@ -52,13 +52,13 @@ Core-grant-wins**:
 Granting/revoking in Core also emits the legacy `consent.updated` spine event, so
 the folded Passport's `consents` map stays populated for existing readers. A
 revoke only flips the coarse flag to `revoked` when **no** live consent for that
-purpose remains (an org-specific revoke does not clear a category grant).
+purpose remains. External disclosures still require an exact named recipient org.
 
 ## The gate
 
 `consentAllows(consents, purpose, recipientOrgId)` is the single function
-`passportView` / the read route consult. Org-specific grants match their org;
-category-wide grants match any recipient in the category.
+`passportView` / the read route consult. Org-specific requests require an exact
+recipient org match; category-wide grants do not unlock named partner disclosures.
 
 ## Candidate rights (planned workflow — see hardening plan)
 Access, correction, deletion-where-applicable, consent revocation, data export,

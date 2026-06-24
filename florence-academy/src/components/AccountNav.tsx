@@ -11,9 +11,9 @@ const BAND_DOT: Record<ReadinessBand, string> = {
 };
 
 /**
- * Header affordance: "Sign in" when anonymous, or the learner's first name with a
- * readiness dot when signed in. Renders nothing when no API is configured, so the
- * static deploy is unaffected.
+ * Header affordance: "Sign in" when anonymous, or the learner's first name when
+ * signed in. Renders nothing when no API is configured, so the static deploy is
+ * unaffected.
  */
 export default function AccountNav() {
   const { status, candidate, readiness, apiEnabled } = useCandidate();
@@ -23,7 +23,7 @@ export default function AccountNav() {
     return (
       <Link
         to="/academy/account"
-        className="whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-florence-slate transition-colors hover:bg-florence-mist hover:text-florence-ink"
+        className="whitespace-nowrap rounded-lg px-2 py-1.5 font-medium text-florence-slate transition-colors hover:bg-florence-mist hover:text-florence-ink sm:px-3"
       >
         Sign in
       </Link>
@@ -34,8 +34,8 @@ export default function AccountNav() {
   return (
     <Link
       to="/academy/account"
-      className="flex items-center gap-1.5 rounded-lg border border-florence-line bg-white px-3 py-1.5 font-medium text-florence-ink transition-colors hover:bg-florence-mist"
-      title="Your account & readiness"
+      className="flex items-center gap-1.5 rounded-lg border border-florence-line bg-white px-2 py-1.5 font-medium text-florence-ink transition-colors hover:bg-florence-mist sm:px-3"
+      title="Your account"
     >
       {readiness && (
         <span

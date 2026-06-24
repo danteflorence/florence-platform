@@ -123,3 +123,90 @@ export const deficiencySchema = z.object({
   items: z.array(z.string().min(1)).min(1),
 })
 export type DeficiencyInput = z.infer<typeof deficiencySchema>
+
+const money = z.number().nonnegative().optional()
+export const consularVisaTypeSchema = z.enum(['F1', 'F2', 'M1', 'M2', 'J1', 'J2', 'other'])
+export const consularPaymentStatusSchema = z.enum([
+  'not_required',
+  'not_started',
+  'eligible_for_i901_payment',
+  'awaiting_student_attestation',
+  'ready_for_sevismate',
+  'payment_link_generated',
+  'student_opened_payment',
+  'payment_started',
+  'payment_failed',
+  'payment_confirmed_by_sevismate',
+  'submitted_to_fmjfee',
+  'receipt_pending',
+  'receipt_received',
+  'receipt_qa_approved',
+  'receipt_rejected_needs_correction',
+  'cancelled',
+  'refunded',
+  'case_escalated',
+])
+
+export const createI901OrderSchema = z.object({
+  candidateId: z.string().min(1),
+  visaType: consularVisaTypeSchema.default('F1'),
+  payerType: z.enum(['student', 'florence']).default('student'),
+  officialFeeUsd: money,
+  serviceFeeUsd: money,
+  taxOrProcessingFeeUsd: money,
+  localCurrency: z.string().min(3).max(3).optional(),
+  localAmount: money,
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  interviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  ownerUserId: z.string().optional(),
+  serviceSpeed: z.enum(['basic', 'standard', 'express']).optional(),
+})
+export type CreateI901OrderInput = z.infer<typeof createI901OrderSchema>
+
+export const patchI901OrderSchema = z.object({
+  status: consularPaymentStatusSchema.optional(),
+  payerType: z.enum(['student', 'florence']).optional(),
+  officialFeeUsd: money,
+  serviceFeeUsd: money,
+  taxOrProcessingFeeUsd: money,
+  localCurrency: z.string().min(3).max(3).optional(),
+  localAmount: money,
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  interviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  ownerUserId: z.string().nullable().optional(),
+  serviceSpeed: z.enum(['basic', 'standard', 'express']).nullable().optional(),
+  statusReason: z.string().max(500).optional(),
+})
+export type PatchI901OrderInput = z.infer<typeof patchI901OrderSchema>
+
+export const i901AttestationSchema = z.object({
+  signatureName: z.string().min(1),
+  acknowledge: z.literal(true),
+  confirmedFields: z.array(z.enum(['legal_name', 'date_of_birth', 'sevis_id', 'school_code', 'form_type', 'program_start_date'])).min(6),
+})
+export type I901AttestationInput = z.infer<typeof i901AttestationSchema>
+
+export const sevismateHandoffSchema = z.object({
+  integrationMode: z.enum(['deep_link', 'csv', 'sftp', 'api', 'manual']).default('deep_link'),
+})
+export type SevismateHandoffInput = z.infer<typeof sevismateHandoffSchema>
+
+export const i901ReceiptSchema = z.object({
+  filename: z.string().min(1),
+  sevisId: z.string().min(3),
+  legalName: z.string().optional(),
+  schoolCode: z.string().optional(),
+  formType: z.enum(['I-20', 'DS-2019']).optional(),
+  visaType: consularVisaTypeSchema.optional(),
+  receiptDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  amountUsd: money,
+  source: z.enum(['sevismate_dashboard', 'student_upload', 'ops_upload', 'api']).default('student_upload'),
+  extractionConfidence: z.enum(['high', 'medium', 'low', 'unknown']).default('medium'),
+})
+export type I901ReceiptInput = z.infer<typeof i901ReceiptSchema>
+
+export const i901QaDecisionSchema = z.object({
+  reviewer: z.string().min(1),
+  notes: z.string().max(500).optional(),
+})
+export type I901QaDecisionInput = z.infer<typeof i901QaDecisionSchema>

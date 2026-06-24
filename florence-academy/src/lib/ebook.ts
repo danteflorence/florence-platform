@@ -1,5 +1,5 @@
 // Pure Lesson → Ebook transform. One chapter per lesson segment (coarser than the
-// deck, which splits per idea). A derived view, like deck.ts — no new content.
+// deck, which splits per idea). A derived view, like deck.ts - no new content.
 
 import type { Lesson, PracticeItem, Segment } from "../data/lessonTypes";
 

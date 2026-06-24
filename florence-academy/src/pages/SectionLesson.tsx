@@ -165,7 +165,7 @@ export default function SectionLesson() {
   // Per-cohort coverage watermark. We start with the env-var default so the
   // first render is correct for unauthenticated visitors and known-anonymous
   // builds; once /v1/me/cohort resolves we use the real cohort watermark.
-  // `null` here means "not yet fetched" — we treat it as not-loaded to avoid
+  // `null` here means "not yet fetched" - we treat it as not-loaded to avoid
   // briefly showing the upcoming-gate to a student whose cohort would unlock it.
   const [watermark, setWatermark] = useState<number | null>(null);
   useEffect(() => {
@@ -179,7 +179,7 @@ export default function SectionLesson() {
     };
   }, []);
 
-  // Coverage gate — block direct-URL access to sections the cohort hasn't
+  // Coverage gate - block direct-URL access to sections the cohort hasn't
   // reached yet, so the only way "in" is through the Curriculum Navigator's
   // covered/current sections.
   const section = SECTIONS.find((s) => s.slug === sectionSlug);
@@ -202,7 +202,7 @@ export default function SectionLesson() {
     return (
       <ComingSoon
         title={`Section ${section.n} · ${section.title}`}
-        body="Your cohort hasn’t covered this section yet — it will unlock once your instructor reaches it live."
+        body="Your cohort hasn’t covered this section yet - it will unlock once your instructor reaches it live."
       />
     );
   return <LessonReader lesson={state.lesson} slug={sectionSlug!} />;

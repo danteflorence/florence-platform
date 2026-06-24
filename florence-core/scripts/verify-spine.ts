@@ -1,6 +1,6 @@
 // End-to-end proof of the Nurse Passport spine: mint an M2M token, then simulate
 // all four apps writing to ONE nurse — Academy (enroll + readiness), Pathway
-// (NCLEX + licensure + visa + docs), ATS (match → submit → interview → offer →
+// (NCLEX + licensure + visa + docs), ATS (match → interview → offer →
 // start) — resolving by DIFFERENT keys (academy ref, email, ats ref) to prove
 // four records converge on one identity. Then read the folded Passport and the
 // funnel. Run against a live Core:
@@ -67,7 +67,6 @@ await authed("/v1/nurse/event", "POST", { email: EMAIL, type: "consent.updated",
 const atsRef = { app: "ats", externalId: "ats-789" };
 for (const [type, data] of [
   ["ats.matched", { employer: "Sutter Health", employerId: "emp-1", jobReqId: "REQ-1" }],
-  ["ats.packet_submitted", { employer: "Sutter Health", employerId: "emp-1", jobReqId: "REQ-1" }],
   ["ats.interview", {}],
   ["ats.offer", {}],
   ["ats.started", { startDate: "2027-01-15" }],

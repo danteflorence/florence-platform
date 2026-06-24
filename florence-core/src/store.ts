@@ -31,6 +31,59 @@ export interface Org {
   created_at: string;
 }
 
+export type PartnerOrgKind = "amn" | "employer" | "lender" | "university" | "ats_vms" | "internal";
+
+export interface PartnerOrg {
+  id: string;
+  kind: PartnerOrgKind;
+  name: string;
+  tenant_id: string;
+  status: "active" | "suspended";
+  created_at: string;
+}
+
+export interface TenantScope {
+  id: string;
+  org_id: string;
+  tenant_id: string;
+  partner_org_id: string;
+  partner_kind: PartnerOrgKind;
+  allowed_program_ids: string[];
+  allowed_purposes: string[];
+  created_at: string;
+}
+
+export interface ProgramScope {
+  id: string;
+  name: string;
+  owner_org_id: string;
+  employer_org_id?: string;
+  authorized_partner_org_ids: string[];
+  authorized_actions: string[];
+  approved_packet_nurse_ids: string[];
+  active_job_ids?: string[];
+  status: "active" | "paused" | "closed";
+  created_at: string;
+}
+
+export type SubmissionChannel = "direct" | "ats" | "vms" | "amn" | "other";
+export type SubmissionLockStatus = "active" | "released" | "expired";
+
+export interface ApplicationSubmissionLock {
+  id: string;
+  nurse_id: string;
+  employer_id: string;
+  program_id?: string;
+  job_requisition_id?: string;
+  channel: SubmissionChannel;
+  submission_id?: string;
+  status: SubmissionLockStatus;
+  locked_at: string;
+  expires_at?: string;
+  released_at?: string;
+  released_by?: string;
+}
+
 export interface RoleGrant {
   id: string;
   user_id: string;
@@ -122,7 +175,8 @@ export interface ConsentRow {
   nurse_id: string;
   purpose: string; // employer_share | underwriting | education | visa | demand_radar
   recipient_category: string; // employer | lender | university | internal
-  recipient_org_id?: string; // null = category-wide
+  recipient_org_id?: string; // exact recipient org for external partner shares
+  recipient_program_id?: string; // exact program/workspace consent when applicable
   allowed_fields: string[];
   consent_text_version: string;
   consent_text_hash: string;
@@ -133,6 +187,64 @@ export interface ConsentRow {
   granted_by: string;
   revoked_at?: string;
   revoked_by?: string;
+}
+
+export type RestrictedDocumentType =
+  | "passport"
+  | "i20"
+  | "ds160_confirmation"
+  | "sevis_i901_receipt"
+  | "visa_appointment_confirmation"
+  | "transcript"
+  | "credential_evaluation"
+  | "nclex_license_record"
+  | "financing_packet"
+  | "lender_document"
+  | "employer_packet"
+  | "ats_vms_submission_packet";
+
+export type RestrictedDocumentStatus = "active" | "revoked" | "deleted";
+
+export interface RestrictedDocumentRow {
+  id: string;
+  nurse_id: string;
+  document_type: RestrictedDocumentType;
+  data_class: string;
+  owner_org_id?: string;
+  program_id?: string;
+  content_type: string;
+  extension: string;
+  size_bytes: number;
+  sha256: string;
+  encrypted_blob: string;
+  storage_key: string;
+  status: RestrictedDocumentStatus;
+  retention_policy?: string;
+  retain_until?: string;
+  delete_after?: string;
+  malware_scan_status: "clean" | "blocked" | "pending";
+  created_by: string;
+  created_at: string;
+  revoked_at?: string;
+  revoked_by?: string;
+  deleted_at?: string;
+  deleted_by?: string;
+}
+
+export interface DocumentAccessGrantRow {
+  id: string;
+  token_hash: string;
+  document_id: string;
+  nurse_id: string;
+  recipient_view: string;
+  recipient_org_id?: string;
+  actor: string;
+  purpose: string;
+  action: "view" | "download";
+  expires_at: string;
+  created_at: string;
+  used_at?: string;
+  revoked_at?: string;
 }
 
 export interface Store {
@@ -147,6 +259,18 @@ export interface Store {
   getOrgByExternalRef(ref: string): Promise<Org | undefined>;
   insertOrg(o: Org): Promise<void>;
   listOrgs(): Promise<Org[]>;
+
+  getPartnerOrg(id: string): Promise<PartnerOrg | undefined>;
+  upsertPartnerOrg(o: PartnerOrg): Promise<void>;
+  listPartnerOrgs(): Promise<PartnerOrg[]>;
+  getTenantScopeByOrgId(orgId: string): Promise<TenantScope | undefined>;
+  upsertTenantScope(s: TenantScope): Promise<void>;
+  getProgramScope(id: string): Promise<ProgramScope | undefined>;
+  upsertProgramScope(p: ProgramScope): Promise<void>;
+  listProgramScopes(): Promise<ProgramScope[]>;
+  activeSubmissionLock(nurseId: string, employerId: string, channel: SubmissionChannel, nowIso?: string): Promise<ApplicationSubmissionLock | undefined>;
+  acquireSubmissionLock(lock: ApplicationSubmissionLock): Promise<{ acquired: true; lock: ApplicationSubmissionLock } | { acquired: false; existing: ApplicationSubmissionLock }>;
+  releaseSubmissionLock(id: string, by: string): Promise<void>;
 
   grantsByUser(userId: string): Promise<RoleGrant[]>;
   insertGrant(g: RoleGrant): Promise<void>;
@@ -193,8 +317,17 @@ export interface Store {
   insertConsent(c: ConsentRow): Promise<void>;
   revokeConsent(id: string, by: string): Promise<void>;
   consentsByNurse(nurseId: string): Promise<ConsentRow[]>;
-  /** The newest live (status='granted') consent for (purpose, recipient), if any. */
+  /** The newest live (status='granted') consent for (purpose, exact recipient), if any. */
   liveConsent(nurseId: string, purpose: string, recipientOrgId?: string): Promise<ConsentRow | undefined>;
+
+  // Document Vault: restricted document metadata and signed access grants.
+  insertRestrictedDocument(d: RestrictedDocumentRow): Promise<void>;
+  getRestrictedDocument(id: string): Promise<RestrictedDocumentRow | undefined>;
+  updateRestrictedDocument(id: string, patch: Partial<RestrictedDocumentRow>): Promise<void>;
+  restrictedDocumentsByNurse(nurseId: string): Promise<RestrictedDocumentRow[]>;
+  insertDocumentAccessGrant(g: DocumentAccessGrantRow): Promise<void>;
+  getDocumentAccessGrantByHash(tokenHash: string): Promise<DocumentAccessGrantRow | undefined>;
+  updateDocumentAccessGrant(id: string, patch: Partial<DocumentAccessGrantRow>): Promise<void>;
 
   // Durable idempotency for gateway create routes — a retried create replays the
   // original response instead of double-applying. Caller-scoped key; only 2xx stored.
@@ -284,20 +417,32 @@ interface Snapshot {
   nurseRefs?: NurseRef[];
   nurseEvents?: NurseEvent[];
   consents?: ConsentRow[];
+  restrictedDocuments?: RestrictedDocumentRow[];
+  documentAccessGrants?: DocumentAccessGrantRow[];
+  partnerOrgs?: PartnerOrg[];
+  tenantScopes?: TenantScope[];
+  programScopes?: ProgramScope[];
+  submissionLocks?: ApplicationSubmissionLock[];
 }
 
 export class MemoryStore implements Store {
   private users = new Map<string, User>();
   private orgs = new Map<string, Org>();
+  private partnerOrgs = new Map<string, PartnerOrg>();
+  private tenantScopes = new Map<string, TenantScope>();
+  private programScopes = new Map<string, ProgramScope>();
+  private submissionLocks = new Map<string, ApplicationSubmissionLock>();
   private grants = new Map<string, RoleGrant>();
   private clients = new Map<string, ApiClient>();
   private keys = new Map<string, SigningKeyRow>();
   private audit: AuditRow[] = [];
   private sessions = new Map<string, SessionRow>();
   private nurses = new Map<string, Nurse>();
-  private nurseRefs = new Map<string, NurseRef>(); // key: `${app} ${external_id}`
+  private nurseRefs = new Map<string, NurseRef>(); // key: `${app}\0${external_id}`
   private nurseEvents: NurseEvent[] = [];
   private consents = new Map<string, ConsentRow>();
+  private restrictedDocuments = new Map<string, RestrictedDocumentRow>();
+  private documentAccessGrants = new Map<string, DocumentAccessGrantRow>();
   private idempotency = new Map<string, { status: number; body: unknown }>();
   private webhookSubs = new Map<string, WebhookSub>();
   private webhookDelivs = new Map<string, WebhookDelivery>();
@@ -318,14 +463,20 @@ export class MemoryStore implements Store {
       const s = JSON.parse(readFileSync(this.file, "utf8")) as Snapshot;
       for (const u of s.users ?? []) this.users.set(u.id, u);
       for (const o of s.orgs ?? []) this.orgs.set(o.id, o);
+      for (const o of s.partnerOrgs ?? []) this.partnerOrgs.set(o.id, o);
+      for (const t of s.tenantScopes ?? []) this.tenantScopes.set(t.org_id, t);
+      for (const p of s.programScopes ?? []) this.programScopes.set(p.id, p);
+      for (const l of s.submissionLocks ?? []) this.submissionLocks.set(l.id, l);
       for (const g of s.grants ?? []) this.grants.set(g.id, g);
       for (const c of s.clients ?? []) this.clients.set(c.client_id, c);
       for (const k of s.keys ?? []) this.keys.set(k.kid, k);
       for (const se of s.sessions ?? []) this.sessions.set(se.id, se);
       for (const n of s.nurses ?? []) this.nurses.set(n.id, n);
-      for (const r of s.nurseRefs ?? []) this.nurseRefs.set(`${r.app} ${r.external_id}`, r);
+      for (const r of s.nurseRefs ?? []) this.nurseRefs.set(`${r.app}\0${r.external_id}`, r);
       this.nurseEvents = s.nurseEvents ?? [];
       for (const c of s.consents ?? []) this.consents.set(c.id, c);
+      for (const d of s.restrictedDocuments ?? []) this.restrictedDocuments.set(d.id, d);
+      for (const g of s.documentAccessGrants ?? []) this.documentAccessGrants.set(g.id, g);
       this.audit = s.audit ?? [];
     } catch {
       /* corrupt dev state — start fresh */
@@ -337,6 +488,10 @@ export class MemoryStore implements Store {
     const snap: Snapshot = {
       users: [...this.users.values()],
       orgs: [...this.orgs.values()],
+      partnerOrgs: [...this.partnerOrgs.values()],
+      tenantScopes: [...this.tenantScopes.values()],
+      programScopes: [...this.programScopes.values()],
+      submissionLocks: [...this.submissionLocks.values()],
       grants: [...this.grants.values()],
       clients: [...this.clients.values()],
       keys: [...this.keys.values()],
@@ -346,6 +501,8 @@ export class MemoryStore implements Store {
       nurseRefs: [...this.nurseRefs.values()],
       nurseEvents: this.nurseEvents,
       consents: [...this.consents.values()],
+      restrictedDocuments: [...this.restrictedDocuments.values()],
+      documentAccessGrants: [...this.documentAccessGrants.values()],
     };
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(this.file, JSON.stringify(snap, null, 2));
@@ -387,6 +544,57 @@ export class MemoryStore implements Store {
   }
   async listOrgs() {
     return [...this.orgs.values()];
+  }
+
+  async getPartnerOrg(id: string) {
+    return this.partnerOrgs.get(id);
+  }
+  async upsertPartnerOrg(o: PartnerOrg) {
+    this.partnerOrgs.set(o.id, o);
+    this.persist();
+  }
+  async listPartnerOrgs() {
+    return [...this.partnerOrgs.values()];
+  }
+  async getTenantScopeByOrgId(orgId: string) {
+    return this.tenantScopes.get(orgId);
+  }
+  async upsertTenantScope(s: TenantScope) {
+    this.tenantScopes.set(s.org_id, s);
+    this.persist();
+  }
+  async getProgramScope(id: string) {
+    return this.programScopes.get(id);
+  }
+  async upsertProgramScope(p: ProgramScope) {
+    this.programScopes.set(p.id, p);
+    this.persist();
+  }
+  async listProgramScopes() {
+    return [...this.programScopes.values()];
+  }
+  async activeSubmissionLock(nurseId: string, employerId: string, channel: SubmissionChannel, at = new Date().toISOString()) {
+    return [...this.submissionLocks.values()].find(
+      (l) =>
+        l.nurse_id === nurseId &&
+        l.employer_id === employerId &&
+        l.channel === channel &&
+        l.status === "active" &&
+        (!l.expires_at || l.expires_at > at),
+    );
+  }
+  async acquireSubmissionLock(lock: ApplicationSubmissionLock) {
+    const existing = await this.activeSubmissionLock(lock.nurse_id, lock.employer_id, lock.channel, lock.locked_at);
+    if (existing) return { acquired: false as const, existing };
+    this.submissionLocks.set(lock.id, lock);
+    this.persist();
+    return { acquired: true as const, lock };
+  }
+  async releaseSubmissionLock(id: string, by: string) {
+    const existing = this.submissionLocks.get(id);
+    if (!existing || existing.status !== "active") return;
+    this.submissionLocks.set(id, { ...existing, status: "released", released_at: new Date().toISOString(), released_by: by });
+    this.persist();
   }
 
   async grantsByUser(userId: string) {
@@ -553,10 +761,40 @@ export class MemoryStore implements Store {
           c.nurse_id === nurseId &&
           c.purpose === purpose &&
           c.status === "granted" &&
-          // org-specific consent matches its org; category-wide (no org) matches any.
-          (!c.recipient_org_id || !recipientOrgId || c.recipient_org_id === recipientOrgId),
+          // Org-specific requests require exact named-recipient consent.
+          (recipientOrgId ? c.recipient_org_id === recipientOrgId : !c.recipient_org_id),
       )
       .sort((a, b) => (a.granted_at < b.granted_at ? 1 : -1))[0];
+  }
+
+  async insertRestrictedDocument(d: RestrictedDocumentRow) {
+    this.restrictedDocuments.set(d.id, d);
+    this.persist();
+  }
+  async getRestrictedDocument(id: string) {
+    return this.restrictedDocuments.get(id);
+  }
+  async updateRestrictedDocument(id: string, patch: Partial<RestrictedDocumentRow>) {
+    const d = this.restrictedDocuments.get(id);
+    if (!d) return;
+    this.restrictedDocuments.set(id, { ...d, ...patch });
+    this.persist();
+  }
+  async restrictedDocumentsByNurse(nurseId: string) {
+    return [...this.restrictedDocuments.values()].filter((d) => d.nurse_id === nurseId);
+  }
+  async insertDocumentAccessGrant(g: DocumentAccessGrantRow) {
+    this.documentAccessGrants.set(g.id, g);
+    this.persist();
+  }
+  async getDocumentAccessGrantByHash(tokenHash: string) {
+    return [...this.documentAccessGrants.values()].find((g) => g.token_hash === tokenHash);
+  }
+  async updateDocumentAccessGrant(id: string, patch: Partial<DocumentAccessGrantRow>) {
+    const g = this.documentAccessGrants.get(id);
+    if (!g) return;
+    this.documentAccessGrants.set(id, { ...g, ...patch });
+    this.persist();
   }
 
   async getIdempotency(key: string) {

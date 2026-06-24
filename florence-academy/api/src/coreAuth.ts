@@ -1,13 +1,13 @@
 // ════════════════════════════════════════════════════════════════════════════
-// FlorenceRN Core — shared verification SDK (VENDORED)
+// FlorenceRN Core - shared verification SDK (VENDORED)
 //
 // Canonical source: florence-core/sdk/coreAuth.ts. This file is COPIED into each
 // Node app (academy/api/src, pathway/server, ats/server). Edit it HERE and
-// re-copy — do not diverge the copies.
+// re-copy - do not diverge the copies.
 //
 // Verifies the RS256 session/M2M token Core mints, by fetching Core's JWKS and
 // caching public keys by `kid` (ports extracted/florenceos OidcJwtVerifier.php +
-// JwksCache.php). Pure node:crypto + global fetch — no npm deps, so even the
+// JwksCache.php). Pure node:crypto + global fetch - no npm deps, so even the
 // zero-dependency Academy API can use it unchanged.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -26,10 +26,10 @@ export interface CorePrincipal {
   roles: Role[];
   /** Org scope (employer/university). */
   orgId?: string;
-  /** Candidate binding — token may only touch this candidate. */
+  /** Candidate binding - token may only touch this candidate. */
   cand?: string;
   territory?: string;
-  /** Derived scopes — lets Academy reuse its scope checks unchanged. */
+  /** Derived scopes - lets Academy reuse its scope checks unchanged. */
   scopes: Set<string>;
   jti?: string;
   exp: number;
@@ -233,7 +233,7 @@ export function loginUrl(returnTo: string): string {
   return `${c.issuerUrl}/login?redirect=${encodeURIComponent(returnTo)}`;
 }
 
-/** Core's refresh endpoint — POST to it with credentials to slide the session
+/** Core's refresh endpoint - POST to it with credentials to slide the session
  *  (mint a fresh access cookie from the long-lived refresh cookie). */
 export function refreshUrl(): string {
   const c = requireCfg();

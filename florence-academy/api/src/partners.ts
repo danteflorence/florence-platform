@@ -1,5 +1,5 @@
 // Partner-facing projections (employer + university). CRITICAL: these views
-// carry ONLY education readiness — never ARR, financing, deposits, or visa
+// carry ONLY education readiness - never ARR, financing, deposits, or visa
 // detail. They are the role-scoped face of the Readiness Passport.
 
 import type { Candidate, ReadinessBand, ReadinessSnapshot, RouteClass } from "./types.ts";

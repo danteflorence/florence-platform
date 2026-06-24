@@ -1,4 +1,4 @@
-// Clinical-judgment walkthrough — frontend core. Mirrors the api walkthrough record
+// Clinical-judgment walkthrough - frontend core. Mirrors the api walkthrough record
 // (the approved subset the learner sees) and provides a PURE view-model builder so
 // the rendering logic is unit-testable without a DOM, plus a per-question fetch with
 // a session cache (404 / no-API → null → fall back to the plain rationale).
@@ -15,7 +15,7 @@ export type ErrorType =
 export const ERROR_TYPE_LABEL: Record<ErrorType, { label: string; meaning: string }> = {
   missed_cue: { label: "Missed cue", meaning: "Didn't flag the clinically significant data in the stem." },
   misread_cue: { label: "Misread cue", meaning: "Saw the cue but interpreted it incorrectly." },
-  priority_error: { label: "Priority error", meaning: "A reasonable action — but not the first or safest one." },
+  priority_error: { label: "Priority error", meaning: "A reasonable action - but not the first or safest one." },
   scope_error: { label: "Scope / delegation error", meaning: "Outside the RN's scope or wrongly delegated." },
   safety_error: { label: "Safety error", meaning: "An unsafe delay or low-priority action when something urgent was needed." },
   content_gap: { label: "Content gap", meaning: "The underlying knowledge wasn't there." },
@@ -107,6 +107,14 @@ export function buildWalkthroughView(w: QuestionWalkthrough, optionTexts: string
 /** The single option the learner chose, for multiple-choice (for error diagnosis). */
 export function chosenIndexOf(q: Question, answer: unknown): number | undefined {
   if (q.type === "multiple-choice" && typeof answer === "number") return answer;
+  if (
+    q.type === "multiple-choice" &&
+    answer &&
+    typeof answer === "object" &&
+    (answer as { type?: unknown }).type === "multiple-choice"
+  ) {
+    return (answer as { choice: number | null }).choice ?? undefined;
+  }
   return undefined;
 }
 

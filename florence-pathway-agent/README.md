@@ -131,16 +131,16 @@ npm run typecheck    # tsc --noEmit (passes clean)
 npm run seed         # seed demo data into a fresh data/pathway.db
 ```
 
-### Optional: live Claude
+### Optional: Core Model Gateway
 
-The app runs fully without a key (deterministic provider). To enable the LLM-backed agents:
+The app runs fully without a model gateway (deterministic provider). To enable governed AI-assisted agents:
 
 ```bash
 cp .env.example .env
-# set ANTHROPIC_API_KEY=...   (model defaults to claude-opus-4-8)
+# set CORE_MODEL_GATEWAY_URL and CORE_MODEL_GATEWAY_TOKEN
 ```
 
-The header chip shows **Claude** or **Heuristic** so you always know which provider is active.
+The header chip shows **Model Gateway** or **Heuristic** so you always know which mode is active.
 
 ---
 

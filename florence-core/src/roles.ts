@@ -86,22 +86,22 @@ export function roleScopes(role: Role): string[] {
   switch (role) {
     case "super_admin":
     case "ops":
-      return [...ACADEMY_ALL_SCOPES, "passport:read", "passport:write", "consent:read", "consent:write", "control-tower:read", "investor:read", "university:read", "ledger:read", "ledger:write", "pathway:read", "model:run", "model:read", "credit:read", "credit:decide", "lender:portfolio:read"];
+      return [...ACADEMY_ALL_SCOPES, "passport:read", "passport:write", "documents:read", "documents:write", "consent:read", "consent:write", "control-tower:read", "investor:read", "university:read", "ledger:read", "ledger:write", "pathway:read", "model:run", "model:read", "credit:read", "credit:decide", "lender:portfolio:read", "opportunities:read", "opportunities:interest:create", "applications:eligibility", "applications:submit", "packets:qa", "programs:read"];
     case "qa":
       return ["candidates:read", "performance:read", "enrollment:read", "cohorts:read", "outcomes:read", "passport:read"];
     case "instructor":
       return ["cohorts:read", "cohorts:write", "enrollment:read", "enrollment:write", "performance:read", "candidates:read"];
     case "candidate":
       // Candidates may read their OWN folded Passport (self audience) via Core.
-      return [...CANDIDATE_SCOPES, "passport:read:self"];
+      return [...CANDIDATE_SCOPES, "passport:read:self", "documents:read", "documents:write", "opportunities:interest:create", "applications:eligibility"];
     case "employer":
       // Partner roles get an audience-scoped passport read: the route maps the
       // scope suffix to the redacted view passportView() produces.
-      return ["employer:read", "passport:read:employer"];
+      return ["employer:read", "passport:read:employer", "documents:read", "applications:eligibility", "programs:read"];
     case "university":
-      return ["university:read", "schools:read", "passport:read:university"];
+      return ["university:read", "schools:read", "passport:read:university", "documents:read"];
     case "lender":
-      return ["passport:read:lender", "credit:read", "lender:portfolio:read"];
+      return ["passport:read:lender", "documents:read", "credit:read", "lender:portfolio:read"];
     case "rep":
     case "service":
       return [];

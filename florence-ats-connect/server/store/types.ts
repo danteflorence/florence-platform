@@ -19,6 +19,55 @@ import type {
   DemandReservation, JobBenefits,
   HiringSignal, ClaimedEmployerJob, NurseMarketInterest, ClaimToken,
 } from '../../shared/demand-types'
+import type { SubmissionLock } from '../../shared/vms-types'
+
+export type RestrictedDocumentType =
+  | 'employer_packet'
+  | 'ats_vms_submission_packet'
+
+export type RestrictedDocumentStatus = 'active' | 'revoked' | 'deleted'
+export type RestrictedDocumentRecipientView = 'internal_ops' | 'employer' | 'amn_vms_partner'
+export type RestrictedDocumentGrantAction = 'view' | 'download'
+
+export interface RestrictedDocumentRecord {
+  id: string
+  documentType: RestrictedDocumentType
+  candidateId: string
+  employerId: string
+  packetId?: string
+  applicationId?: string
+  filename: string
+  contentType: string
+  sizeBytes: number
+  sha256: string
+  encryptedBlob: string
+  storageKey: string
+  keyId: string
+  status: RestrictedDocumentStatus
+  malwareScanStatus: 'clean' | 'blocked' | 'pending'
+  retentionUntil?: string
+  createdAt: string
+  revokedAt?: string
+  deletedAt?: string
+}
+
+export interface DocumentAccessGrantRecord {
+  id: string
+  tokenHash: string
+  documentId: string
+  candidateId: string
+  employerId: string
+  recipientView: RestrictedDocumentRecipientView
+  recipientOrgId?: string
+  actorId: string
+  actorRole: string
+  action: RestrictedDocumentGrantAction
+  purpose: string
+  expiresAt: string
+  createdAt: string
+  usedAt?: string
+  revokedAt?: string
+}
 
 export interface Store {
   employers: {
@@ -68,6 +117,15 @@ export interface Store {
     byEmployer(eid: string): Promise<ATSApplication[]>
     all(): Promise<ATSApplication[]>
   }
+  submissionLocks: {
+    insert(l: SubmissionLock): Promise<void>
+    update(l: SubmissionLock): Promise<void>
+    get(id: string): Promise<SubmissionLock | null>
+    active(candidateId: string, employerId: string): Promise<SubmissionLock | null>
+    byCandidate(candidateId: string): Promise<SubmissionLock[]>
+    bySubmission(submissionId: string): Promise<SubmissionLock | null>
+    all(): Promise<SubmissionLock[]>
+  }
   ledger: {
     insert(e: ProductionLedgerEvent): Promise<void>
     byCandidate(cid: string): Promise<ProductionLedgerEvent[]>
@@ -83,6 +141,20 @@ export interface Store {
   audit: {
     log(e: AuditEntry): Promise<void>
     recent(limit?: number): Promise<AuditEntry[]>
+  }
+  restrictedDocuments: {
+    insert(d: RestrictedDocumentRecord): Promise<void>
+    update(d: RestrictedDocumentRecord): Promise<void>
+    get(id: string): Promise<RestrictedDocumentRecord | null>
+    byPacket(packetId: string): Promise<RestrictedDocumentRecord[]>
+    all(): Promise<RestrictedDocumentRecord[]>
+  }
+  documentAccessGrants: {
+    insert(g: DocumentAccessGrantRecord): Promise<void>
+    update(g: DocumentAccessGrantRecord): Promise<void>
+    get(id: string): Promise<DocumentAccessGrantRecord | null>
+    byTokenHash(tokenHash: string): Promise<DocumentAccessGrantRecord | null>
+    byDocument(documentId: string): Promise<DocumentAccessGrantRecord[]>
   }
   /** Durable idempotency cache for /v1 create routes — replaces the in-memory Map
    *  so a retried create is replay-safe across restarts/instances. Caller-scoped key;

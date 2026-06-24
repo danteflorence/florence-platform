@@ -40,13 +40,13 @@ const MODES: ModeCard[] = [
     title: "Nightly 150",
     count: "150 items",
     blurb:
-      "The nightly homework. A full adaptive set that builds knowledge, stamina, and resilience — feedback comes at the end.",
+      "The nightly homework. A full adaptive set that builds knowledge, stamina, and resilience - feedback comes at the end.",
     accent: "from-florence-indigo to-florence-indigo-dark",
   },
   {
     key: "exam",
     title: "Adaptive exam",
-    count: "85–150 items",
+    count: "85-150 items",
     blurb:
       "Real NCLEX-style: variable length that ends when the 95% confidence-interval rule decides the result.",
     accent: "from-florence-ink to-florence-slate",
@@ -56,7 +56,7 @@ const MODES: ModeCard[] = [
     title: "Timed test",
     count: "75 items · 90 min",
     blurb:
-      "A fixed-length test against the clock. The timer counts down and auto-submits at zero — train your pacing and stamina under real exam pressure.",
+      "A fixed-length test against the clock. The timer counts down and auto-submits at zero - train your pacing and stamina under real exam pressure.",
     accent: "from-amber-500 to-florence-indigo-dark",
   },
   {
@@ -77,9 +77,9 @@ const SUBTITLE: Record<SessionKind, string> = {
   exam:
     "Choose your starting difficulty, or let the adaptive exam find your level from the first item.",
   timed:
-    "Set the opening difficulty of your timed test, or let FlorenceRN choose — then race the countdown to the finish.",
+    "Set the opening difficulty of your timed test, or let FlorenceRN choose - then race the countdown to the finish.",
   cases:
-    "Choose how hard the first unfolding case should be, or let FlorenceRN choose — either way it climbs as you go.",
+    "Choose how hard the first unfolding case should be, or let FlorenceRN choose - either way it climbs as you go.",
 };
 
 export default function Practice() {
@@ -151,12 +151,11 @@ export default function Practice() {
     <div className="mx-auto max-w-5xl px-5 py-12 sm:px-8">
       <p className="fl-eyebrow">Adaptive practice</p>
       <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">
-        Practice the way the exam{" "}
-        <span className="italic text-florence-indigo">actually works.</span>
+        Practice the way the exam actually works.
       </h1>
       <p className="mt-3 max-w-2xl text-florence-slate">
         Every set is computer-adaptive: get items right and the questions get
-        harder; miss them and they ease off — the same Rasch logic the NCLEX
+        harder; miss them and they ease off - the same Rasch logic the NCLEX
         uses. All item types are here, from single-answer to bow-tie and
         unfolding-case formats.
       </p>
@@ -201,7 +200,7 @@ export default function Practice() {
           </li>
         </ol>
         <p className="mt-3 text-[11px] text-florence-slate/70">
-          Pool: {BANK_SIZE} items — the original seed set plus your imported
+          Pool: {BANK_SIZE} items - the original seed set plus your imported
           NCLEX question bank. All Florence-owned.
         </p>
       </div>
@@ -210,7 +209,7 @@ export default function Practice() {
 }
 
 // ---------------------------------------------------------------------------
-// Session gate — defers the heavy question/case bank out of the Practice chunk,
+// Session gate - defers the heavy question/case bank out of the Practice chunk,
 // fetching it on demand when a session starts (with a loading + retry state).
 // `cached` lets a restart reuse an already-loaded bank with no loading flash.
 // ---------------------------------------------------------------------------

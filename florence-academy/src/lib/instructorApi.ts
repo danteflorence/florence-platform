@@ -2,15 +2,15 @@
 // Instructor console data layer (/instructor).
 //
 // INTERNAL ONLY. Authenticates with an M2M client (entered at runtime and
-// held in sessionStorage — never baked into the bundle). The instructor's
-// scope set is narrower than ops Control Tower — just what's needed to run
+// held in sessionStorage - never baked into the bundle). The instructor's
+// scope set is narrower than ops Control Tower - just what's needed to run
 // a live class:
 //
-//   cohorts:read    — roster, copilot
-//   cohorts:write   — bump the coverage watermark
-//   enrollment:read — names + statuses
-//   enrollment:write — attendance / status transitions
-//   performance:read — readiness band per student
+//   cohorts:read    - roster, copilot
+//   cohorts:write   - bump the coverage watermark
+//   enrollment:read - names + statuses
+//   enrollment:write - attendance / status transitions
+//   performance:read - readiness band per student
 //
 // Distinct sessionStorage namespace ("fl_instr_*") so an operator on the
 // same browser doesn't bleed credentials across roles.
@@ -174,7 +174,7 @@ export async function fetchCopilot(code: string): Promise<CohortCopilot> {
  * Mark attendance for one candidate in a cohort on a given date.
  * - `status` matches the API enum: "present" | "absent" | "late".
  * - `sessionDate` defaults to today (UTC YYYY-MM-DD).
- * - The endpoint is append-only — calling it again creates a new record;
+ * - The endpoint is append-only - calling it again creates a new record;
  *   the rollup endpoint picks the latest per candidate/date.
  */
 export async function recordAttendance(

@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Florence Academy — live class protocol (typed client mirror).
+// Florence Academy - live class protocol (typed client mirror).
 //
 // The authoritative definitions live in server/liveServer.mjs (plain JS). This
 // file is the TypeScript shape the browser client codes against so the two
@@ -11,8 +11,8 @@
 //     lock         { locked }                 (instructor only)
 //     poll:open    PollOpenPayload            (instructor only)
 //     poll:answer  { choice } | { choices }   (student)
-//     poll:reveal  —                          (instructor only)
-//     poll:close   —                          (instructor only)
+//     poll:reveal  -                          (instructor only)
+//     poll:close   -                          (instructor only)
 //   server → client (room broadcast)
 //     snapshot     RoomSnapshot               (on every change)
 // ───────────────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export interface PollView {
   slideIndex: number;
   prompt: string;
   options: string[];
-  /** Correct option indexes — withheld (null) until the instructor reveals. */
+  /** Correct option indexes - withheld (null) until the instructor reveals. */
   correct: number[] | null;
   revealed: boolean;
   open: boolean;
@@ -42,11 +42,11 @@ export interface PollView {
   total: number;
   /**
    * NGN Clinical Judgment step this question exercises. Sent always (even before
-   * reveal) — it primes the kind of thinking required without giving the answer.
+   * reveal) - it primes the kind of thinking required without giving the answer.
    */
   cjmm?: CjmmStep;
   /**
-   * Worked rationale, shown to the whole room on reveal — every question gets a
+   * Worked rationale, shown to the whole room on reveal - every question gets a
    * rationale, right or wrong. Withheld until reveal (it can name the answer).
    */
   rationale?: string;
@@ -55,7 +55,7 @@ export interface PollView {
 }
 
 /**
- * One student's live status on the active poll. Instructor-only — sent over a
+ * One student's live status on the active poll. Instructor-only - sent over a
  * separate `roster` channel that students never receive, so the class never
  * sees who answered what (no herding, and classmate answers stay private).
  */
@@ -169,7 +169,7 @@ export interface ClientToServerEvents {
 /**
  * Resolve the live server's URL. Prefers a build-time override
  * (`VITE_LIVE_URL`); otherwise targets port 5179 on the same host the app is
- * served from — so a classroom instructor can share `http://<their-ip>:5174`
+ * served from - so a classroom instructor can share `http://<their-ip>:5174`
  * and every student's client finds the live server at `<their-ip>:5179`.
  */
 export function liveServerUrl(): string {

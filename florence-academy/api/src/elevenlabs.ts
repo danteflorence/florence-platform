@@ -1,5 +1,4 @@
-// ElevenLabs client — text-to-speech, pronunciation dictionaries, and the
-// Conversational-AI signed URL for the live voice tutor. Zero runtime deps
+// ElevenLabs client - text-to-speech and pronunciation dictionaries. Zero runtime deps
 // (global fetch + node:crypto), matching the rest of this API.
 //
 // MOCK BY DEFAULT: with no ELEVENLABS_API_KEY, ttsToMp3() returns a tiny valid
@@ -17,7 +16,8 @@ const OUTPUT_FORMAT = process.env["ELEVENLABS_OUTPUT_FORMAT"] ?? "mp3_44100_128"
 // Pronunciation dictionary locator (created by scripts/setup-pronunciation.ts).
 const DICT_ID = process.env["ELEVENLABS_DICTIONARY_ID"] ?? "";
 const DICT_VERSION_ID = process.env["ELEVENLABS_DICTIONARY_VERSION_ID"] ?? "";
-// Conversational-AI agent for the voice tutor (created by scripts/setup-tutor.ts).
+// Legacy Conversational AI agent id. Direct conversational AI is disabled by
+// policy because tutor responses must go through Core's Model Gateway.
 const AGENT_ID = process.env["ELEVENLABS_AGENT_ID"] ?? "";
 
 export interface VoiceConfig {
@@ -32,7 +32,7 @@ export function elevenlabsConfigured(): boolean {
 }
 
 export function tutorConfigured(): boolean {
-  return API_KEY.length > 0 && AGENT_ID.length > 0;
+  return false;
 }
 
 export function voiceConfig(): VoiceConfig {
@@ -131,45 +131,21 @@ export async function createPronunciationDictionary(
   return { id: String(j.id ?? j.pronunciation_dictionary_id ?? ""), versionId: String(j.version_id ?? "") };
 }
 
-// --- Conversational AI (voice tutor) ----------------------------------------
+// --- Conversational AI (disabled until Core Model Gateway proxy exists) ------
 
 /** Mint a short-lived signed URL for a learner to open a tutor conversation.
- *  Required for non-public agents; consumes grant minutes, so callers gate it. */
+ *  Direct ElevenLabs Conversational AI would bypass Core's Model Gateway policy. */
 export async function tutorSignedUrl(): Promise<string> {
-  if (!tutorConfigured()) throw new Error("voice tutor not configured (ELEVENLABS_API_KEY + ELEVENLABS_AGENT_ID)");
-  const res = await fetch(`${API}/v1/convai/conversation/get_signed_url?agent_id=${encodeURIComponent(AGENT_ID)}`, {
-    headers: headers(),
-  });
-  if (!res.ok) throw new Error(`signed-url failed: ${res.status} ${await res.text().catch(() => "")}`);
-  const j = (await res.json()) as { signed_url?: string };
-  if (!j.signed_url) throw new Error("signed-url response missing signed_url");
-  return j.signed_url;
+  throw new Error("direct voice tutor conversations are disabled; route tutor responses through Core Model Gateway");
 }
 
-/** Create (or print) the NCLEX tutor agent. Returns the agent_id. */
+/** Direct tutor agent creation is disabled by policy. */
 export async function createTutorAgent(cfg: {
   name: string;
   prompt: string;
   firstMessage: string;
   voiceId?: string;
 }): Promise<string> {
-  if (!elevenlabsConfigured()) throw new Error("ELEVENLABS_API_KEY not set");
-  const res = await fetch(`${API}/v1/convai/agents/create`, {
-    method: "POST",
-    headers: headers({ "content-type": "application/json" }),
-    body: JSON.stringify({
-      name: cfg.name,
-      conversation_config: {
-        agent: {
-          prompt: { prompt: cfg.prompt },
-          first_message: cfg.firstMessage,
-          language: "en",
-        },
-        tts: { voice_id: cfg.voiceId ?? VOICE_ID, model_id: "eleven_turbo_v2_5" },
-      },
-    }),
-  });
-  if (!res.ok) throw new Error(`create agent failed: ${res.status} ${await res.text().catch(() => "")}`);
-  const j = (await res.json()) as { agent_id?: string };
-  return String(j.agent_id ?? "");
+  void cfg;
+  throw new Error("direct tutor agent creation is disabled; route tutor responses through Core Model Gateway");
 }

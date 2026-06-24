@@ -1,11 +1,11 @@
 // Append-only audit trail. Every authenticated request lands here. We record
-// WHO did WHAT to WHICH resource under WHICH scope — never the PII/financial
+// WHO did WHAT to WHICH resource under WHICH scope - never the PII/financial
 // VALUES.
 //
 // Tamper-evidence: each entry hash-chains the previous (hash = SHA-256 over the
 // entry incl. prev_hash), so any later edit/reorder/deletion breaks the chain
 // and `verifyChain()` catches it. Production writes this to a WORM/append-only
-// store (audit_log, INSERT/SELECT only — see db/schema.sql).
+// store (audit_log, INSERT/SELECT only - see db/schema.sql).
 
 import { createHash } from "node:crypto";
 import type { AuditEntry } from "./types.ts";
@@ -18,6 +18,19 @@ export interface AuditSink {
 }
 
 const GENESIS = "0".repeat(64);
+
+function shortHash(value: string): string {
+  return createHash("sha256").update(value.trim().toLowerCase()).digest("hex").slice(0, 16);
+}
+
+function auditActorKey(actor: string | undefined): string | undefined {
+  if (!actor) return actor;
+  return /@/.test(actor) || /token|secret|passport|sevis/i.test(actor) ? `actor_${shortHash(actor)}` : actor;
+}
+
+function auditIpKey(ip: string | undefined): string | undefined {
+  return ip ? `ip_${shortHash(ip)}` : undefined;
+}
 
 /** SHA-256 over the entry, excluding its own `hash` field. */
 function hashEntry(e: AuditEntry): string {
@@ -37,7 +50,12 @@ export class MemoryAuditSink implements AuditSink {
   append(e: AuditEntry): void {
     const seq = this.entries.length;
     const prev = seq > 0 ? this.entries[seq - 1] : undefined;
-    const chained: AuditEntry = { ...e, seq, prev_hash: prev?.hash ?? GENESIS };
+    const sanitized: AuditEntry = {
+      ...e,
+      ...(e.actor ? { actor: auditActorKey(e.actor) } : {}),
+      ...(e.ip ? { ip: auditIpKey(e.ip) } : {}),
+    };
+    const chained: AuditEntry = { ...sanitized, seq, prev_hash: prev?.hash ?? GENESIS };
     chained.hash = hashEntry(chained);
     this.entries.push(chained);
     if (this.echo) console.log(`[audit] ${JSON.stringify(chained)}`);
@@ -52,7 +70,7 @@ export class MemoryAuditSink implements AuditSink {
     return matched.slice(-limit).reverse();
   }
 
-  /** True iff the chain is intact — no entry was altered, dropped, or reordered. */
+  /** True iff the chain is intact - no entry was altered, dropped, or reordered. */
   verifyChain(): boolean {
     let prev = GENESIS;
     for (let i = 0; i < this.entries.length; i++) {

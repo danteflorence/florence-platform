@@ -17,6 +17,7 @@ export interface GrantConsentInput {
   purpose: string; // employer_share | underwriting | education | visa | demand_radar
   recipientCategory: string; // employer | lender | university | internal
   recipientOrgId?: string;
+  recipientProgramId?: string;
   allowedFields?: string[];
   consentTextVersion: string;
   /** If omitted, derived from the text version (a deterministic fingerprint). */
@@ -24,6 +25,12 @@ export interface GrantConsentInput {
   ipHash?: string;
   deviceHash?: string;
   grantedBy: string;
+}
+
+const ORG_SCOPED_RECIPIENTS = new Set(["employer", "lender", "university", "ats", "vms"]);
+
+export function requiresRecipientOrg(recipientCategory: string): boolean {
+  return ORG_SCOPED_RECIPIENTS.has(recipientCategory);
 }
 
 /** Record a consent grant, audit it, and emit the legacy spine event. */
@@ -34,6 +41,7 @@ export async function grantConsent(store: Store, audit: Audit, in_: GrantConsent
     purpose: in_.purpose,
     recipient_category: in_.recipientCategory,
     ...(in_.recipientOrgId ? { recipient_org_id: in_.recipientOrgId } : {}),
+    ...(in_.recipientProgramId ? { recipient_program_id: in_.recipientProgramId } : {}),
     allowed_fields: in_.allowedFields ?? [],
     consent_text_version: in_.consentTextVersion,
     consent_text_hash: in_.consentTextHash ?? sha256hex(in_.consentTextVersion),
@@ -48,6 +56,7 @@ export async function grantConsent(store: Store, audit: Audit, in_: GrantConsent
     consentId: row.id,
     purpose: row.purpose,
     recipient: in_.recipientOrgId ?? in_.recipientCategory,
+    programId: in_.recipientProgramId,
   });
   // Keep the folded Passport's coarse consents map in sync.
   await recordEvent(store, in_.nurseId, {
@@ -67,8 +76,11 @@ export async function revokeConsentById(
   await store.revokeConsent(args.id, args.by);
   await audit(args.by, "consent.revoke", "nurse", args.nurseId, { consentId: args.id, purpose: args.purpose });
   // The coarse map is per-purpose; only flip it to revoked if NO live consent for
-  // this purpose remains (an org-specific revoke must not clear a category grant).
-  const stillLive = await store.liveConsent(args.nurseId, args.purpose);
+  // this purpose remains. This intentionally checks all recipient orgs because
+  // external disclosure now requires named-org consent, not category-wide matching.
+  const stillLive = (await store.consentsByNurse(args.nurseId)).some(
+    (c) => c.purpose === args.purpose && c.status === "granted",
+  );
   await recordEvent(store, args.nurseId, {
     type: "consent.updated",
     source: "core",
@@ -80,22 +92,56 @@ export interface ConsentDecision {
   ok: boolean;
   consentId?: string;
   allowedFields?: string[];
+  reason?: string;
 }
 
 /**
  * The canonical consent gate. Given the nurse's consent rows, is there a live
- * grant for (purpose, recipientOrgId)? Org-specific grants match their org;
- * category-wide grants (no org) match any recipient in the category.
+ * grant for (purpose, recipientOrgId)? Org-specific requests require an exact
+ * org match; category-wide rows do not unlock named partner disclosures.
  */
-export function consentAllows(consents: ConsentRow[], purpose: string, recipientOrgId?: string): ConsentDecision {
+export function consentAllows(consents: ConsentRow[], purpose: string, recipientOrgId?: string, recipientProgramId?: string): ConsentDecision {
   const hit = consents
     .filter(
       (c) =>
         c.status === "granted" &&
         c.purpose === purpose &&
-        (!c.recipient_org_id || !recipientOrgId || c.recipient_org_id === recipientOrgId),
+        (recipientOrgId ? c.recipient_org_id === recipientOrgId : !c.recipient_org_id) &&
+        (recipientProgramId ? c.recipient_program_id === recipientProgramId : true),
     )
     .sort((a, b) => (a.granted_at < b.granted_at ? 1 : -1))[0];
   if (!hit) return { ok: false };
   return { ok: true, consentId: hit.id, allowedFields: hit.allowed_fields };
+}
+
+/** Store-backed central consent check for purpose-specific external disclosure. */
+export async function checkConsent(
+  store: Store,
+  args: { nurseId: string; purpose: string; recipientOrgId?: string; recipientProgramId?: string },
+): Promise<ConsentDecision> {
+  const consents = await store.consentsByNurse(args.nurseId);
+  const decision = consentAllows(consents, args.purpose, args.recipientOrgId, args.recipientProgramId);
+  if (decision.ok) return decision;
+  return {
+    ok: false,
+    reason: args.recipientOrgId
+      ? `No live ${args.purpose} consent for recipient ${args.recipientOrgId}${args.recipientProgramId ? ` and program ${args.recipientProgramId}` : ""}`
+      : `No live category-level ${args.purpose} consent`,
+  };
+}
+
+export function employerShareConsentAllows(consents: ConsentRow[], employerOrgId: string, programId: string): ConsentDecision {
+  return consentAllows(consents, "employer_share", employerOrgId, programId);
+}
+
+export async function checkEmployerShareConsent(
+  store: Store,
+  args: { nurseId: string; employerOrgId: string; programId: string },
+): Promise<ConsentDecision> {
+  return checkConsent(store, {
+    nurseId: args.nurseId,
+    purpose: "employer_share",
+    recipientOrgId: args.employerOrgId,
+    recipientProgramId: args.programId,
+  });
 }

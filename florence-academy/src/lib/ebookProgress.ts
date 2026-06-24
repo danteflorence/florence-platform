@@ -1,5 +1,5 @@
 // Per-section e-book chapter cursor ("continue where you left off"). Local-only +
-// additive — it does not touch the section-level progress API (that's still updated
+// additive - it does not touch the section-level progress API (that's still updated
 // by SectionProgress). Cross-device resume is a later upgrade.
 
 const key = (slug: string) => `florence.ebook.${slug}.chapter`;
@@ -17,6 +17,6 @@ export function setChapterCursor(slug: string, chapterIndex: number): void {
   try {
     localStorage.setItem(key(slug), String(chapterIndex));
   } catch {
-    /* storage disabled — cursor is in-memory only for this tab */
+    /* storage disabled - cursor is in-memory only for this tab */
   }
 }

@@ -18,6 +18,8 @@ import type {
   SelectAllQuestion,
   TrendQuestion,
 } from "../../types/question";
+import QuestionTutorButton from "../QuestionTutorButton";
+import type { QuestionTutorContext } from "../../lib/questionTutor";
 
 /**
  * Renders the interactive body for any NCLEX item type. All interactions are
@@ -45,37 +47,65 @@ export default function QuestionBody(props: {
   onChange: Update;
   revealed: boolean;
   disabled: boolean;
+  tutorContext?: QuestionTutorContext;
 }) {
-  const { question, answer, onChange, revealed, disabled } = props;
+  const { question, answer, onChange, revealed, disabled, tutorContext } = props;
   const shared = { onChange, revealed, disabled };
+  let body;
   switch (question.type) {
     case "multiple-choice":
-      return <MultipleChoiceBody q={question} a={answer as MCA} {...shared} />;
+      body = <MultipleChoiceBody q={question} a={answer as MCA} {...shared} />;
+      break;
     case "select-all":
-      return <SelectAllBody q={question} a={answer as SAA} {...shared} />;
+      body = <SelectAllBody q={question} a={answer as SAA} {...shared} />;
+      break;
     case "fill-in-blank":
-      return <FillInBlankBody q={question} a={answer as FIBA} {...shared} />;
+      body = <FillInBlankBody q={question} a={answer as FIBA} {...shared} />;
+      break;
     case "ordered-response":
-      return <OrderedResponseBody q={question} a={answer as ORA} {...shared} />;
+      body = <OrderedResponseBody q={question} a={answer as ORA} {...shared} />;
+      break;
     case "matrix":
-      return <MatrixBody q={question} a={answer as MXA} {...shared} />;
+      body = <MatrixBody q={question} a={answer as MXA} {...shared} />;
+      break;
     case "dropdown-cloze":
-      return <DropdownClozeBody q={question} a={answer as DCA} {...shared} />;
+      body = <DropdownClozeBody q={question} a={answer as DCA} {...shared} />;
+      break;
     case "highlight":
-      return <HighlightBody q={question} a={answer as HLA} {...shared} />;
+      body = <HighlightBody q={question} a={answer as HLA} {...shared} />;
+      break;
     case "bowtie":
-      return <BowtieBody q={question} a={answer as BTA} {...shared} />;
+      body = <BowtieBody q={question} a={answer as BTA} {...shared} />;
+      break;
     case "drag-drop":
-      return <DragDropBody q={question} a={answer as DDA} {...shared} />;
+      body = <DragDropBody q={question} a={answer as DDA} {...shared} />;
+      break;
     case "trend":
-      return <TrendBody q={question} a={answer as TRA} {...shared} />;
+      body = <TrendBody q={question} a={answer as TRA} {...shared} />;
+      break;
     case "graphic-hotspot":
-      return <GraphicHotspotBody q={question} a={answer as GHA} {...shared} />;
+      body = <GraphicHotspotBody q={question} a={answer as GHA} {...shared} />;
+      break;
     case "graphic-options":
-      return <GraphicOptionsBody q={question} a={answer as GOA} {...shared} />;
+      body = <GraphicOptionsBody q={question} a={answer as GOA} {...shared} />;
+      break;
     case "media-exhibit":
-      return <MediaExhibitBody q={question} a={answer as MEA} {...shared} />;
+      body = <MediaExhibitBody q={question} a={answer as MEA} {...shared} />;
+      break;
   }
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <QuestionTutorButton
+          question={question}
+          answer={answer}
+          revealed={revealed}
+          context={tutorContext}
+        />
+      </div>
+      {body}
+    </div>
+  );
 }
 
 type MCA = Extract<Answer, { type: "multiple-choice" }>;
@@ -492,7 +522,7 @@ function MatrixBody({
                       type="button"
                       disabled={disabled}
                       onClick={() => setCell(ri, ci)}
-                      aria-label={`${row} — ${q.columns[ci]}`}
+                      aria-label={`${row} - ${q.columns[ci]}`}
                       className={`grid h-7 w-7 place-items-center ${
                         q.mode === "single" ? "rounded-full" : "rounded-md"
                       } border-2 border-current ${tone}`}

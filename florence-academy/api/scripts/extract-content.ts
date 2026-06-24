@@ -1,5 +1,5 @@
 // Build the audio CONTENT manifest the generator consumes: a flat list of
-// { key, kind, refId, title, text } pulled from the Academy's authored content —
+// { key, kind, refId, title, text } pulled from the Academy's authored content -
 // question rationales (the bulk) and lesson narration. Decoupling extraction
 // from generation means the generator never needs to understand content shapes,
 // and we can add sources here without touching the TTS pipeline.
@@ -11,7 +11,7 @@
 //   - src/data/hour{1..20}.ts  → one entry per lesson segment (narration) + an intro
 //
 // NOTE: rationale TEXT is the source of truth and must be clinically reviewed
-// BEFORE it's voiced — audio is strictly downstream. The textHash in the
+// BEFORE it's voiced - audio is strictly downstream. The textHash in the
 // generator means an edited rationale re-renders only that one clip.
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
@@ -84,13 +84,13 @@ for (let n = 1; n <= 20; n += 1) {
     const objectives = (lesson.objectives ?? []).join(". ");
     const intro = [lesson.meta?.tagline, objectives && `In this section: ${objectives}.`].filter(Boolean).join(" ");
     if (intro.trim()) {
-      items.push({ key: `lesson-${n}-intro`, kind: "lesson", refId: `${n}/intro`, title: `${title} — overview`, text: intro });
+      items.push({ key: `lesson-${n}-intro`, kind: "lesson", refId: `${n}/intro`, title: `${title} - overview`, text: intro });
       counts["lesson"] += 1;
     }
     for (const seg of lesson.segments ?? []) {
       const text = segmentNarration(seg);
       if (text.trim().length < 8) continue;
-      items.push({ key: `lesson-${n}-${seg.id}`, kind: "lesson", refId: `${n}/${seg.id}`, title: `${title} — ${seg.title}`, text });
+      items.push({ key: `lesson-${n}-${seg.id}`, kind: "lesson", refId: `${n}/${seg.id}`, title: `${title} - ${seg.title}`, text });
       counts["lesson"] += 1;
     }
   } catch (e) {

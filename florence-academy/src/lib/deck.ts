@@ -1,9 +1,9 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Deck builder — turns the curriculum's typed segments into a flat list of
+// Deck builder - turns the curriculum's typed segments into a flat list of
 // full-bleed presenter SLIDES ("feels like a deck the instructor walks
 // through, not a webpage you scroll").  This is a PURE transform so the slide
 // shape is unit-testable and stays a derived view of the single source of
-// truth (src/data/hour7.ts) — edit the lesson, the deck updates for free.
+// truth (src/data/hour7.ts) - edit the lesson, the deck updates for free.
 // ───────────────────────────────────────────────────────────────────────────
 
 import type {
@@ -240,7 +240,7 @@ export function buildDeck(lesson: Lesson): Deck {
  * push to the room. The single keyed answer becomes the (hidden until reveal)
  * correct option index; option text carries over verbatim. The rationale,
  * CJMM step, and reference travel along so the room sees a worked explanation
- * and the Clinical Judgment framing on reveal — every question, win or lose.
+ * and the Clinical Judgment framing on reveal - every question, win or lose.
  */
 export function pollFromPracticeItem(
   item: PracticeItem,

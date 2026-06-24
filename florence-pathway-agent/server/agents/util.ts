@@ -55,6 +55,7 @@ export const SOURCE_LABEL: Record<EvidenceSourceType, string> = {
   transcript: 'Transcript',
   license_doc: 'License',
   i20: 'I-20',
+  i901_receipt: 'I-901 receipt',
   offer_letter: 'Offer letter',
   prior_visa: 'Prior visa',
   english_score: 'English score report',

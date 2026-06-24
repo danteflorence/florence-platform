@@ -1,4 +1,4 @@
-// Voice tutor client — talks to the API's ElevenLabs Conversational-AI bridge.
+// Voice tutor client - talks to the API's ElevenLabs Conversational-AI bridge.
 // config is public (so the SPA can show/hide the button); a session mints a
 // short-lived signed URL, gated server-side to signed-in learners (it consumes
 // grant minutes). The actual realtime audio runs through @elevenlabs/react.

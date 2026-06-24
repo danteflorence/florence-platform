@@ -18,6 +18,8 @@ export type GateKey =
   | 'employer_packet_qa_approved'
   | 'job_open'
   | 'channel_authorized'
+  | 'duplicate_submission_lock_clear'
+  | 'data_minimized_packet_generated'
   | 'documents_complete'
 
 export type ApplicationGateStatus =
@@ -26,6 +28,7 @@ export type ApplicationGateStatus =
   | 'visa_pending'
   | 'license_pending'
   | 'qa_pending'
+  | 'duplicate_submission'
   | 'not_ready'
   | 'ready_to_submit'
 
@@ -38,10 +41,16 @@ export interface GateJob {
 }
 
 export interface ApplicationGateOpts {
+  /** Purpose-specific, employer/program-scoped consent has been verified by the consent service. */
+  employerShareConsentGranted?: boolean
   /** Packet QA cleared (humanQaStatus==='approved' / packet.status==='ready_to_submit'). */
   packetQaApproved?: boolean
   /** Required documents present + share-approved on the packet. */
   documentsComplete?: boolean
+  /** The packet exists and excludes prohibited employer-facing fields. */
+  dataMinimizedPacketGenerated?: boolean
+  /** No active duplicate submission lock exists for this candidate/employer workflow. */
+  duplicateSubmissionLockClear?: boolean
   /** Already submitted (short-circuits to 'submitted'). */
   alreadySubmitted?: boolean
 }
@@ -63,6 +72,8 @@ export interface ApplicationGateResult {
   allowedAction: 'express_interest' | 'apply_with_packet'
   /** What an interview/offer/start remains conditional on (mailpiece/UI honesty). */
   subjectTo: string[]
+  /** Candidate/employer-facing conditionality copy. */
+  subjectToMessage: string
 }
 
 const norm = (s?: string) => (s ?? '').trim().toLowerCase()
@@ -76,9 +87,13 @@ export const SUBJECT_TO = [
   'consular_processing',
   'final_work_authorization',
   'employer_onboarding',
+  'employer_approval',
   'credentialing',
   'occupational_health',
 ]
+
+export const SUBJECT_TO_MESSAGE =
+  'Interviews, offers, and starts remain subject to consular processing, final work authorization, credentialing, onboarding, and employer approval where applicable.'
 
 /** The single source of truth for "can we submit this candidate to this job?" */
 export function applicationGate(input: ApplicationGateInput): ApplicationGateResult {
@@ -88,7 +103,8 @@ export function applicationGate(input: ApplicationGateInput): ApplicationGateRes
   const fail = (key: GateKey, reason: string) => { missing.push(key); reasons.push(reason) }
 
   // 1. Employer-share consent
-  if (c.employerShareConsent !== 'granted') fail('employer_share_consent', 'Employer-share consent not yet granted')
+  const employerShareConsentGranted = opts.employerShareConsentGranted ?? c.employerShareConsent === 'granted'
+  if (employerShareConsentGranted !== true) fail('employer_share_consent', 'Employer-share consent not yet granted for this employer/workflow')
 
   // 2. Visa / work-authorization (fail-closed: only approved | not_required)
   if (!c.visaStatus || !VISA_PASS.includes(c.visaStatus)) {
@@ -111,7 +127,13 @@ export function applicationGate(input: ApplicationGateInput): ApplicationGateRes
   // 6. Employer/channel authorized (public ⇒ no authorized employer workflow)
   if (!AUTHORIZED_CHANNELS.includes(opportunityState)) fail('channel_authorized', 'No authorized employer/AMN/ATS workflow for this job')
 
-  // 7. Documents complete (packet-derived)
+  // 7. Duplicate submission lock clear
+  if (opts.duplicateSubmissionLockClear === false) fail('duplicate_submission_lock_clear', 'Duplicate active submission lock for this candidate/employer workflow')
+
+  // 8. Data-minimized packet generated (packet-derived)
+  if (opts.dataMinimizedPacketGenerated !== true) fail('data_minimized_packet_generated', 'Data-minimized employer-safe packet not generated')
+
+  // 9. Documents complete (packet-derived)
   if (opts.documentsComplete !== true) fail('documents_complete', 'Required documents not complete')
 
   const ok = missing.length === 0
@@ -123,6 +145,7 @@ export function applicationGate(input: ApplicationGateInput): ApplicationGateRes
   else if (missing.includes('visa_approved')) status = 'visa_pending'
   else if (missing.includes('license_verified_active')) status = 'license_pending'
   else if (missing.includes('employer_packet_qa_approved')) status = 'qa_pending'
+  else if (missing.includes('duplicate_submission_lock_clear')) status = 'duplicate_submission'
   else status = 'not_ready'
 
   return {
@@ -132,6 +155,7 @@ export function applicationGate(input: ApplicationGateInput): ApplicationGateRes
     status,
     allowedAction: ok ? 'apply_with_packet' : 'express_interest',
     subjectTo: SUBJECT_TO,
+    subjectToMessage: SUBJECT_TO_MESSAGE,
   }
 }
 

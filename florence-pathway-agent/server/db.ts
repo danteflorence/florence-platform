@@ -16,7 +16,8 @@ import type {
   EmployerOffer, FinancingRecord, EnglishExam, NclexRegistration,
   PathwayDocument, WorkflowInstance, FormDraft, QaReview, CandidateAttestation,
   SubmissionEvent, AppointmentEvent, DeficiencyNotice, AuditEntry,
-  LedgerMilestone, CandidateDossier,
+  LedgerMilestone, CandidateDossier, ConsularPaymentOrder, SevismateHandoff,
+  I901Receipt, ConsularPaymentEvent,
 } from '../shared/types'
 
 interface Stmt { run(...p: unknown[]): unknown; get(...p: unknown[]): any; all(...p: unknown[]): any[] }
@@ -32,6 +33,50 @@ db.exec('PRAGMA journal_mode = WAL;')
 
 export const uid = (): string => (globalThis.crypto as Crypto).randomUUID()
 export const now = (): string => new Date().toISOString()
+
+function redactAuditDetail(value: string | undefined): string | undefined {
+  if (!value) return value
+  const redacted = value
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED]')
+    .replace(/\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g, '[REDACTED]')
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED]')
+    .replace(/\b(?:ssn|itin)\s*(?::|=|\s)\s*\d{9}\b/gi, '[REDACTED]')
+    .replace(/\bN\d{10}\b/g, '[REDACTED]')
+    .replace(/\b(?:passport|sevis|ssn|itin|ds-?160|i-?20|credit|loan|lender(?:\s+application)?|token|secret|api[_ -]?key)(?:\s+(?:number|id|confirmation|application|value))?\s*(?::|=|\s)\s*[A-Z0-9][A-Z0-9_-]{2,}/gi, '[REDACTED]')
+    .replace(/\b(?:dob|date\s+of\s+birth|birthDate)\s*(?::|=|\s)\s*[^;,\n]+/gi, '[REDACTED]')
+    .replace(/\baddress\s*(?::|=|\s)\s*[^;\n]+/gi, '[REDACTED]')
+    .replace(/https?:\/\/[^\s"'<>]*(?:X-Amz-Signature|Signature|token|signed)[^\s"'<>]*/gi, '[REDACTED]')
+    .replace(/(?:\/(?:private|tmp|var|Users|vault|documents|restricted-documents)\/[^\s"'<>]+)/g, '[REDACTED]')
+  return redacted === value && /passport|sevis|ssn|itin|ds160|i20|visa|dob|address|phone|credit|loan|underwriting|signature|name|document|token|secret/i.test(value)
+    ? '[REDACTED]'
+    : redacted
+}
+
+const AUDIT_ACTION_ALIASES: Record<string, string> = {
+  document_uploaded: 'document.upload',
+  ds160_confirmation_recorded: 'immigration.ds160_confirmation.recorded',
+  visa_outcome_recorded: 'immigration.visa_outcome.recorded',
+  nclex_registered: 'nclex.registration.recorded',
+  nclex_att: 'nclex.att.recorded',
+  licensure_submitted: 'licensure.submission',
+  i901_payment_order_created: 'consular.i901_payment_order',
+  i901_payment_order_updated: 'consular.i901_payment_order',
+  i901_candidate_attested: 'consular.i901_attestation',
+  i901_handoff_sent: 'sevismate.handoff',
+  i901_receipt_received: 'document.upload',
+  i901_receipt_qa_approved: 'consular.i901_receipt_qa',
+  i901_receipt_rejected: 'consular.i901_receipt_qa',
+}
+
+function normalizeAuditAction(action: string): string {
+  return AUDIT_ACTION_ALIASES[action] ?? action
+}
+
+function detailWithLegacyAction(action: string, canonicalAction: string, detail?: string): string | undefined {
+  const prefix = action === canonicalAction ? '' : `legacyAction=${action};`
+  if (!detail) return prefix ? prefix.slice(0, -1) : undefined
+  return `${prefix}detail=[REDACTED]`
+}
 
 // --- schema ----------------------------------------------------------------
 db.exec(`
@@ -57,8 +102,15 @@ CREATE TABLE IF NOT EXISTS appointments (id TEXT PRIMARY KEY, candidate_id TEXT,
 CREATE TABLE IF NOT EXISTS deficiencies (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, resolved INTEGER, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS audit_log (id TEXT PRIMARY KEY, candidate_id TEXT, at TEXT, actor TEXT, entity TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ledger_milestones (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, milestone TEXT, pushed INTEGER, at TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS consular_payment_orders (id TEXT PRIMARY KEY, candidate_id TEXT, status TEXT, updated_at TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sevismate_handoffs (id TEXT PRIMARY KEY, candidate_id TEXT, payment_order_id TEXT, status TEXT, created_at TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS i901_receipts (id TEXT PRIMARY KEY, candidate_id TEXT, payment_order_id TEXT, qa_status TEXT, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS consular_payment_events (id TEXT PRIMARY KEY, candidate_id TEXT, payment_order_id TEXT, event_type TEXT, occurred_at TEXT, json TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_wf_candidate ON workflows(candidate_id);
 CREATE INDEX IF NOT EXISTS idx_qa_status ON qa_reviews(status);
+CREATE INDEX IF NOT EXISTS idx_cpo_candidate ON consular_payment_orders(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_cpo_status ON consular_payment_orders(status);
+CREATE INDEX IF NOT EXISTS idx_i901_order ON i901_receipts(payment_order_id);
 `)
 
 const parse = <T>(r: any): T => JSON.parse(r.json)
@@ -152,6 +204,39 @@ export const store = {
     byCandidate: (cid: string): LedgerMilestone[] => parseAll(db.prepare('SELECT json FROM ledger_milestones WHERE candidate_id = ? ORDER BY at').all(cid)),
     all: (): LedgerMilestone[] => parseAll(db.prepare('SELECT json FROM ledger_milestones ORDER BY at DESC').all()),
   },
+
+  consularPaymentOrders: {
+    insert(o: ConsularPaymentOrder) { db.prepare('INSERT INTO consular_payment_orders(id, candidate_id, status, updated_at, json) VALUES(?,?,?,?,?)').run(o.id, o.candidateId, o.status, o.updatedAt, JSON.stringify(o)) },
+    update(o: ConsularPaymentOrder) { db.prepare('UPDATE consular_payment_orders SET status = ?, updated_at = ?, json = ? WHERE id = ?').run(o.status, o.updatedAt, JSON.stringify(o), o.id) },
+    get: (id: string): ConsularPaymentOrder | null => { const r = db.prepare('SELECT json FROM consular_payment_orders WHERE id = ?').get(id); return r ? parse(r) : null },
+    byCandidate: (cid: string): ConsularPaymentOrder[] => parseAll(db.prepare('SELECT json FROM consular_payment_orders WHERE candidate_id = ? ORDER BY updated_at DESC').all(cid)),
+    all: (): ConsularPaymentOrder[] => parseAll(db.prepare('SELECT json FROM consular_payment_orders ORDER BY updated_at DESC').all()),
+  },
+
+  sevismateHandoffs: {
+    insert(h: SevismateHandoff) { db.prepare('INSERT INTO sevismate_handoffs(id, candidate_id, payment_order_id, status, created_at, json) VALUES(?,?,?,?,?,?)').run(h.id, h.candidateId, h.paymentOrderId, h.status, h.createdAt, JSON.stringify(h)) },
+    update(h: SevismateHandoff) { db.prepare('UPDATE sevismate_handoffs SET status = ?, json = ? WHERE id = ?').run(h.status, JSON.stringify(h), h.id) },
+    get: (id: string): SevismateHandoff | null => { const r = db.prepare('SELECT json FROM sevismate_handoffs WHERE id = ?').get(id); return r ? parse(r) : null },
+    byOrder: (oid: string): SevismateHandoff[] => parseAll(db.prepare('SELECT json FROM sevismate_handoffs WHERE payment_order_id = ? ORDER BY created_at DESC').all(oid)),
+    byCandidate: (cid: string): SevismateHandoff[] => parseAll(db.prepare('SELECT json FROM sevismate_handoffs WHERE candidate_id = ? ORDER BY created_at DESC').all(cid)),
+    all: (): SevismateHandoff[] => parseAll(db.prepare('SELECT json FROM sevismate_handoffs ORDER BY created_at DESC').all()),
+  },
+
+  i901Receipts: {
+    insert(r: I901Receipt) { db.prepare('INSERT INTO i901_receipts(id, candidate_id, payment_order_id, qa_status, json) VALUES(?,?,?,?,?)').run(r.id, r.candidateId, r.paymentOrderId, r.qaStatus, JSON.stringify(r)) },
+    update(r: I901Receipt) { db.prepare('UPDATE i901_receipts SET qa_status = ?, json = ? WHERE id = ?').run(r.qaStatus, JSON.stringify(r), r.id) },
+    get: (id: string): I901Receipt | null => { const row = db.prepare('SELECT json FROM i901_receipts WHERE id = ?').get(id); return row ? parse(row) : null },
+    byOrder: (oid: string): I901Receipt[] => parseAll(db.prepare('SELECT json FROM i901_receipts WHERE payment_order_id = ? ORDER BY rowid DESC').all(oid)),
+    byCandidate: (cid: string): I901Receipt[] => parseAll(db.prepare('SELECT json FROM i901_receipts WHERE candidate_id = ? ORDER BY rowid DESC').all(cid)),
+    all: (): I901Receipt[] => parseAll(db.prepare('SELECT json FROM i901_receipts').all()),
+  },
+
+  consularPaymentEvents: {
+    insert(e: ConsularPaymentEvent) { db.prepare('INSERT INTO consular_payment_events(id, candidate_id, payment_order_id, event_type, occurred_at, json) VALUES(?,?,?,?,?,?)').run(e.id, e.candidateId, e.paymentOrderId, e.eventType, e.occurredAt, JSON.stringify(e)) },
+    byOrder: (oid: string): ConsularPaymentEvent[] => parseAll(db.prepare('SELECT json FROM consular_payment_events WHERE payment_order_id = ? ORDER BY occurred_at').all(oid)),
+    byCandidate: (cid: string): ConsularPaymentEvent[] => parseAll(db.prepare('SELECT json FROM consular_payment_events WHERE candidate_id = ? ORDER BY occurred_at DESC').all(cid)),
+    all: (): ConsularPaymentEvent[] => parseAll(db.prepare('SELECT json FROM consular_payment_events ORDER BY occurred_at DESC').all()),
+  },
 }
 
 /** Repo for tables keyed by candidate + workflow. */
@@ -184,10 +269,23 @@ export function getDossier(candidateId: string): CandidateDossier | null {
     documents: store.documents.byCandidate(candidateId),
     workflows: store.workflows.byCandidate(candidateId),
     appointments: store.appointments.byCandidate(candidateId),
+    consularPaymentOrders: store.consularPaymentOrders.byCandidate(candidateId),
+    sevismateHandoffs: store.sevismateHandoffs.byCandidate(candidateId),
+    i901Receipts: store.i901Receipts.byCandidate(candidateId),
   }
 }
 
 /** Convenience audit helper. */
 export function audit(actor: AuditEntry['actor'], action: string, entity: string, entityId: string, candidateId?: string, detail?: string) {
-  store.audit.log({ id: uid(), at: now(), actor, action, entity, entityId, detail, ...(candidateId ? { candidateId } : {}) } as AuditEntry & { candidateId?: string })
+  const canonicalAction = normalizeAuditAction(action)
+  store.audit.log({
+    id: uid(),
+    at: now(),
+    actor,
+    action: canonicalAction,
+    entity,
+    entityId,
+    detail: detailWithLegacyAction(action, canonicalAction, detail),
+    ...(candidateId ? { candidateId } : {}),
+  } as AuditEntry & { candidateId?: string })
 }

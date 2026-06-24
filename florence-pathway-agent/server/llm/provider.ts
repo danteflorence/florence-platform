@@ -1,10 +1,10 @@
 // The agent layer is mostly deterministic. The LLM is used only where natural
 // language genuinely helps: candidate-facing explanations, the QA narrative,
 // deficiency classification, and the copilot chat. This interface keeps those
-// pluggable — live Claude when ANTHROPIC_API_KEY is set, an honest heuristic
-// fallback otherwise, so the whole product runs with no key at all.
+// pluggable. Live AI calls must go through Core's Model Gateway; an honest
+// heuristic fallback keeps the product running with no gateway or model key.
 import { heuristicProvider } from './heuristic'
-import { createAnthropicProvider } from './anthropic'
+import { createModelGatewayProvider, modelGatewayConfigured } from './anthropic'
 
 export interface ExplainStepInput {
   candidateName: string
@@ -31,7 +31,7 @@ export interface ChatInput {
 }
 
 export interface LlmProvider {
-  readonly mode: 'anthropic' | 'heuristic'
+  readonly mode: 'model_gateway' | 'heuristic'
   explainStep(i: ExplainStepInput): Promise<string>
   summarizeForQa(i: QaSummaryInput): Promise<string>
   classifyDeficiency(items: string[]): Promise<{ classification: string; responseDraft: string }>
@@ -42,7 +42,6 @@ let cached: LlmProvider | null = null
 
 export function getLlm(): LlmProvider {
   if (cached) return cached
-  const key = process.env.ANTHROPIC_API_KEY
-  cached = key ? createAnthropicProvider(key) : heuristicProvider
+  cached = modelGatewayConfigured() ? createModelGatewayProvider() : heuristicProvider
   return cached
 }

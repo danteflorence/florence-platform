@@ -17,7 +17,7 @@
 // Pathway signals are emitted through Core's real /v1/nurse/event spine API.
 // The ATS half runs IN-PROCESS through the real program modules with passport
 // emits ENABLED, so the attested 'started' propagates to Core exactly as in
-// production. Mock-by-default: no ElevenLabs / Anthropic / pricing-api needed.
+// production. Mock-by-default: no audio, model-provider, or pricing API needed.
 import { store, uid, now } from '../server/db'
 import { passportEnabled } from '../server/passport'
 import { generateLicensedSlate, buildSlatePackets, lockSlate } from '../server/program/slate'

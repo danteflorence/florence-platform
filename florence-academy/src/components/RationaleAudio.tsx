@@ -1,5 +1,5 @@
 // Drop-in narrated-rationale player. Looks up the generated clip for a question
-// by id; renders the player when one exists, nothing when it doesn't — so it's
+// by id; renders the player when one exists, nothing when it doesn't - so it's
 // safe to mount everywhere a rationale shows, with or without audio generated.
 
 import { useEffect, useState } from "react";

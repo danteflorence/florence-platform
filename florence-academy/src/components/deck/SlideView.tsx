@@ -5,6 +5,7 @@ import HeartViewer from "../HeartViewer";
 import RhythmDrill from "../RhythmDrill";
 import VitalsMonitor from "../VitalsMonitor";
 import NgnCase from "../NgnCase";
+import { PracticeItemTutorButton } from "../QuestionTutorButton";
 
 const CALLOUT_STYLE: Record<
   CalloutTone,
@@ -137,6 +138,15 @@ function PracticeSlide({
 
   return (
     <div className="w-full">
+      <div className="mb-4 flex justify-end">
+        <PracticeItemTutorButton
+          item={item}
+          picked={picked}
+          revealed={revealed}
+          source="Live deck practice"
+          compact
+        />
+      </div>
       <p className="mb-6 text-xl font-medium leading-relaxed text-florence-ink sm:text-2xl">
         {item.stem}
       </p>

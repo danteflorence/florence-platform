@@ -12,6 +12,7 @@ import type { KeyManager } from "./keys.ts";
 import { issueClientToken } from "./m2m.ts";
 import { ALL_ROLES, isRole, type Role } from "./roles.ts";
 import { readPassportView } from "./passportRead.ts";
+import { requiresApplicationGateForEvent } from "./applicationGate.ts";
 import {
   redirect,
   safeRedirect,
@@ -35,11 +36,12 @@ import {
 } from "./users.ts";
 import { issueRefresh, peekRefresh, revokeRefresh, rotateRefresh } from "./sessions.ts";
 import { lookupNurse, recordEvent, resolveNurse, type ResolveInput } from "./nurses.ts";
-import { grantConsent, revokeConsentById } from "./consent.ts";
+import { grantConsent, requiresRecipientOrg, revokeConsentById } from "./consent.ts";
 import { controlTower, type ControlTowerSummary } from "./controlTower.ts";
 import { investorReport } from "./investorReport.ts";
 import { universityCohorts } from "./universityReport.ts";
 import { nowSec, nowIso } from "./util.ts";
+import { actorFromClaims, authorizeTenantAccessWithAudit } from "./tenantAccess.ts";
 
 export interface Deps {
   store: Store;
@@ -64,14 +66,26 @@ function verifySession(ctx: Ctx, keys: KeyManager): CoreClaims | undefined {
 }
 
 /** Gate an M2M (or session) call on a required scope from the token's `scope` claim. */
-function requireScope(ctx: Ctx, keys: KeyManager, scope: string): CoreClaims | undefined {
+async function requireScope(ctx: Ctx, keys: KeyManager, audit: Audit, scope: string): Promise<CoreClaims | undefined> {
   const claims = verifySession(ctx, keys);
   if (!claims) {
+    await audit("anonymous", "auth.login_failed", "legacy_route", ctx.path, {
+      method: ctx.method,
+      route: ctx.path,
+      statusCode: 401,
+      reason: bearerOrCookie(ctx) ? "invalid_token" : "missing_token",
+    });
     sendJson(ctx.res, 401, { error: "unauthorized" });
     return undefined;
   }
   const scopes = String(claims.scope ?? "").split(/\s+/).filter(Boolean);
   if (!scopes.includes(scope)) {
+    await audit(String(claims.email ?? claims.sub ?? "service"), "auth.insufficient_scope", "legacy_route", ctx.path, {
+      method: ctx.method,
+      route: ctx.path,
+      scope,
+      statusCode: 403,
+    });
     sendJson(ctx.res, 403, { error: "insufficient_scope", need: scope });
     return undefined;
   }
@@ -284,6 +298,7 @@ export function buildRoutes(deps: Deps): Route[] {
         const redirectTo = safeRedirect(String(ctx.body.redirect ?? ctx.query.get("redirect") ?? ""));
         const user = await verifyPassword(store, email, password);
         if (!user) {
+          await audit(email || "unknown", "auth.login_failed", "auth", undefined, { via: "password", reason: "invalid_credentials" });
           if (wantsJson(ctx)) sendJson(ctx.res, 401, { error: "invalid_credentials" });
           else
             sendHtml(ctx.res, 401, loginPage({
@@ -407,7 +422,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "POST",
       path: "/v1/nurse/resolve",
       handler: async (ctx) => {
-        if (!requireScope(ctx, keys, "passport:write")) return;
+        if (!await requireScope(ctx, keys, audit, "passport:write")) return;
         const input = resolveInputFromBody(ctx.body);
         if (!input) {
           sendJson(ctx.res, 400, { error: "invalid_request", detail: "need nurseId, email, or ref {app, externalId}" });
@@ -422,7 +437,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "POST",
       path: "/v1/nurse/event",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "passport:write");
+        const claims = await requireScope(ctx, keys, audit, "passport:write");
         if (!claims) return;
         const type = bstr(ctx.body, "type");
         if (!type) {
@@ -436,9 +451,14 @@ export function buildRoutes(deps: Deps): Route[] {
         }
         const nurse = await resolveNurse(store, input);
         const data = ctx.body.data && typeof ctx.body.data === "object" ? (ctx.body.data as Record<string, unknown>) : {};
+        const source = bstr(ctx.body, "source") ?? String(claims.sub ?? "service");
+        if (requiresApplicationGateForEvent(type)) {
+          sendJson(ctx.res, 409, { error: "application_gate_required", detail: "Formal employer application/submission events must be created through /v1/applications/submit." });
+          return;
+        }
         const ev = await recordEvent(store, nurse.id, {
           type,
-          source: bstr(ctx.body, "source") ?? String(claims.sub ?? "service"),
+          source,
           at: bstr(ctx.body, "at"),
           data,
         });
@@ -470,6 +490,18 @@ export function buildRoutes(deps: Deps): Route[] {
           actor: String(claims.email ?? claims.sub ?? "service"),
           ...(ctx.query.get("audience") ? { requestedAudience: ctx.query.get("audience")! } : {}),
           ...(ctx.query.get("purpose") ? { purpose: ctx.query.get("purpose")! } : {}),
+          ...(ctx.query.get("audience") === "employer" || ctx.query.get("audience") === "amn_vms_partner"
+            ? {
+                applicationGate: {
+                  action: "release_employer_profile" as const,
+                  ...(ctx.query.get("programId") ? { programId: ctx.query.get("programId")! } : {}),
+                  ...(ctx.query.get("jobRequisitionId") ? { jobRequisitionId: ctx.query.get("jobRequisitionId")! } : {}),
+                  ...(ctx.query.get("jobStatus") ? { jobStatus: ctx.query.get("jobStatus")! } : {}),
+                  ...(ctx.query.get("requiredLicenseState") ? { requiredLicenseState: ctx.query.get("requiredLicenseState")! } : {}),
+                  channel: ctx.query.get("audience") === "amn_vms_partner" ? "amn" as const : "direct" as const,
+                },
+              }
+            : {}),
         });
         sendJson(ctx.res, result.status, result.body);
       },
@@ -478,7 +510,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/nurse/events",
       handler: async (ctx) => {
-        if (!requireScope(ctx, keys, "passport:read")) return;
+        if (!await requireScope(ctx, keys, audit, "passport:read")) return;
         const nurse = await lookupNurse(store, {
           nurseId: ctx.query.get("nurseId") ?? undefined,
           email: ctx.query.get("email") ?? undefined,
@@ -501,7 +533,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "POST",
       path: "/v1/consent/grant",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "consent:write");
+        const claims = await requireScope(ctx, keys, audit, "consent:write");
         if (!claims) return;
         const input = resolveInputFromBody(ctx.body);
         const purpose = bstr(ctx.body, "purpose");
@@ -509,6 +541,11 @@ export function buildRoutes(deps: Deps): Route[] {
         const consentTextVersion = bstr(ctx.body, "consentTextVersion");
         if (!input || !purpose || !recipientCategory || !consentTextVersion) {
           sendJson(ctx.res, 400, { error: "invalid_request", detail: "need nurse ref + purpose + recipientCategory + consentTextVersion" });
+          return;
+        }
+        const recipientOrgId = bstr(ctx.body, "recipientOrgId");
+        if (requiresRecipientOrg(recipientCategory) && !recipientOrgId) {
+          sendJson(ctx.res, 400, { error: "recipient_org_required", detail: "external partner consent requires a named recipientOrgId" });
           return;
         }
         const nurse = await resolveNurse(store, input);
@@ -519,7 +556,8 @@ export function buildRoutes(deps: Deps): Route[] {
           nurseId: nurse.id,
           purpose,
           recipientCategory,
-          ...(bstr(ctx.body, "recipientOrgId") ? { recipientOrgId: bstr(ctx.body, "recipientOrgId") } : {}),
+          ...(recipientOrgId ? { recipientOrgId } : {}),
+          ...(bstr(ctx.body, "recipientProgramId") ? { recipientProgramId: bstr(ctx.body, "recipientProgramId") } : {}),
           ...(allowed ? { allowedFields: allowed } : {}),
           consentTextVersion,
           ...(bstr(ctx.body, "consentTextHash") ? { consentTextHash: bstr(ctx.body, "consentTextHash") } : {}),
@@ -534,7 +572,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "POST",
       path: "/v1/consent/revoke",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "consent:write");
+        const claims = await requireScope(ctx, keys, audit, "consent:write");
         if (!claims) return;
         const consentId = bstr(ctx.body, "consentId");
         const purpose = bstr(ctx.body, "purpose");
@@ -560,7 +598,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/consent",
       handler: async (ctx) => {
-        if (!requireScope(ctx, keys, "consent:read")) return;
+        if (!await requireScope(ctx, keys, audit, "consent:read")) return;
         const nurse = await lookupNurse(store, {
           nurseId: ctx.query.get("nurseId") ?? undefined,
           email: ctx.query.get("email") ?? undefined,
@@ -580,7 +618,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/control-tower",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "control-tower:read");
+        const claims = await requireScope(ctx, keys, audit, "control-tower:read");
         if (!claims) return;
         const summary = await computeControlTower();
         await audit(String(claims.email ?? claims.sub ?? "service"), "control_tower.read", "control_tower", "summary", {
@@ -598,7 +636,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/control-tower/retention",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "control-tower:read");
+        const claims = await requireScope(ctx, keys, audit, "control-tower:read");
         if (!claims) return;
         // Rides the same cached summary fold — no extra aggregation, no N+1.
         const summary = await computeControlTower();
@@ -616,7 +654,7 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/investor/report",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "investor:read");
+        const claims = await requireScope(ctx, keys, audit, "investor:read");
         if (!claims) return;
         const summary = await computeControlTower();
         const report = investorReport(summary);
@@ -629,8 +667,25 @@ export function buildRoutes(deps: Deps): Route[] {
       method: "GET",
       path: "/v1/university/cohorts",
       handler: async (ctx) => {
-        const claims = requireScope(ctx, keys, "university:read");
+        const claims = await requireScope(ctx, keys, audit, "university:read");
         if (!claims) return;
+        const decision = await authorizeTenantAccessWithAudit(audit, {
+          actor: { ...actorFromClaims(claims), partnerOrgKind: "university" },
+          action: "read",
+          purpose: "aggregate_reporting",
+          resource: {
+            type: "university_cohort",
+            id: "cohorts",
+            ownerOrgId: claims.org_id,
+            aggregate: true,
+            anonymized: true,
+            allowedInternalRoles: ["super_admin", "ops", "qa"],
+          },
+        });
+        if (!decision.allow) {
+          sendJson(ctx.res, 403, { error: "forbidden", reason: decision.reason });
+          return;
+        }
         const bundles = await store.allNurseBundles();
         const minCell = Number(ctx.query.get("minCell") ?? "5");
         const report = universityCohorts(bundles, { minCell, now: nowIso() });

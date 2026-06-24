@@ -1,11 +1,11 @@
-// Purpose-based access control (ABAC) — the FINE gate that sits behind the COARSE
+// Purpose-based access control (ABAC): the FINE gate that sits behind the COARSE
 // RBAC gate (roleScopes / requireScope). RBAC answers "may this token touch the
 // passport surface at all?"; this module answers "for THIS role, org, candidate
-// relationship, consent state, data class, purpose, and time — is the disclosure
+// relationship, consent state, data class, purpose, and time, is the disclosure
 // allowed, and up to which class?".
 //
 // Purpose is conveyed as a REQUEST PARAM (?purpose=…), validated here against the
-// role's allowed purposes — deliberately NOT a token claim, so the existing claim
+// role's allowed purposes. It is deliberately NOT a token claim, so the existing claim
 // contract (crypto.ts CoreClaims) is unchanged and tokens never need re-minting
 // per access. Pure + dependency-free. See docs/security/access-control-matrix.md.
 
@@ -31,16 +31,16 @@ export const ROLE_PURPOSES: Record<Role, string[]> = {
 
 /** The maximum data class each role may EVER see, before consent narrows it further. */
 export const ROLE_MAX_CLASS: Record<Role, DataClass> = {
-  super_admin: "regulated_partner",
-  ops: "regulated_partner",
-  qa: "candidate_personal",
-  rep: "internal_business",
-  service: "regulated_partner",
-  instructor: "candidate_personal",
-  candidate: "regulated_partner", // own record
-  employer: "candidate_personal", // licensed-RN packet; visa/financing hard-denied
-  university: "candidate_personal",
-  lender: "restricted_pathway_financial", // financing needs the pathway/financial tier
+  super_admin: "SECRET",
+  ops: "SECRET",
+  qa: "PARTNER_RESTRICTED",
+  rep: "INTERNAL",
+  service: "SECRET",
+  instructor: "RESTRICTED_EDUCATION",
+  candidate: "PARTNER_RESTRICTED", // own record, excluding platform secrets
+  employer: "RESTRICTED_EMPLOYER_PACKET", // licensed-RN packet; visa/financing hard-denied
+  university: "RESTRICTED_EDUCATION",
+  lender: "RESTRICTED_FINANCING",
 };
 
 export function isPurposeAllowed(role: Role, purpose: string): boolean {
@@ -109,7 +109,7 @@ export function evaluatePolicy(req: PolicyRequest): PolicyDecision {
       return { allow: false, reason: `no relationship between ${req.role} and subject`, maxClass };
     }
     // Disclosure of candidate-personal+ data requires a live consent.
-    const needsConsent = DATA_CLASS_RANK[req.classification] >= DATA_CLASS_RANK["candidate_personal"];
+    const needsConsent = DATA_CLASS_RANK[req.classification] >= DATA_CLASS_RANK.CANDIDATE_PERSONAL;
     if (needsConsent && !req.consentOk) {
       return { allow: false, reason: `consent required for purpose '${req.purpose}'`, maxClass };
     }

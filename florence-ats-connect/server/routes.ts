@@ -17,6 +17,9 @@ import { scoreCandidateForJob, eligibilityCoaching } from './demand/opportunityF
 import { recordHiringSignal, issueClaimToken, claimPrefill, authorizeAndClaim, registerMarketInterest, listCategoryTiles } from './demand/longTail'
 import { rankLongTailLeads } from './demand/longTailLeads'
 import { runApplicationGate, overrideFromBody } from './applicationGateEnforce'
+import { requireEmployerShareConsent } from './consentService'
+import { acquireSubmissionLock, attachSubmissionToLock, releaseSubmissionLock } from './submissionLock'
+import { createAtsDocumentVault, DocumentVaultError, type DocumentVaultActor } from './documentVault'
 import { buildOutreachDraft, renderOutreachPdf } from './demand/outreach'
 import { setBucket, candidateBasket, compareOpportunities, isBucket } from './demand/basket'
 import { buildDemandBrief, renderBriefPdf } from './demand/brief'
@@ -28,6 +31,7 @@ import { buildProposal, renderProposalPdf } from './demand/proposal'
 import { attributionFunnel, dashboardSummary } from './demand/attribution'
 import { rankAccounts } from './demand/ranking'
 import type { DemandSource, JobBenefitTag, JobBenefits } from '../shared/demand-types'
+import type { SubmissionLock } from '../shared/vms-types'
 import { syncFromPathway } from './candidateProvider'
 import { getConnector } from './connectors'
 import { provisionMergeFromPublicToken, provisionGreenhouse } from './connectService'
@@ -50,12 +54,13 @@ import {
 } from '../shared/schema'
 import type {
   EmployerAccount, JobRequisition, EmployerShareConsent,
-  ATSApplication, ATSApplicationStatus, LedgerStage, Facility,
+  ApplicationPacket, ATSApplication, ATSApplicationStatus, LedgerStage, Facility,
 } from '../shared/types'
 
 export const api = Router()
 
-const BASE_URL = process.env.ATS_CONNECT_BASE_URL ?? `http://localhost:${process.env.PORT ?? 8788}`
+const CONFIGURED_BASE_URL = process.env.ATS_CONNECT_BASE_URL
+const DEFAULT_BASE_URL = `http://localhost:${process.env.PORT ?? 8788}`
 
 // Lightweight in-memory per-IP rate limiter for the PUBLIC interest endpoint
 // (best-effort abuse guard; a real deploy fronts this with the platform WAF).
@@ -71,14 +76,163 @@ function publicInterestRateOk(ip: string): boolean {
   return true
 }
 
+function baseUrlFor(req?: Request): string {
+  if (CONFIGURED_BASE_URL) return CONFIGURED_BASE_URL
+  const host = req?.get('host')
+  if (!host) return DEFAULT_BASE_URL
+  const proto = req?.get('x-forwarded-proto')?.split(',')[0]?.trim() || req?.protocol || 'http'
+  return `${proto}://${host}`
+}
+
+function documentVaultFor(req?: Request) {
+  return createAtsDocumentVault({ store, publicBaseUrl: baseUrlFor(req), newId: uid, now: () => new Date() })
+}
+
+function documentVaultActor(req: Request): DocumentVaultActor {
+  const user = currentUser(req)
+  if (!user) return { id: 'system', role: 'system' }
+  if (user.role === 'ops') return { id: user.username, role: 'ops' }
+  return { id: user.username, role: 'employer', employerId: user.employerId }
+}
+
+function sendVaultError(res: Response, err: unknown): void {
+  if (err instanceof DocumentVaultError) {
+    res.status(err.status).json({ error: err.code })
+    return
+  }
+  throw err
+}
+
 // Async-safe handler wrapper (same shape as pathway-agent).
 const h = (fn: (req: Request, res: Response) => unknown | Promise<unknown>) =>
   (req: Request, res: Response) => {
     Promise.resolve(fn(req, res)).catch((err) => {
+      if (err instanceof DocumentVaultError) {
+        if (!res.headersSent) res.status(err.status).json({ error: err.code })
+        return
+      }
       console.error('[api error]', err)
       if (!res.headersSent) res.status(500).json({ error: String(err?.message ?? err) })
     })
   }
+
+function auditTenantScopeDenied(req: Request, entity: string, entityId: string, scopeId: string) {
+  audit(currentUser(req)?.role === 'employer' ? 'connector' : 'ops', 'tenant_scope_denied', entity, entityId, `scope=${scopeId}`)
+}
+
+async function scopedRequisition(req: Request, res: Response, id: string): Promise<JobRequisition | null> {
+  const r = await store.requisitions.get(id)
+  if (!r) {
+    res.status(404).json({ error: 'not found' })
+    return null
+  }
+  const s = scopeEmployerId(req)
+  if (s && r.employerId !== s) {
+    auditTenantScopeDenied(req, 'requisition', r.id, s)
+    res.status(403).json({ error: 'Out of scope for your employer.' })
+    return null
+  }
+  return r
+}
+
+async function scopedPacket(req: Request, res: Response, id: string): Promise<ApplicationPacket | null> {
+  const p = await store.packets.get(id)
+  if (!p) {
+    res.status(404).json({ error: 'not found' })
+    return null
+  }
+  const s = scopeEmployerId(req)
+  if (s && p.employerId !== s) {
+    auditTenantScopeDenied(req, 'packet', p.id, s)
+    res.status(403).json({ error: 'Out of scope for your employer.' })
+    return null
+  }
+  return p
+}
+
+async function packetGate(req: Request, res: Response, packet: ApplicationPacket, action: 'gate_check' | 'submission_attempt' | 'packet_release') {
+  const candidate = await store.candidates.get(packet.candidateId)
+  const requisition = await store.requisitions.get(packet.jobRequisitionId)
+  if (!candidate || !requisition) {
+    res.status(404).json({ error: 'candidate/requisition not found' })
+    return null
+  }
+  return runApplicationGate({
+    candidate,
+    requisition,
+    packet,
+    override: overrideFromBody(req.body),
+    auditEntity: 'packet',
+    action,
+    channel: 'ats',
+  })
+}
+
+async function employerPacketReleaseAllowed(req: Request, res: Response, packet: ApplicationPacket): Promise<boolean> {
+  if (currentUser(req)?.role !== 'employer') return true
+  const gate = await packetGate(req, res, packet, 'packet_release')
+  if (!gate) return false
+  if (!gate.allowed) {
+    res.status(409).json(gateBlockedPayload(req, gate))
+    return false
+  }
+  return true
+}
+
+function gateBlockedPayload(req: Request, gate: Awaited<ReturnType<typeof runApplicationGate>>) {
+  if (currentUser(req)?.role === 'employer') {
+    return {
+      error: 'application gate not cleared',
+      status: 'not_ready',
+      subjectTo: gate.result.subjectTo,
+      subjectToMessage: gate.result.subjectToMessage,
+    }
+  }
+  return {
+    error: 'application gate not cleared',
+    status: gate.result.status,
+    missing: gate.result.missing,
+    reasons: gate.result.reasons,
+    subjectTo: gate.result.subjectTo,
+    subjectToMessage: gate.result.subjectToMessage,
+  }
+}
+
+async function createPacketSignedUrl(req: Request, args: {
+  packet: ApplicationPacket
+  candidate: Awaited<ReturnType<typeof store.candidates.get>>
+  requisition: Awaited<ReturnType<typeof store.requisitions.get>>
+  employer: EmployerAccount
+  action?: 'view' | 'download'
+}) {
+  const { packet, candidate, requisition, employer } = args
+  const documentType = employer.sourceChannel === 'amn' ? 'ats_vms_submission_packet' : 'employer_packet'
+  const recipientView = employer.sourceChannel === 'amn' ? 'amn_vms_partner' : 'employer'
+  const actor = documentVaultActor(req)
+  const uploadActor: DocumentVaultActor = actor.role === 'employer' ? { id: 'system', role: 'system' } : actor
+  const vault = documentVaultFor(req)
+  const pdf = buildResumePdf({ packet, candidate, requisition })
+  const filename = resumeFilename(packet, candidate)
+  const document = await vault.upload({
+    documentType,
+    candidateId: packet.candidateId,
+    employerId: packet.employerId,
+    packetId: packet.id,
+    filename,
+    contentType: 'application/pdf',
+    bytes: pdf,
+    actor: uploadActor,
+  })
+  const signedUrl = await vault.createSignedUrl({
+    documentId: document.id,
+    actor,
+    recipientView,
+    recipientOrgId: employer.id,
+    purpose: 'application_packet_release',
+    action: args.action ?? 'download',
+  })
+  return { ...signedUrl, bytes: pdf, filename }
+}
 
 // --- Auth: JWT sessions + roles --------------------------------------------
 // All app surfaces require a signed JWT. Employer-role users are read-only and
@@ -140,7 +294,7 @@ api.post('/connect/greenhouse', h(async (req, res) => {
 
 // --- meta ------------------------------------------------------------------
 api.get('/health', h(async (_req, res) => res.json({ ok: true, at: now(), counts: await store.counts() })))
-api.get('/meta', (_req, res) => res.json({ matchWeights: MATCH_WEIGHTS, baseUrl: BASE_URL }))
+api.get('/meta', (req, res) => res.json({ matchWeights: MATCH_WEIGHTS, baseUrl: baseUrlFor(req) }))
 
 // --- employers -------------------------------------------------------------
 api.post('/ops/employers', requireRole('ops'), h(async (req, res) => {
@@ -229,8 +383,8 @@ api.get('/ops/requisitions', h(async (req, res) => {
   res.json(s ? await store.requisitions.byEmployer(s) : await store.requisitions.all())
 }))
 api.get('/ops/requisitions/:id', h(async (req, res) => {
-  const r = await store.requisitions.get(req.params.id)
-  if (!r) return res.status(404).json({ error: 'not found' })
+  const r = await scopedRequisition(req, res, req.params.id)
+  if (!r) return
   res.json(r)
 }))
 
@@ -294,14 +448,14 @@ api.post('/ops/candidates/sync', requireRole('ops'), h(async (_req, res) => {
 // --- matching --------------------------------------------------------------
 const matchReq = async (r: JobRequisition) => runMatches(r, await store.candidates.all())
 api.post('/ops/requisitions/:id/matches/run', h(async (req, res) => {
-  const r = await store.requisitions.get(req.params.id)
-  if (!r) return res.status(404).json({ error: 'not found' })
+  const r = await scopedRequisition(req, res, req.params.id)
+  if (!r) return
   audit('ops', 'matches_run', 'requisition', r.id)
   res.json({ requisitionId: r.id, matches: await matchReq(r) })
 }))
 api.get('/ops/requisitions/:id/matches', h(async (req, res) => {
-  const r = await store.requisitions.get(req.params.id)
-  if (!r) return res.status(404).json({ error: 'not found' })
+  const r = await scopedRequisition(req, res, req.params.id)
+  if (!r) return
   res.json({ requisitionId: r.id, matches: await matchReq(r) })
 }))
 api.get('/candidates/:id/matched-requisitions', h(async (req, res) => {
@@ -322,7 +476,7 @@ api.post('/candidates/:id/consents/employer-share', h(async (req, res) => {
 
   const consentText = `I authorize FlorenceRN to share my employer-ready packet with ${employer.name} for ${parsed.data.purpose}. The packet may include my résumé, credential summary, FlorenceRN readiness summary, video profile, and licensure/NCLEX status and expected start-window information I approve for employer review.`
   const consent: EmployerShareConsent = {
-    id: uid(), candidateId: c.id, employerId: employer.id, jobRequisitionId: parsed.data.jobRequisitionId,
+    id: uid(), candidateId: c.id, employerId: employer.id, jobRequisitionId: parsed.data.jobRequisitionId, programId: parsed.data.programId,
     purpose: parsed.data.purpose, allowedData: parsed.data.allowedData,
     consentTextVersion: parsed.data.attestationTextVersion,
     consentTextHash: createHash('sha256').update(`${parsed.data.attestationTextVersion}|${consentText}`).digest('hex'),
@@ -334,6 +488,7 @@ api.post('/candidates/:id/consents/employer-share', h(async (req, res) => {
   const mirror = await mirrorConsentGrant({
     sel: { ...(c.email ? { email: c.email } : {}), name: c.fullName, ref: { app: 'ats', externalId: c.id } },
     recipientOrgId: employer.id,
+    recipientProgramId: consent.programId,
     allowedFields: consent.allowedData,
     consentTextVersion: consent.consentTextVersion,
     consentTextHash: consent.consentTextHash,
@@ -371,13 +526,13 @@ api.post('/ops/application-packets', h(async (req, res) => {
   const requisition = await store.requisitions.get(parsed.data.jobRequisitionId)
   if (!candidate) return res.status(404).json({ error: 'candidate not found' })
   if (!requisition) return res.status(404).json({ error: 'requisition not found' })
-  const consent = await store.consents.live(candidate.id, requisition.employerId)
+  const consent = await requireEmployerShareConsent({ candidateId: candidate.id, employerId: requisition.employerId, jobRequisitionId: requisition.id })
   try {
     const packet = buildPacket({ candidate, requisition, consent, includeDocuments: parsed.data.includeDocuments, newId: uid, nowIso: now })
     await store.packets.insert(packet)
     await recordLedger({ candidateId: candidate.id, stage: 'packet_created', sourceId: packet.id, employerId: requisition.employerId, jobRequisitionId: requisition.id, notes: `Packet for ${requisition.title}` })
     void store.attribution.insert({ id: uid(), candidateId: candidate.id, employerId: requisition.employerId, applicationPacketId: packet.id, eventType: 'candidate.packet_created', sourceSystem: 'ats_connect', metadata: { requisitionId: requisition.id }, occurredAt: now() }).catch(() => {})
-    audit('ops', 'packet_created', 'packet', packet.id, candidate.fullName)
+    audit('ops', 'packet_created', 'packet', packet.id, `candidate=${candidate.id}`)
     res.json(packet)
   } catch (err) {
     if (err instanceof ConsentRequiredError) return res.status(409).json({ error: err.message })
@@ -385,12 +540,32 @@ api.post('/ops/application-packets', h(async (req, res) => {
   }
 }))
 
-api.get('/ops/application-packets', h(async (_req, res) => res.json(await store.packets.all())))
+api.get('/ops/application-packets', h(async (req, res) => {
+  const s = scopeEmployerId(req)
+  const packets = (await store.packets.all()).filter((p) => !s || p.employerId === s)
+  if (!s) return res.json(packets)
+  const releasable: ApplicationPacket[] = []
+  for (const p of packets) {
+    const gate = await packetGate(req, res, p, 'packet_release')
+    if (res.headersSent) return
+    if (gate?.allowed) releasable.push(p)
+  }
+  res.json(releasable)
+}))
 
 api.get('/ops/application-packets/:id', h(async (req, res) => {
-  const p = await store.packets.get(req.params.id)
-  if (!p) return res.status(404).json({ error: 'not found' })
+  const p = await scopedPacket(req, res, req.params.id)
+  if (!p) return
+  if (!(await employerPacketReleaseAllowed(req, res, p))) return
   res.json(p)
+}))
+
+api.get('/ops/application-packets/:id/gate', requireRole('ops'), h(async (req, res) => {
+  const p = await scopedPacket(req, res, req.params.id)
+  if (!p) return
+  const gate = await packetGate(req, res, p, 'gate_check')
+  if (!gate) return
+  res.json({ allowed: gate.allowed, status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
 }))
 
 api.post('/ops/application-packets/:id/qa-approve', h(async (req, res) => {
@@ -412,46 +587,55 @@ api.post('/ops/application-packets/:id/qa-approve', h(async (req, res) => {
 api.post('/ops/application-packets/:id/submit', h(async (req, res) => {
   const p = await store.packets.get(req.params.id)
   if (!p) return res.status(404).json({ error: 'not found' })
-  if (p.status !== 'ready_to_submit') return res.status(409).json({ error: 'packet must be QA-approved (ready_to_submit) before submission' })
   const requisition = await store.requisitions.get(p.jobRequisitionId)
   const employer = await store.employers.get(p.employerId)
   if (!requisition || !employer) return res.status(404).json({ error: 'requisition/employer not found' })
 
-  // Application Submission Gate (hard-block + audited override): consent + visa +
-  // license + QA + job-open + channel-authorized + docs. Fail-closed.
+  // Application Submission Gate: consent + visa/work authorization + license +
+  // QA + job-open + channel-authorized + duplicate-lock + data-minimized packet.
   const candidate = await store.candidates.get(p.candidateId)
   if (!candidate) return res.status(404).json({ error: 'candidate not found' })
-  const gate = await runApplicationGate({ candidate, requisition, packet: p, override: overrideFromBody(req.body), auditEntity: 'packet' })
-  if (!gate.allowed) return res.status(409).json({ error: 'application gate not cleared', status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo })
-  if (gate.overridden) await recordLedger({ candidateId: candidate.id, stage: 'qa_approved', sourceId: p.id, employerId: employer.id, jobRequisitionId: requisition.id, notes: `gate override: ${gate.result.missing.join(',')}` })
+  audit('ops', 'application_submission_attempted', 'packet', p.id, `candidate=${candidate.id};employer=${employer.id}`)
+  const gate = await runApplicationGate({ candidate, requisition, packet: p, override: overrideFromBody(req.body), auditEntity: 'packet', action: 'submission_attempt', channel: 'ats' })
+  if (!gate.allowed) return res.status(409).json({ error: 'application gate not cleared', status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  if (p.status !== 'ready_to_submit') return res.status(409).json({ error: 'packet must be QA-approved (ready_to_submit) before submission', status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
   await recordLedger({ candidateId: candidate.id, stage: 'application_ready_to_submit', sourceId: p.id, employerId: employer.id, jobRequisitionId: requisition.id, notes: 'application gate cleared' })
-
-  // Resume PDF rides with every submission: native connectors attach it (base64
-  // or by the public tokenized URL); the manual bridge IS the tokenized URL.
-  const resumeToken = uid()
-  const pdf = buildResumePdf({ packet: p, candidate, requisition })
-  const resume = {
-    filename: resumeFilename(p, candidate),
-    base64: pdf.toString('base64'),
-    mime: 'application/pdf' as const,
-    url: `${BASE_URL}/api/p/${resumeToken}/resume.pdf`,
-  }
-
   const channel = selectSubmissionChannel(employer)
-  const outcome = await channel.submit(p, requisition, employer, { newId: uid, baseUrl: BASE_URL, candidate, resume, resumeToken })
-  const app: ATSApplication = {
-    id: uid(), packetId: p.id, candidateId: p.candidateId, jobRequisitionId: p.jobRequisitionId, employerId: p.employerId,
-    atsProvider: employer.atsProvider, submissionMode: outcome.submissionMode, packetLink: outcome.packetLink,
-    atsCandidateId: outcome.atsCandidateId, atsApplicationId: outcome.atsApplicationId, atsStage: outcome.atsStage,
-    resumeToken,
-    status: outcome.status, submittedAt: now(), lastOutboundSyncAt: now(), createdAt: now(),
+  const lockChannel = employer.sourceChannel === 'amn' ? 'amn' : channel.mode === 'native_api' ? 'ats' : 'direct'
+  const lockResult = await acquireSubmissionLock({ candidateId: candidate.id, employerId: employer.id, requisitionId: requisition.id, channel: lockChannel })
+  if (!lockResult.ok) return res.status(409).json({ error: 'duplicate submission lock active', status: 'duplicate_submission', lockId: lockResult.lock.id, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  let submissionLock: SubmissionLock = lockResult.lock
+
+  // Resume PDF rides with every submission through Document Vault: native
+  // connectors attach the bytes and may fetch the signed URL; the manual bridge
+  // is the short-lived signed URL.
+  try {
+    const packetDocument = await createPacketSignedUrl(req, { packet: p, candidate, requisition, employer })
+    const resume = {
+      filename: packetDocument.filename,
+      base64: packetDocument.bytes.toString('base64'),
+      mime: 'application/pdf' as const,
+      url: packetDocument.url,
+    }
+
+    const outcome = await channel.submit(p, requisition, employer, { newId: uid, baseUrl: baseUrlFor(req), candidate, resume })
+    const app: ATSApplication = {
+      id: uid(), packetId: p.id, candidateId: p.candidateId, jobRequisitionId: p.jobRequisitionId, employerId: p.employerId,
+      atsProvider: employer.atsProvider, submissionMode: outcome.submissionMode, packetLink: outcome.packetLink,
+      atsCandidateId: outcome.atsCandidateId, atsApplicationId: outcome.atsApplicationId, atsStage: outcome.atsStage,
+      status: outcome.status, submittedAt: now(), lastOutboundSyncAt: now(), createdAt: now(),
+    }
+    await store.atsApplications.insert(app)
+    submissionLock = await attachSubmissionToLock(submissionLock, app.id)
+    p.status = 'submitted'; p.updatedAt = now(); await store.packets.update(p)
+    await store.sync.insert({ id: uid(), employerId: employer.id, atsProvider: employer.atsProvider, entityType: 'application', entityId: app.id, direction: 'outbound', status: outcome.syncStatus, createdAt: now() })
+    await recordLedger({ candidateId: p.candidateId, stage: 'ats_application_submitted', sourceId: app.id, employerId: employer.id, jobRequisitionId: requisition.id, notes: outcome.detail, verifiedVia: 'ats' })
+    audit('ops', 'packet_submitted', 'application', app.id, `${employer.name} via ${outcome.submissionMode}`)
+    res.json({ application: app, detail: outcome.detail })
+  } catch (err) {
+    await releaseSubmissionLock(submissionLock, 'submission_failed')
+    throw err
   }
-  await store.atsApplications.insert(app)
-  p.status = 'submitted'; p.updatedAt = now(); await store.packets.update(p)
-  await store.sync.insert({ id: uid(), employerId: employer.id, atsProvider: employer.atsProvider, entityType: 'application', entityId: app.id, direction: 'outbound', status: outcome.syncStatus, createdAt: now() })
-  await recordLedger({ candidateId: p.candidateId, stage: 'ats_application_submitted', sourceId: app.id, employerId: employer.id, jobRequisitionId: requisition.id, notes: outcome.detail, verifiedVia: 'ats' })
-  audit('ops', 'packet_submitted', 'application', app.id, `${employer.name} via ${outcome.submissionMode}`)
-  res.json({ application: app, detail: outcome.detail })
 }))
 
 // --- packet resume PDF -------------------------------------------------------
@@ -461,35 +645,53 @@ api.get('/ops/application-packets/:id/resume.pdf', h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'not found' })
   const s = scopeEmployerId(req)
   if (s && p.employerId !== s) return res.status(403).json({ error: 'Out of scope for your employer.' })
+  const gate = await packetGate(req, res, p, 'packet_release')
+  if (!gate) return
+  if (!gate.allowed) return res.status(409).json(gateBlockedPayload(req, gate))
   const candidate = await store.candidates.get(p.candidateId)
   const requisition = await store.requisitions.get(p.jobRequisitionId)
-  const pdf = buildResumePdf({ packet: p, candidate, requisition })
-  res.setHeader('content-type', 'application/pdf')
-  res.setHeader('content-disposition', `inline; filename="${resumeFilename(p, candidate)}"`)
-  res.send(pdf)
+  const employer = await store.employers.get(p.employerId)
+  if (!employer) return res.status(404).json({ error: 'employer not found' })
+  const signedUrl = await createPacketSignedUrl(req, { packet: p, candidate, requisition, employer })
+  res.redirect(303, signedUrl.url)
 }))
 
-// Public tokenized resume link (unguessable token minted at submission) — what the
-// manual bridge hands a recruiter, and what URL-ingesting ATSs (Merge) fetch.
+// Public signed resume link. The token is a short-lived Document Vault grant;
+// no candidate, packet, passport, or SEVIS identifiers are present in the URL.
 api.get('/p/:token/resume.pdf', h(async (req, res) => {
-  const apps = await store.atsApplications.all()
-  const app = apps.find((a) => a.resumeToken === req.params.token)
-  if (!app) return res.status(404).json({ error: 'not found' })
-  const p = await store.packets.get(app.packetId)
-  if (!p) return res.status(404).json({ error: 'not found' })
-  const candidate = await store.candidates.get(p.candidateId)
-  const requisition = await store.requisitions.get(p.jobRequisitionId)
-  // Packet-view tracking: completes the click→interest→packet_shared→packet_viewed funnel.
-  // No PII in the token URL; the event keys to the candidate/packet (internal join).
-  void store.attribution.insert({
-    id: uid(), candidateId: p.candidateId, employerId: requisition?.employerId, applicationPacketId: p.id,
-    eventType: 'candidate.packet_viewed', sourceSystem: 'ats_connect',
-    metadata: { requisitionId: p.jobRequisitionId }, occurredAt: now(),
-  }).catch(() => {})
-  const pdf = buildResumePdf({ packet: p, candidate, requisition })
-  res.setHeader('content-type', 'application/pdf')
-  res.setHeader('content-disposition', `inline; filename="${resumeFilename(p, candidate)}"`)
-  res.send(pdf)
+  try {
+    const result = await documentVaultFor(req).downloadSignedUrl(req.params.token, {
+      beforeDecrypt: async ({ document }) => {
+        if (!document.packetId) throw new DocumentVaultError('packet_required', 'Packet-bound document is required.', 403)
+        const packet = await store.packets.get(document.packetId)
+        if (!packet) throw new DocumentVaultError('packet_not_found', 'Packet not found.', 404)
+        const candidate = await store.candidates.get(packet.candidateId)
+        const requisition = await store.requisitions.get(packet.jobRequisitionId)
+        if (!candidate || !requisition) throw new DocumentVaultError('packet_context_missing', 'Packet context is not available.', 404)
+        const gate = await runApplicationGate({
+          candidate,
+          requisition,
+          packet,
+          auditEntity: 'packet',
+          action: 'packet_release',
+          channel: document.documentType === 'ats_vms_submission_packet' ? 'amn' : 'ats',
+        })
+        if (!gate.allowed) {
+          throw new DocumentVaultError('application_gate_not_cleared', 'Application gate is not cleared.', 409)
+        }
+      },
+    })
+    void store.attribution.insert({
+      id: uid(), candidateId: result.document.candidateId, employerId: result.document.employerId, applicationPacketId: result.document.packetId,
+      eventType: 'candidate.packet_viewed', sourceSystem: 'ats_connect',
+      metadata: { documentId: result.document.id }, occurredAt: now(),
+    }).catch(() => {})
+    res.setHeader('content-type', result.contentType)
+    res.setHeader('content-disposition', `inline; filename="${result.filename}"`)
+    res.send(result.bytes)
+  } catch (err) {
+    sendVaultError(res, err)
+  }
 }))
 
 // --- ATS application status (inbound sync) ----------------------------------

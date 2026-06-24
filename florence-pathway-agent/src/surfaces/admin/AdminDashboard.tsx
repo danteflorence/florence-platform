@@ -7,6 +7,8 @@ import { STATUS_META, WORKFLOW_META, TONE_CLASSES } from '@shared/constants'
 export default function AdminDashboard() {
   const { data: m, loading, error } = useAsync(() => api.metrics(), [])
   const { data: audit } = useAsync(() => api.audit(), [])
+  const { data: payments } = useAsync(() => api.consularPaymentDashboard(), [])
+  const { data: reconciliation } = useAsync(() => api.consularPaymentReconciliation(), [])
 
   if (loading) return <div className="py-16"><Spinner label="Crunching operations metrics…" /></div>
   if (error || !m) return <Empty>Could not load metrics. {error}</Empty>
@@ -32,6 +34,65 @@ export default function AdminDashboard() {
         <Stat label="Escalations" value={m.escalations} tone={m.escalations ? 'danger' : 'success'} />
         <Stat label="Milestones" value={m.milestones} tone="success" />
       </div>
+
+      <Card>
+        <CardHeader
+          title="Consular Payments — I-901"
+          subtitle="SEVISmate handoff, receipt QA, and appointment-readiness bottlenecks."
+          right={<Badge tone={m.consularPayments.studentsBlockedByMissingPayment ? 'warn' : 'success'}>{m.consularPayments.studentsBlockedByMissingPayment} blocking</Badge>}
+        />
+        <div className="grid grid-cols-2 gap-3 px-5 py-4 md:grid-cols-6">
+          <Stat label="Orders" value={m.consularPayments.totalOrders} tone="progress" />
+          <Stat label="Attestation" value={m.consularPayments.awaitingAttestation} tone={m.consularPayments.awaitingAttestation ? 'warn' : 'success'} />
+          <Stat label="Receipt QA" value={m.consularPayments.receiptQaNeeded} tone={m.consularPayments.receiptQaNeeded ? 'warn' : 'success'} />
+          <Stat label="Completed" value={m.consularPayments.completed} tone="success" />
+          <Stat label="Correction" value={m.consularPayments.blockedOrCorrection} tone={m.consularPayments.blockedOrCorrection ? 'danger' : 'success'} />
+          <Stat label="Avg days" value={reconciliation?.averageDaysI20ToReceipt ?? '—'} />
+        </div>
+        {payments && (
+          <div className="overflow-x-auto border-t border-slate-100 px-5 py-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                  <th className="pb-2 pr-3 font-medium">Candidate</th>
+                  <th className="pb-2 pr-3 font-medium">Country</th>
+                  <th className="pb-2 pr-3 font-medium">School</th>
+                  <th className="pb-2 pr-3 font-medium">SEVIS</th>
+                  <th className="pb-2 pr-3 font-medium">Status</th>
+                  <th className="pb-2 pr-3 font-medium">SLA</th>
+                  <th className="pb-2 font-medium">Next action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.rows.slice(0, 12).map((r) => (
+                  <tr key={r.order.id} className="border-t border-slate-100">
+                    <td className="py-2 pr-3 font-medium text-slate-700">{r.candidateName}</td>
+                    <td className="py-2 pr-3 text-slate-500">{r.country}</td>
+                    <td className="py-2 pr-3 text-slate-500">{r.school}</td>
+                    <td className="py-2 pr-3 font-mono text-slate-500">{r.maskedSevisId}</td>
+                    <td className="py-2 pr-3"><Badge tone={r.risk === 'red' ? 'danger' : r.risk === 'orange' ? 'warn' : 'success'}>{r.statusLabel}</Badge></td>
+                    <td className="py-2 pr-3 text-slate-500">{r.slaDaysLeft == null ? '—' : `${r.slaDaysLeft}d`}</td>
+                    <td className="py-2 text-slate-600">{r.nextAction}</td>
+                  </tr>
+                ))}
+                {payments.rows.length === 0 && (
+                  <tr><td colSpan={7} className="py-5 text-center text-slate-400">No I-901 orders yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {reconciliation && (
+          <div className="flex flex-wrap gap-2 border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            <span>Student-paid: <b className="text-slate-700">{reconciliation.studentPaid}</b></span>
+            <span>Florence-paid: <b className="text-slate-700">{reconciliation.florencePaid}</b></span>
+            <span>Official fees: <b className="text-slate-700">{money(reconciliation.officialFeeUsd)}</b></span>
+            <span>Service fees: <b className="text-slate-700">{money(reconciliation.serviceFeeUsd)}</b></span>
+            <span>Verified receipts: <b className="text-slate-700">{reconciliation.receiptsVerified}</b></span>
+            <span>Rejected receipts: <b className="text-slate-700">{reconciliation.receiptsRejected}</b></span>
+          </div>
+        )}
+      </Card>
 
       <Card className="border-purple-200 bg-purple-50/40">
         <CardHeader

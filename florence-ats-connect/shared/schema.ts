@@ -49,6 +49,7 @@ export type ImportRequisitionsInput = z.infer<typeof importRequisitionsSchema>
 export const grantConsentSchema = z.object({
   employerId: z.string().min(1),
   jobRequisitionId: z.string().optional(),
+  programId: z.string().optional(),
   purpose: z.string().default('employment_application'),
   allowedData: z.array(z.string()).default([
     'resume', 'credential_summary', 'readiness_summary', 'video_profile',

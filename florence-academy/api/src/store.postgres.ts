@@ -89,7 +89,7 @@ export async function createPgClient(connectionString: string): Promise<SqlClien
     const spec = "pg"; // non-literal: keeps tsc from requiring @types/pg
     pg = await import(spec);
   } catch {
-    throw new Error("the 'pg' package is not installed — run `npm i pg` in api/");
+    throw new Error("the 'pg' package is not installed - run `npm i pg` in api/");
   }
   const Pool = pg.default?.Pool ?? pg.Pool;
   const pool = new Pool({ connectionString });
@@ -422,7 +422,7 @@ export class PostgresStore implements Store {
         [id],
       );
       return rows[0] ? this.toCandidate(rows[0]) : undefined;
-    }, // toCandidate returns a Promise — callers await it
+    }, // toCandidate returns a Promise - callers await it
     patch: async (id: string, patch: CandidatePatch): Promise<Candidate | undefined> => {
       const existing = await this.candidates.get(id);
       if (!existing) return undefined;

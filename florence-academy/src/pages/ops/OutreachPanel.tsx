@@ -18,7 +18,7 @@ import {
 } from "../../lib/opsApi";
 
 /**
- * Outreach panel — Lob print + mail for partner outreach.
+ * Outreach panel - Lob print + mail for partner outreach.
  *
  * Lifecycle:
  *   create campaign → add targets → preview a mailpiece → launch (test mode
@@ -400,7 +400,7 @@ function CampaignDetail({ id, onChanged }: { id: string; onChanged: () => void }
               <li key={r.target_id}>
                 {r.ok ? "✓" : "✗"} {r.target_id}{" "}
                 {r.lob_id ? <span className="font-mono text-white/40">{r.lob_id}</span> : ""}
-                {r.error && <span className="ml-1 text-vital-danger">— {r.error}</span>}
+                {r.error && <span className="ml-1 text-vital-danger">- {r.error}</span>}
               </li>
             ))}
           </ul>
@@ -656,8 +656,8 @@ function LaunchModal({
               Held only in this tab. Never persisted server-side. {" "}
               <span className={mode === "live" ? "font-semibold text-vital-danger" : "text-vital-ok"}>
                 {mode === "live"
-                  ? "LIVE MODE detected — real mail, real money."
-                  : "Test mode — no charge, no real mail."}
+                  ? "LIVE MODE detected - real mail, real money."
+                  : "Test mode - no charge, no real mail."}
               </span>
             </p>
           </Field>

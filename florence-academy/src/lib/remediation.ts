@@ -4,7 +4,7 @@
  * that subscale (selected near the candidate's gap θ, reusing the CAT engine's
  * Fisher-information), an optional NGN case study that exercises the weak layer,
  * and a voice-tutor prompt that walks the rationale. This is what the dispatch
- * (api/) hands a candidate when a topic falls below threshold — closing the loop
+ * (api/) hands a candidate when a topic falls below threshold - closing the loop
  * from "weakness detected" to "targeted practice assigned".
  *
  * Pure; no React, no I/O. Reuses `itemInfo` from cat.ts.
@@ -35,7 +35,7 @@ export function buildRemediation(
 ): RemediationModule {
   const count = opts?.count ?? 8;
   const candidates = pool.filter((q) => matches(q, gap));
-  // Most informative items AT the candidate's current ability for this subscale —
+  // Most informative items AT the candidate's current ability for this subscale -
   // i.e. items right at the edge of what they can do, where learning is fastest.
   const ranked = candidates
     .map((q) => ({ q, info: itemInfo(gap.theta, q.difficulty) }))
@@ -51,7 +51,7 @@ export function buildRemediation(
   const voiceTutorPrompt =
     gap.dim === "cjmm"
       ? `Coach me on the "${label}" step of clinical judgment. Use the practice items I just missed; explain the cue-to-action reasoning, not just the right answer.`
-      : `Tutor me on ${label}. I'm scoring below the passing standard here — walk the rationale for the items I missed and quiz me until I'm consistent.`;
+      : `Tutor me on ${label}. I'm scoring below the passing standard here - walk the rationale for the items I missed and quiz me until I'm consistent.`;
 
   return {
     subscale: { dim: gap.dim, key: gap.key },

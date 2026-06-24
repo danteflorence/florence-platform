@@ -1,7 +1,7 @@
 // Emit Academy readiness signals to the FlorenceRN Nurse Passport spine (Core).
 // Fire-and-forget + mock-by-default: with no FLORENCE_CORE_CLIENT_ID/SECRET this
 // is a no-op and Academy behaves exactly as before. A failed emit never breaks a
-// request — the spine is a cross-app overlay, not a dependency.
+// request - the spine is a cross-app overlay, not a dependency.
 import { createPassportClient, type NurseSelector } from "./coreAuth.ts";
 
 const coreUrl = process.env.CORE_ISSUER_URL ?? process.env.PUBLIC_CORE_URL ?? "http://id.lvh.me:8080";

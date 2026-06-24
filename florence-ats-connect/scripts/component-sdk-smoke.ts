@@ -8,6 +8,7 @@ import { jobTilesModel, applicationGateModel, pricingQuoteModel } from '../sdk/c
 import NursePassportCard from '../sdk/components/NursePassportCard'
 import JobTiles from '../sdk/components/JobTiles'
 import ApplicationGate from '../sdk/components/ApplicationGate'
+import { SUBJECT_TO_MESSAGE } from '../shared/applicationGate'
 
 let pass = 0, fail = 0
 const ok = (l: string, c: boolean, x?: string) => { console.log(`${c ? '✓' : '✗'} ${l}${x ? ` — ${x}` : ''}`); c ? (pass += 1) : (fail += 1) }
@@ -40,8 +41,9 @@ async function main() {
   ok('jobTilesModel: maps CTA + location, defaults to express_interest', tiles[0].cta === 'apply_with_packet' && tiles[0].location === 'Reno, NV' && tiles[1].cta === 'express_interest')
 
   // 5. ApplicationGate model: surfaces missing gates + action; never the visa value.
-  const gv = applicationGateModel({ applicationGateStatus: 'visa_pending', allowedAction: 'express_interest', missing: ['visa_approved', 'employer_packet_qa_approved'], subjectTo: ['consular_processing'] })
+  const gv = applicationGateModel({ applicationGateStatus: 'visa_pending', allowedAction: 'express_interest', missing: ['visa_approved', 'employer_packet_qa_approved'], subjectTo: ['consular_processing'], subjectToMessage: SUBJECT_TO_MESSAGE })
   ok('applicationGateModel: labels missing gates + keeps action + subjectTo', gv.action === 'express_interest' && gv.missing.some((m) => m.label === 'Visa approved') && gv.subjectTo.includes('consular_processing'))
+  ok('applicationGateModel: carries required subject-to sentence', gv.subjectToMessage === SUBJECT_TO_MESSAGE && /consular processing, final work authorization, credentialing, onboarding, and employer approval/i.test(gv.subjectToMessage))
 
   // 6. PricingQuote model: FICA stays customer effective-cost, never revenue.
   const pq = pricingQuoteModel({ monthlyFeePerRnUsd: 1750, effectiveCostPerRnMonthUsd: 1050, channel: 'direct', note: 'FICA offset is customer effective-cost, never FlorenceRN revenue.' })

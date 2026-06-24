@@ -33,6 +33,7 @@ export interface ApplicationGateView {
   action: string
   missing: { key: string; label: string }[]
   subjectTo: string[]
+  subjectToMessage: string
 }
 
 /** Map an eligibility-check response to a candidate-facing gate view. The widget shows
@@ -44,6 +45,7 @@ export function applicationGateModel(gate: Record<string, unknown>): Application
     action: String(gate.allowedAction ?? "express_interest"),
     missing: missingKeys.map((k) => ({ key: k, label: GATE_LABEL[k] ?? k })),
     subjectTo: Array.isArray(gate.subjectTo) ? (gate.subjectTo as unknown[]).filter((x): x is string => typeof x === "string") : [],
+    subjectToMessage: typeof gate.subjectToMessage === "string" ? gate.subjectToMessage : "",
   }
 }
 

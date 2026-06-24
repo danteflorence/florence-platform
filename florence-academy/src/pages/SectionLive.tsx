@@ -15,7 +15,7 @@ import { useLiveSession, type LiveSession } from "../lib/useLiveSession";
 /**
  * Any section in live, synced mode. The instructor drives the deck and the
  * room's lock; students follow in lock-step or roam freely with a one-tap jump
- * back. SlideDeck is fully controlled — the server owns the index.
+ * back. SlideDeck is fully controlled - the server owns the index.
  */
 function LiveRoom({
   lesson,
@@ -32,7 +32,7 @@ function LiveRoom({
   const session = useLiveSession({ room, role, name });
   const isInstructor = role === "instructor";
   // Live A/V (Agora): instructor broadcasts camera+mic, students subscribe. The
-  // SERVER decides host vs audience from the Core role, so a ?role= URL can't
+  // The server decides host vs audience, so a ?role= URL can't
   // grant publish. No-op (av.enabled=false) until Agora keys are configured.
   const av = useLiveAv({ channel: room, active: true });
 
@@ -193,7 +193,7 @@ function LiveStatusBadge({
               ? "bg-florence-teal text-white hover:bg-florence-teal-dark"
               : "bg-white/10 text-white/80 hover:bg-white/20"
           }`}
-          title={locked ? "Students are following you — click to free the room" : "Students roam freely — click to lock everyone to your slide"}
+          title={locked ? "Students are following you - click to free the room" : "Students roam freely - click to lock everyone to your slide"}
         >
           <span aria-hidden>{locked ? "🔒" : "🔓"}</span>
           {locked ? "Locked" : "Free roam"}

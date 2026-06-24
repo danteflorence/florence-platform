@@ -1,11 +1,11 @@
-// Floating voice tutor — a Conversational-AI nurse educator the learner can
+// Floating voice tutor - a Conversational-AI nurse educator the learner can
 // TALK to ("walk me through why it's C"). Renders only when the instance has a
 // tutor configured (ELEVENLABS_API_KEY + ELEVENLABS_AGENT_ID); otherwise it's
 // invisible, so it's safe to mount globally.
 //
 // @elevenlabs/react requires its hooks to live inside <ConversationProvider>, so
 // the outer component does the config check and ONLY mounts the provider (and
-// the hook-using widget) when enabled — no hooks run in the disabled/mock path.
+// the hook-using widget) when enabled - no hooks run in the disabled/mock path.
 // Realtime audio runs over a server-minted, learner-gated signed URL.
 
 import { useEffect, useState } from "react";
@@ -58,7 +58,12 @@ function TutorWidget() {
         // Ground the agent on the current question when seeded (best-effort; flat
         // string vars only). Cast keeps it compiling across SDK versions.
         const cfg: Record<string, unknown> = { signedUrl };
-        if (seed?.variables) cfg["dynamicVariables"] = seed.variables;
+        if (seed) {
+          cfg["dynamicVariables"] = {
+            ...(seed.variables ?? {}),
+            ...(seed.context ? { tutor_context: seed.context } : {}),
+          };
+        }
         return startSession(cfg as Parameters<typeof startSession>[0]);
       })
       .catch((e) => setPreflightError((e as Error).message));
@@ -84,11 +89,11 @@ function TutorWidget() {
           </div>
 
           <p className="mt-1 text-xs text-florence-slate">
-            Ask about any question or topic — “why is the answer C?”, “prioritize these clients,” “explain SIADH.”
+            Ask about any question or topic - “why is the answer C?”, “prioritize these clients,” “explain SIADH.”
           </p>
           {seed && (
             <p className="mt-1 text-xs font-medium text-florence-teal-dark">
-              Loaded this question — press Start, then ask your follow-up.
+              Loaded this question - press Start, then ask your follow-up.
             </p>
           )}
 

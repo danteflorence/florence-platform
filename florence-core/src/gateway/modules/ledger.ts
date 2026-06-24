@@ -9,6 +9,9 @@ import { lookupNurse, recordEvent, resolveNurse, type ResolveInput } from "../..
 import { foldPassport } from "../../passport.ts";
 import { canonicalStage } from "../../ledgerStages.ts";
 import { dispatchWebhooks } from "../../webhooks.ts";
+import { consentAllows } from "../../consent.ts";
+import { actorFromClaims, authorizeTenantAccessWithAudit, type ProgramScope } from "../../tenantAccess.ts";
+import { requiresApplicationGateForEvent } from "../../applicationGate.ts";
 
 function bstr(b: Record<string, unknown>, k: string): string | undefined {
   return typeof b[k] === "string" ? (b[k] as string) : undefined;
@@ -36,6 +39,57 @@ function selectorFromQuery(ctx: GwCtx): { nurseId?: string; email?: string; ref?
   };
 }
 
+const actorOf = (ctx: GwCtx): string => String(ctx.claims?.email ?? ctx.claims?.sub ?? "service");
+
+function sensitiveAuditAction(type: string, source: string): string | undefined {
+  const value = `${source}.${type}`.toLowerCase();
+  if (/lendkey/.test(value)) return "lendkey.handoff";
+  if (/sevismate|sevis[_\s-]?mate/.test(value)) return "sevismate.handoff";
+  if (/financ|loan|underwriting/.test(value) && /handoff|packet|submitted|sent/.test(value)) return "financing.handoff";
+  if (/(ats|vms).*(submi|packet)|packet.*(ats|vms)/.test(value)) return "ats_vms.submission";
+  if (/employer[_\s-]?packet.*create/.test(value)) return "employer_packet.create";
+  if (/employer[_\s-]?packet.*share/.test(value)) return "employer_packet.share";
+  if (/employer[_\s-]?packet.*view/.test(value)) return "employer_packet.view";
+  if (/lender[_\s-]?packet.*create/.test(value)) return "lender_packet.create";
+  if (/lender[_\s-]?packet.*share/.test(value)) return "lender_packet.share";
+  if (/lender[_\s-]?packet.*view/.test(value)) return "lender_packet.view";
+  if (/export.*generated|bulk[_\s-]?export/.test(value)) return "export.generated";
+  if (/webhook.*received/.test(value) || source.toLowerCase() === "webhook") return "webhook.received";
+  return undefined;
+}
+
+function programForPassport(passport: ReturnType<typeof foldPassport>): ProgramScope | undefined {
+  const ownerOrgId = passport.placement.employerId;
+  if (!ownerOrgId) return undefined;
+  const id = passport.placement.jobReqId ? `${ownerOrgId}:${passport.placement.jobReqId}` : ownerOrgId;
+  return { id, tenantId: ownerOrgId, ownerOrgId, kind: "employer_direct", employerOrgId: ownerOrgId, status: "active" };
+}
+
+async function enforceLedgerRead(ctx: GwCtx, store: Store, audit: Audit, nurseId: string): Promise<{ ok: true; passport: ReturnType<typeof foldPassport>; events: Awaited<ReturnType<Store["eventsByNurse"]>> } | { ok: false; status: number; body: unknown }> {
+  const [refs, events, consents] = await Promise.all([store.refsByNurse(nurseId), store.eventsByNurse(nurseId), store.consentsByNurse(nurseId)]);
+  const passport = foldPassport((await store.getNurseById(nurseId))!, refs, events);
+  const orgId = ctx.claims?.org_id;
+  const consentOk = Boolean(orgId && (consentAllows(consents, "employer_share", orgId).ok || consentAllows(consents, "underwriting", orgId).ok));
+  const program = programForPassport(passport);
+  const decision = await authorizeTenantAccessWithAudit(audit, {
+    actor: actorFromClaims(ctx.claims),
+    action: "read",
+    purpose: "employer_share",
+    resource: {
+      type: "production_ledger",
+      id: nurseId,
+      ownerOrgId: program?.ownerOrgId ?? orgId,
+      ...(program ? { programId: program.id } : {}),
+      consentOk,
+      workflowGateOk: true,
+      allowedInternalRoles: ["super_admin", "ops", "qa"],
+    },
+    ...(program ? { programScope: program } : {}),
+  });
+  if (!decision.allow) return { ok: false, status: 403, body: { error: "forbidden", reason: decision.reason } };
+  return { ok: true, passport, events };
+}
+
 export function ledgerModule(store: Store, audit: Audit): GwRoute[] {
   return [
     compileGw({
@@ -53,8 +107,20 @@ export function ledgerModule(store: Store, audit: Audit): GwRoute[] {
         if (!input) return { status: 400, body: { error: "need a nurse selector (nurseId/email/ref/candidate_id)" } };
         const nurse = await resolveNurse(store, input);
         const data = (b.payload && typeof b.payload === "object" ? b.payload : b.data && typeof b.data === "object" ? b.data : {}) as Record<string, unknown>;
-        const ev = await recordEvent(store, nurse.id, { type, source: bstr(b, "source_system") ?? bstr(b, "source") ?? "platform_api", data });
+        const source = bstr(b, "source_system") ?? bstr(b, "source") ?? "platform_api";
+        if (requiresApplicationGateForEvent(type)) {
+          return { status: 409, body: { error: "application_gate_required", detail: "Formal employer application/submission events must be created through /v1/applications/submit." } };
+        }
+        const ev = await recordEvent(store, nurse.id, { type, source, data });
         await audit(String(ctx.claims?.email ?? ctx.claims?.sub ?? "service"), "v1.event.write", "nurse", nurse.id, { type });
+        const sensitiveAction = sensitiveAuditAction(type, source);
+        if (sensitiveAction) {
+          await audit(actorOf(ctx), sensitiveAction, "nurse", nurse.id, {
+            type,
+            source,
+            eventId: ev.id,
+          });
+        }
         // Fan the event out to subscribed partner webhooks (signed, idempotent, mock-by-default).
         const delivered = await dispatchWebhooks(store, { id: ev.id, type, nurseId: nurse.id, data }).catch(() => []);
         return { status: 201, body: { ok: true, eventId: ev.id, nurseId: nurse.id, webhooksDelivered: delivered.length } };
@@ -69,7 +135,10 @@ export function ledgerModule(store: Store, audit: Audit): GwRoute[] {
       handler: async (ctx) => {
         const nurse = await lookupNurse(store, selectorFromQuery(ctx));
         if (!nurse) return { status: 404, body: { error: "nurse_not_found" } };
-        return { status: 200, body: { nurseId: nurse.id, events: await store.eventsByNurse(nurse.id) } };
+        const access = await enforceLedgerRead(ctx, store, audit, nurse.id);
+        if (!access.ok) return { status: access.status, body: access.body };
+        await audit(actorOf(ctx), "ledger.events.read", "nurse", nurse.id, { count: access.events.length });
+        return { status: 200, body: { nurseId: nurse.id, events: access.events } };
       },
     }),
     compileGw({
@@ -81,9 +150,10 @@ export function ledgerModule(store: Store, audit: Audit): GwRoute[] {
       handler: async (ctx) => {
         const nurse = await lookupNurse(store, selectorFromQuery(ctx));
         if (!nurse) return { status: 404, body: { error: "nurse_not_found" } };
-        const [refs, events] = await Promise.all([store.refsByNurse(nurse.id), store.eventsByNurse(nurse.id)]);
-        const passport = foldPassport(nurse, refs, events);
-        return { status: 200, body: { nurseId: nurse.id, currentStage: canonicalStage(passport), funnelStage: passport.funnelStage, events: events.map((e) => ({ type: e.type, at: e.at })) } };
+        const access = await enforceLedgerRead(ctx, store, audit, nurse.id);
+        if (!access.ok) return { status: access.status, body: access.body };
+        await audit(actorOf(ctx), "ledger.read", "nurse", nurse.id, { currentStage: canonicalStage(access.passport), count: access.events.length });
+        return { status: 200, body: { nurseId: nurse.id, currentStage: canonicalStage(access.passport), funnelStage: access.passport.funnelStage, events: access.events.map((e) => ({ type: e.type, at: e.at })) } };
       },
     }),
   ];

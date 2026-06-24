@@ -21,12 +21,12 @@ import {
  * plays its six Clinical-Judgment items in FIXED order (Recognize → … →
  * Evaluate), so difficulty adapts BETWEEN cases, not within one. After each case
  * the candidate's ability is re-estimated and the next case is the one whose mean
- * difficulty is most informative at that ability — the session climbs or eases to
+ * difficulty is most informative at that ability - the session climbs or eases to
  * match. The rationale is revealed after every submit, win or lose, so a wrong
  * answer is still a teaching moment.
  */
 export interface CaseSessionConfig {
-  /** Where the first case's difficulty is targeted (logits) — set by the level. */
+  /** Where the first case's difficulty is targeted (logits) - set by the level. */
   startTheta: number;
   passTheta: number;
   /** How many cases make up one session. */

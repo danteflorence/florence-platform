@@ -5,6 +5,8 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { config } from "./config.ts";
+import { redactError } from "./classification.ts";
+import { createLogger, type Logger } from "./logger.ts";
 
 export interface Ctx {
   req: IncomingMessage;
@@ -155,7 +157,9 @@ export type GatewayDispatch = (ctx: Ctx) => Promise<boolean>;
 export function createApp(
   routes: Route[],
   gateway?: GatewayDispatch,
+  opts: { logger?: Logger } = {},
 ): (req: IncomingMessage, res: ServerResponse) => void {
+  const logger = opts.logger ?? createLogger({ component: "http" });
   return (req, res) => {
     void (async () => {
       applyCors(req, res);
@@ -198,7 +202,12 @@ export function createApp(
         if (gateway && (await gateway(ctx))) return;
         sendJson(res, 404, { error: "not_found" });
       } catch (e) {
-        sendJson(res, 500, { error: "server_error", detail: (e as Error).message });
+        logger.error("request failed", e, {
+          method,
+          path: ctx.path,
+          statusCode: 500,
+        });
+        sendJson(res, 500, redactError(e));
       }
     })();
   };

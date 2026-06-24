@@ -24,7 +24,7 @@ configureCoreAuthFromEnv();
 
 // Persistence selection: a real Postgres when DATABASE_URL is set (production /
 // durable dev), else the zero-dependency in-memory adapter (resets on restart).
-// Same Store contract either way — nothing downstream changes.
+// Same Store contract either way - nothing downstream changes.
 const databaseUrl = process.env["DATABASE_URL"];
 let store: Store;
 if (databaseUrl) {
@@ -67,31 +67,31 @@ server.listen(config.port, () => {
   log(`[florence-academy-api] listening on ${scheme}://localhost:${config.port}`);
   log(
     databaseUrl
-      ? `[store] Postgres (DATABASE_URL) — run db/migrate.mjs once to create tables`
-      : `[store] in-memory (data resets on restart) — set DATABASE_URL for Postgres`,
+      ? `[store] Postgres (DATABASE_URL) - run db/migrate.mjs once to create tables`
+      : `[store] in-memory (data resets on restart) - set DATABASE_URL for Postgres`,
   );
   log(
     payments.isMock
-      ? `[payments] MOCK provider (no money moves) — set STRIPE_SECRET_KEY for live Stripe Checkout`
+      ? `[payments] MOCK provider (no money moves) - set STRIPE_SECRET_KEY for live Stripe Checkout`
       : `[payments] Stripe Checkout (live)`,
   );
   log(
     email.isMock
-      ? `[email] MOCK provider (logs only) — set EMAIL_RELAY_URL to deliver verification emails`
+      ? `[email] MOCK provider (logs only) - set EMAIL_RELAY_URL to deliver verification emails`
       : `[email] relay delivery (live)`,
   );
   log(
     pathway.isMock
-      ? `[pathway] MOCK handoff (dry-run) — set PATHWAY_AGENT_URL to connect the Florence Pathway Agent`
+      ? `[pathway] MOCK handoff (dry-run) - set PATHWAY_AGENT_URL to connect the Florence Pathway Agent`
       : `[pathway] Florence Pathway Agent (live)`,
   );
   if (scheme === "http")
-    log(`[security] no TLS configured — set TLS_CERT_PATH + TLS_KEY_PATH to serve HTTPS`);
+    log(`[security] no TLS configured - set TLS_CERT_PATH + TLS_KEY_PATH to serve HTTPS`);
   log(`[florence-academy-api] demo client_id = ${config.demoClientId}`);
   if (!process.env["DEMO_CLIENT_SECRET"]) {
     log(
       `[florence-academy-api] demo client_secret = ${config.demoClientSecret}  ` +
-        `(dev-only ephemeral credential — set DEMO_CLIENT_SECRET to override)`,
+        `(dev-only ephemeral credential - set DEMO_CLIENT_SECRET to override)`,
     );
   }
   reportConfigWarnings(log);

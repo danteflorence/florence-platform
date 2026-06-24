@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { fetchActivation, type ActivationLookup } from "../lib/academyAuth";
 
 /**
- * Partner activation landing — what a Dean of Nursing sees when they scan
+ * Partner activation landing - what a Dean of Nursing sees when they scan
  * the QR or type the code from their postcard / letter.
  *
  * Confirms the offer they read on paper, lets them request a follow-up
@@ -298,7 +298,7 @@ function Footer() {
   return (
     <footer className="border-t border-florence-line">
       <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-8 text-xs text-florence-slate sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <p>Florence Academy — NCLEX-RN preparation for internationally educated nurses.</p>
+        <p>Florence Academy - NCLEX-RN preparation for internationally educated nurses.</p>
         <Link to="/" className="hover:text-florence-ink">
           ← florenceedu.com
         </Link>

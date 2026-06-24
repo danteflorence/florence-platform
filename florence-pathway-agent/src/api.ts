@@ -1,5 +1,6 @@
 import type { CandidateDossier, WorkflowType, JurisdictionRule, LedgerMilestone, AuditEntry } from '@shared/types'
-import type { CandidateView, QaQueueItem, QaDetail, AdminMetrics, CandidateSummary } from '@shared/views'
+import type { CandidateView, QaQueueItem, QaDetail, AdminMetrics, CandidateSummary, ConsularPaymentDashboard, ConsularPaymentReconciliation } from '@shared/views'
+import type { ConsularPaymentOrder, I901Receipt, SevismateHandoff } from '@shared/types'
 import type { WorkflowMeta } from './types'
 
 // FlorenceRN Core SSO. Staff surfaces (QA + Operations) require a Core staff role;
@@ -42,7 +43,7 @@ function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 export interface Meta {
-  llmMode: 'anthropic' | 'heuristic'
+  llmMode: 'model_gateway' | 'heuristic'
   workflows: Record<WorkflowType, WorkflowMeta>
   rules: JurisdictionRule[]
 }
@@ -81,6 +82,13 @@ export const api = {
   setSsnStatus: (candidateId: string, hasSsn: boolean) => post<{ hasSsn: boolean }>(`/api/candidates/${candidateId}/ssn-status`, { hasSsn }),
   setConsent: (candidateId: string, scope: string, granted: boolean) => post<{ scope: string; granted: boolean }>(`/api/candidates/${candidateId}/consent`, { scope, granted }),
 
+  i901Order: (orderId: string) => get<{ order: ConsularPaymentOrder; handoffs: SevismateHandoff[]; receipt?: I901Receipt | null }>(`/v1/consular/payments/i901/orders/${orderId}`),
+  i901Attest: (orderId: string, signatureName: string) =>
+    post<any>(`/v1/consular/payments/i901/${orderId}/attest`, { signatureName, acknowledge: true, confirmedFields: ['legal_name', 'date_of_birth', 'sevis_id', 'school_code', 'form_type', 'program_start_date'] }),
+  i901Handoff: (orderId: string) => post<any>(`/v1/consular/payments/i901/${orderId}/handoff/sevismate`, { integrationMode: 'deep_link' }),
+  i901Receipt: (orderId: string, body: { filename: string; sevisId: string; legalName?: string; schoolCode?: string; amountUsd?: number }) =>
+    post<any>(`/v1/consular/payments/i901/${orderId}/receipt`, { ...body, formType: 'I-20', source: 'student_upload', extractionConfidence: 'medium' }),
+
   qaQueue: () => get<QaQueueItem[]>('/api/qa/queue'),
   qaReview: (id: string) => get<QaDetail>(`/api/qa/reviews/${id}`),
   qaDecide: (id: string, decision: 'approve' | 'request_changes', reviewer: string, notes?: string) =>
@@ -89,4 +97,6 @@ export const api = {
   metrics: () => get<AdminMetrics>('/api/admin/metrics'),
   ledger: () => get<LedgerMilestone[]>('/api/admin/ledger'),
   audit: () => get<AuditEntry[]>('/api/admin/audit'),
+  consularPaymentDashboard: () => get<ConsularPaymentDashboard>('/v1/consular/payments/dashboard'),
+  consularPaymentReconciliation: () => get<ConsularPaymentReconciliation>('/v1/consular/payments/reconciliation'),
 }

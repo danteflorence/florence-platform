@@ -5,6 +5,7 @@ import { store, uid, now } from './db'
 import type { CandidateProfile, WorkflowType } from '../shared/types'
 import { instantiateWorkflow, applyStatus } from './agents/workflow'
 import { runPipeline } from './agents'
+import { approveI901Receipt, attestI901Order, createI901Order, createSevismateHandoff, recordI901Receipt } from './consularPayments'
 
 interface Seed {
   profile: Omit<CandidateProfile, 'id' | 'aliases' | 'createdAt' | 'updatedAt'>
@@ -171,11 +172,55 @@ export async function seedIfEmpty(): Promise<void> {
     s.financing.forEach((o) => store.financing.insert(link(o) as any))
     s.englishExams.forEach((o) => store.englishExams.insert(link(o) as any))
     s.nclex.forEach((o) => store.nclex.insert(link(o) as any))
+    s.schoolPrograms.forEach((o) => store.documents.insert({
+      id: uid(), candidateId: id, kind: 'i20', filename: `${o.schoolName} I-20.pdf`,
+      uploadedAt: now(), extracted: true, extractionConfidence: 'high',
+      fields: { sevisId: o.i20Number, schoolCode: o.sevisSchoolCode, programStartDate: o.startDate, nameOnI20: o.nameOnI20 },
+    }))
 
     for (const type of s.workflows) {
       const w = instantiateWorkflow(type, id)
       store.workflows.insert(w)
       await runPipeline(w.id)
+    }
+
+    const sevis = store.workflows.byCandidate(id).find((w) => w.type === 'sevis_i20')
+    if (sevis && s.schoolPrograms.length > 0) {
+      applyStatus(sevis, 'qa_approved'); store.workflows.update(sevis)
+      const order = createI901Order({
+        candidateId: id,
+        visaType: 'F1',
+        payerType: s.profile.legalFirstName === 'Chukwuemeka' ? 'florence' : 'student',
+        officialFeeUsd: 350,
+        serviceFeeUsd: s.profile.legalFirstName === 'Grace' ? 40 : 30,
+        taxOrProcessingFeeUsd: 0,
+        localCurrency: s.profile.countryOfResidence === 'Philippines' ? 'PHP' : s.profile.countryOfResidence === 'India' ? 'INR' : undefined,
+        localAmount: s.profile.countryOfResidence === 'Philippines' ? 21600 : s.profile.countryOfResidence === 'India' ? 33600 : undefined,
+        serviceSpeed: s.profile.legalFirstName === 'Grace' ? 'standard' : 'basic',
+        dueDate: '2026-07-15',
+        ownerUserId: 'navigator',
+      })
+      if (s.profile.legalFirstName === 'Priya') {
+        attestI901Order(order.id, 'Priya Nair')
+        createSevismateHandoff(order.id)
+      }
+      if (s.profile.legalFirstName === 'Grace') {
+        attestI901Order(order.id, 'Grace Wanjiru')
+        createSevismateHandoff(order.id)
+        recordI901Receipt(order.id, {
+          filename: 'grace-i901-receipt.pdf',
+          sevisId: s.schoolPrograms[0].i20Number,
+          legalName: s.schoolPrograms[0].nameOnI20,
+          schoolCode: s.schoolPrograms[0].sevisSchoolCode,
+          formType: 'I-20',
+          visaType: 'F1',
+          receiptDate: '2026-06-20',
+          amountUsd: 350,
+          source: 'student_upload',
+          extractionConfidence: 'high',
+        })
+        approveI901Receipt(order.id, 'Seed QA')
+      }
     }
   }
 

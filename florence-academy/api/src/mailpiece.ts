@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Florence Academy mailpiece renderer — postcard (6x11) + letter (8.5x11).
+// Florence Academy mailpiece renderer - postcard (6x11) + letter (8.5x11).
 //
 // Adapted from the Florence labor-economics `florence_postcard.py` reference.
 // Renders standalone HTML documents sized for Lob's print API:
@@ -19,7 +19,7 @@
 // returns a base64-encoded image.
 //
 // Lob renders these HTML strings to PDF on its side. We never embed a real
-// address barcode or postage indicia — Lob does that in the reserved zone
+// address barcode or postage indicia - Lob does that in the reserved zone
 // on the right side of the postcard back / above the address on a letter.
 // ───────────────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 import type { OutreachMailFormat, OutreachTheme, OutreachTarget } from "./types.ts";
 
 // Read the copy JSON at module load. Keeping it in a separate file lets ops
-// edit the copy without touching code — same pattern as postcard_copy.json
+// edit the copy without touching code - same pattern as postcard_copy.json
 // in the labor-economics reference.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const COPY = JSON.parse(
@@ -181,7 +181,7 @@ function renderPostcard(ctx: MailpieceContext): RenderedMailpiece {
     <div class="school-badge">For ${esc(ctx.target.org_name)}</div>
   </div></body></html>`;
 
-  // Back: keep the right ~5in (address zone + postage + IMb) BLANK — Lob
+  // Back: keep the right ~5in (address zone + postage + IMb) BLANK - Lob
   // prints those. We render content on the LEFT half only.
   const back = `<!doctype html><html><head><meta charset="utf-8"><style>${stylesCommon}
     .copy { position:absolute; left:0; top:0; width:6in; height:6in;
@@ -342,7 +342,7 @@ function renderLetter(ctx: MailpieceContext): RenderedMailpiece {
     </div>
   </div></body></html>`;
 
-  // Back is left blank for a single-page letter — Lob bills letters per
+  // Back is left blank for a single-page letter - Lob bills letters per
   // physical page. If we ever extend to a two-sided letter, we'd render
   // the back here. For now an empty page with the same dimensions makes
   // the API consistent with the postcard pattern.

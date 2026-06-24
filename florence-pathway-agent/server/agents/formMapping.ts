@@ -332,12 +332,15 @@ const visaAppt: Builder = (d) => {
   const ds = d.workflows.find((w) => w.type === 'ds160')
   const signed = !!ds && ['candidate_signed', 'submitted', 'completed'].includes(ds.status)
   const conf = ds?.confirmationNumber ?? (signed ? 'On file' : null)
+  const i901 = d.consularPaymentOrders.find((o) => o.paymentType === 'i901_sevis')
+  const receipt = i901 ? d.i901Receipts.find((r) => r.paymentOrderId === i901.id && r.qaStatus === 'approved') : undefined
   return [
     {
       key: 'appointment', title: 'Visa Appointment (guided)',
       answers: [
         ans('consulate', 'Consulate', d.profile.countryOfResidence, ev('candidate_input', 'Residence'), 'medium'),
         ans('ds160_confirmation', 'Signed DS-160 confirmation number', conf, ev('derived', 'DS-160 workflow'), 'medium', { note: 'Required to schedule the interview — captured from CEAC after you submit.' }),
+        ans('i901_receipt', 'I-901 receipt QA approved', receipt ? 'Verified by Florence QA' : null, receipt ? ev('i901_receipt', 'I-901 receipt') : [], receipt ? 'high' : 'unknown', { note: 'Required before Florence marks visa appointment readiness.' }),
       ],
     },
   ]
@@ -345,6 +348,8 @@ const visaAppt: Builder = (d) => {
 
 const sevisI20: Builder = (d) => {
   const sp = d.schoolPrograms[0]
+  const i901 = d.consularPaymentOrders.find((o) => o.paymentType === 'i901_sevis')
+  const receipt = i901 ? d.i901Receipts.find((r) => r.paymentOrderId === i901.id && r.qaStatus === 'approved') : undefined
   return [
     { key: 'identity', title: 'Applicant Identity', answers: identityAnswers(d) },
     {
@@ -354,7 +359,7 @@ const sevisI20: Builder = (d) => {
         ans('program', 'Program', sp?.programName, ev('i20', 'I-20'), 'medium'),
         ans('sevis_id', 'SEVIS ID / I-20 number', sp?.i20Number, ev('i20', 'I-20'), 'high'),
         ans('school_code', 'School Code', sp?.sevisSchoolCode, ev('i20', 'I-20'), 'medium'),
-        ans('i901', 'I-901 SEVIS fee', null, [], 'unknown', { note: 'Pay at the official FMJfee.com before the visa interview; keep the receipt.' }),
+        ans('i901', 'I-901 SEVIS fee', receipt ? 'Receipt verified' : i901?.status ?? null, receipt ? ev('i901_receipt', 'I-901 receipt') : [], receipt ? 'high' : i901 ? 'medium' : 'unknown', { note: 'Pay through the approved SEVISmate handoff or official path; Florence verifies the receipt before visa appointment readiness.' }),
       ],
     },
   ]

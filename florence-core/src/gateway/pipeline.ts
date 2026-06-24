@@ -6,9 +6,11 @@
 
 import { config } from "../config.ts";
 import { verifyJwtRS256 } from "../crypto.ts";
+import type { Audit } from "../audit.ts";
 import type { KeyManager } from "../keys.ts";
 import type { Store } from "../store.ts";
 import { sendJson, type Ctx } from "../server.ts";
+import { auditAccessDecision, authorizeTenantAccess } from "../tenant.ts";
 import { nowSec } from "../util.ts";
 import { matchGw, type GwCtx, type GwResult, type GwRoute } from "./router.ts";
 import { scopeSatisfies } from "./scopes.ts";
@@ -34,6 +36,10 @@ function emit(ctx: Ctx, result: GwResult): void {
   }
 }
 
+function actorFromGateway(ctx: GwCtx): string {
+  return String(ctx.claims?.email ?? ctx.claims?.sub ?? "anonymous");
+}
+
 export interface GatewayOpts {
   /** Per-principal token bucket. Defaults: capacity 600, refill 50/s (generous;
    *  external-partner keys get tighter limits in a later pass). */
@@ -41,7 +47,7 @@ export interface GatewayOpts {
 }
 
 /** Build the gateway dispatcher. Returns a fn that returns true iff it handled the request. */
-export function createGatewayDispatch(routes: GwRoute[], keys: KeyManager, store: Store, opts: GatewayOpts = {}): (ctx: Ctx) => Promise<boolean> {
+export function createGatewayDispatch(routes: GwRoute[], keys: KeyManager, store: Store, audit: Audit, opts: GatewayOpts = {}): (ctx: Ctx) => Promise<boolean> {
   const rl = opts.rateLimit ?? {
     capacity: Number(process.env.GATEWAY_RL_CAPACITY ?? 600),
     refillPerSec: Number(process.env.GATEWAY_RL_REFILL ?? 50),
@@ -72,6 +78,12 @@ export function createGatewayDispatch(routes: GwRoute[], keys: KeyManager, store
         ? verifyJwtRS256(tok, (kid) => keys.resolveKey(kid), nowSec(), { iss: config.issuer, aud: config.audience })
         : null;
       if (!r || !r.ok) {
+        await audit("anonymous", "auth.login_failed", "gateway_route", route.pattern, {
+          method: ctx.method,
+          route: route.pattern,
+          statusCode: 401,
+          reason: tok ? "invalid_token" : "missing_token",
+        });
         sendJson(ctx.res, 401, { error: "unauthorized" });
         return true;
       }
@@ -81,6 +93,11 @@ export function createGatewayDispatch(routes: GwRoute[], keys: KeyManager, store
     // ── per-principal rate limit (after auth so the key is the caller, not the IP) ─
     const rlKey = String(gctx.claims?.sub ?? "anon");
     if (!allow(rlKey)) {
+      await audit(actorFromGateway(gctx), "gateway.rate_limited", "gateway_route", route.pattern, {
+        method: ctx.method,
+        route: route.pattern,
+        statusCode: 429,
+      });
       ctx.res.setHeader("retry-after", "1");
       sendJson(ctx.res, 429, { error: "rate_limited" });
       return true;
@@ -90,7 +107,24 @@ export function createGatewayDispatch(routes: GwRoute[], keys: KeyManager, store
     if (route.scope) {
       const held = String(gctx.claims?.scope ?? "").split(/\s+/).filter(Boolean);
       if (!scopeSatisfies(held, route.scope)) {
+        await audit(actorFromGateway(gctx), "auth.insufficient_scope", "gateway_route", route.pattern, {
+          method: ctx.method,
+          route: route.pattern,
+          scope: route.scope,
+          statusCode: 403,
+        });
         sendJson(ctx.res, 403, { error: "insufficient_scope", need: route.scope });
+        return true;
+      }
+    }
+
+    // ── tenant/program policy gate (deny-by-default + audited denials) ─────
+    if (route.accessPolicy) {
+      const req = await route.accessPolicy(gctx);
+      const decision = await authorizeTenantAccess(store, gctx.claims, req);
+      await auditAccessDecision(audit, gctx.claims, req, decision);
+      if (!decision.allow) {
+        sendJson(ctx.res, decision.status, { error: "tenant_scope_denied", reason: decision.reason });
         return true;
       }
     }

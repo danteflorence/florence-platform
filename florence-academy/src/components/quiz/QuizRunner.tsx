@@ -50,7 +50,7 @@ export default function QuizRunner({
     return () => clearInterval(id);
   }, [s.phase]);
 
-  // Timed tests auto-submit the moment the countdown reaches zero — but never
+  // Timed tests auto-submit the moment the countdown reaches zero - but never
   // while paused, when the clock is deliberately frozen for a break.
   useEffect(() => {
     if (s.phase !== "active" || s.deadlineAt == null || s.paused) return;
@@ -58,7 +58,7 @@ export default function QuizRunner({
   }, [now, s.phase, s.deadlineAt, s.paused, s.timeUp]);
 
   // Guard against losing an in-progress session to an accidental refresh, tab
-  // close, or browser-back — the native prompt gives a chance to stay.
+  // close, or browser-back - the native prompt gives a chance to stay.
   useEffect(() => {
     if (s.phase !== "active") return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -163,7 +163,7 @@ export default function QuizRunner({
                       : ""
                 }`}
                 aria-label="Time remaining"
-                title="Time remaining — the test submits automatically at zero"
+                title="Time remaining - the test submits automatically at zero"
               >
                 ⏳ {fmt(pace.remainingSec * 1000)}
               </span>
@@ -184,7 +184,7 @@ export default function QuizRunner({
             <button
               onClick={s.pause}
               className="fl-pill hover:bg-florence-mist"
-              title="Pause — freezes the timer until you resume"
+              title="Pause - freezes the timer until you resume"
             >
               <span aria-hidden>⏸</span> Pause
             </button>
@@ -240,6 +240,7 @@ export default function QuizRunner({
             onChange={s.setAnswer}
             revealed={s.revealed}
             disabled={s.submitted}
+            tutorContext={{ source: title }}
           />
 
           {verdict && (
@@ -343,7 +344,7 @@ function PauseOverlay({
         <p className="mt-1.5 text-sm text-florence-slate">
           {remainingLabel
             ? `The clock is frozen at ${remainingLabel}. The question is hidden until you resume.`
-            : "Take a breather — the question is hidden until you resume."}
+            : "Take a breather - the question is hidden until you resume."}
         </p>
         <button
           onClick={onResume}
@@ -388,7 +389,7 @@ function ConfirmEnd({
           You've answered{" "}
           <span className="font-semibold text-florence-ink">{answered}</span>
           {fixedLength ? ` of ${total}` : ""} item{answered === 1 ? "" : "s"}. We'll
-          score your results on what you've done so far — you can't resume after
+          score your results on what you've done so far - you can't resume after
           ending.
         </p>
         <div className="mt-5 flex justify-end gap-2">

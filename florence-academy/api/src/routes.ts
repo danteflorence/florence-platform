@@ -385,7 +385,7 @@ function getHealth(ctx: ReqCtx): void {
   send(ctx, 200, { ok: true, service: "florence-academy-api" });
 }
 
-// "Who am I?" per the shared FlorenceRN Core cookie (or Bearer). Public route —
+// "Who am I?" per the shared FlorenceRN Core cookie (or Bearer). Public route -
 // returns the Core principal so any academy surface can gate on the SSO session.
 async function getSession(ctx: ReqCtx): Promise<void> {
   const p = await safePrincipal({ headers: ctx.headers });
@@ -400,7 +400,7 @@ async function getSession(ctx: ReqCtx): Promise<void> {
   });
 }
 
-// Whether the live A/V (Agora) is wired on this instance — lets the SPA show the
+// Whether the live A/V (Agora) is wired on this instance - lets the SPA show the
 // classroom video or fall back to slides-only.
 function getLiveConfig(ctx: ReqCtx): void {
   send(ctx, 200, {
@@ -412,7 +412,7 @@ function getLiveConfig(ctx: ReqCtx): void {
 
 // Mint a role-scoped Agora RTC token for a live class. Instructors/ops join as
 // HOST (publisher); everyone else as AUDIENCE (subscriber). Gated by the Core
-// session — only an authenticated user gets a token, only staff get publish.
+// session - only an authenticated user gets a token, only staff get publish.
 const LIVE_HOST_ROLES = new Set(["super_admin", "ops", "instructor"]);
 async function postLiveToken(ctx: ReqCtx): Promise<void> {
   if (!agoraConfigured())
@@ -834,7 +834,7 @@ async function createAssessment(ctx: ReqCtx, deps: Deps): Promise<void> {
     })();
   }
   // Closed-loop dispatch: auto-assign targeted remediation for every weak subscale
-  // (θ below the passing standard with enough evidence). Idempotent — an open
+  // (θ below the passing standard with enough evidence). Idempotent - an open
   // assignment for a subscale is refreshed, not duplicated.
   if (Array.isArray(r.mastery)) {
     for (const m of r.mastery) {
@@ -1034,7 +1034,7 @@ async function postCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   const { currency } = config.payments;
   // Tiered deposit: a candidate with any school affiliation pays the preferred
   // access rate ($75). Otherwise the standard $100. Never marketed as a
-  // "discount" — it's preferred access for students/alumni of eligible schools.
+  // "discount" - it's preferred access for students/alumni of eligible schools.
   const depositAmountCents = await depositAmountForCandidate(deps, candidate_id);
   const payment = await deps.store.payments.create({
     candidate_id,
@@ -1137,14 +1137,14 @@ async function getOutcomeFunnel(ctx: ReqCtx, deps: Deps): Promise<void> {
 }
 
 // ── University Affiliate Network ────────────────────────────────────────────
-// K-anonymity floor for per-school reports — server-side enforced. Below this,
+// K-anonymity floor for per-school reports - server-side enforced. Below this,
 // the report carries participation counts only (no demographic breakdown).
 const K_ANON_FLOOR = 10;
 const ELIGIBLE_DEPOSIT_CENTS = 7_500;
 const STANDARD_DEPOSIT_CENTS = 10_000;
 
 function publicSchoolView(s: School) {
-  // Public listing fields ONLY — no contact data, no internal outreach status,
+  // Public listing fields ONLY - no contact data, no internal outreach status,
   // no logo-use flag, no email-domain hints. Slug + name + country + tier + city
   // + programs are enough to power the signup picker.
   return {
@@ -1158,7 +1158,7 @@ function publicSchoolView(s: School) {
 }
 
 async function listSchoolsPublic(ctx: ReqCtx, deps: Deps): Promise<void> {
-  // No auth — this is the public eligible-school directory the signup picker reads.
+  // No auth - this is the public eligible-school directory the signup picker reads.
   const all = await deps.store.schools.list();
   const data = all.filter((s) => s.tier !== "eligible" || true).map(publicSchoolView);
   send(ctx, 200, { data });
@@ -1300,7 +1300,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
     return;
   }
 
-  // AT OR ABOVE K: gather snapshots and report bands (ranges when 10–24, exact 25+).
+  // AT OR ABOVE K: gather snapshots and report bands (ranges when 10-24, exact 25+).
   const snapshots = [];
   for (const cid of candidateIds) {
     const results = await allAssessments(deps, cid);
@@ -1315,7 +1315,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
     if (!useRanges) return Math.round((n / denom) * 1000) / 10;
     const pct = (n / denom) * 100;
     const lo = Math.max(0, Math.floor(pct / 10) * 10);
-    return `${lo}–${lo + 20}%`;
+    return `${lo}-${lo + 20}%`;
   };
   const band_distribution = Object.fromEntries(
     Object.entries(bandRaw).map(([k, v]) => [k, useRanges ? toPct(v) : v]),
@@ -1347,7 +1347,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
-// Internal ops "Ready for outreach" list — schools with a real conversion signal.
+// Internal ops "Ready for outreach" list - schools with a real conversion signal.
 async function listOutreachReady(ctx: ReqCtx, deps: Deps): Promise<void> {
   const all = await deps.store.schools.list();
   const out = [];
@@ -1381,7 +1381,7 @@ async function listOutreachReady(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { data: out });
 }
 
-// ── attendance (Live cohort / Live Lab — append-only) ──────────────────────
+// ── attendance (Live cohort / Live Lab - append-only) ──────────────────────
 async function createAttendance(ctx: ReqCtx, deps: Deps): Promise<void> {
   const verr = validate(ctx.body, SCHEMAS.attendance);
   if (!verr.ok) return validationError(ctx, verr.errors);
@@ -1416,7 +1416,7 @@ async function getAttendanceRollup(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, await deps.store.attendance.rollup());
 }
 
-// ── partner surfaces (employer + university — education readiness only) ──────
+// ── partner surfaces (employer + university - education readiness only) ──────
 /** A readiness snapshot for every candidate (used by the partner projections). */
 async function allCandidateSnapshots(
   deps: Deps,
@@ -1521,7 +1521,7 @@ async function listCohorts(ctx: ReqCtx, deps: Deps): Promise<void> {
 }
 
 /**
- * Public cohorts list — narrow projection for the marketing site.
+ * Public cohorts list - narrow projection for the marketing site.
  *
  * Returns ONLY:
  *   - code, name, starts_at, capacity, seats_remaining, status
@@ -1532,7 +1532,7 @@ async function listCohorts(ctx: ReqCtx, deps: Deps): Promise<void> {
  * If capacity is unset, seats_remaining is null and the UI says "open seats".
  */
 async function listCohortsPublic(ctx: ReqCtx, deps: Deps): Promise<void> {
-  // Pull a generous slice — operators won't realistically schedule >100 at once.
+  // Pull a generous slice - operators won't realistically schedule >100 at once.
   const page = await deps.store.cohorts.list(undefined, 100);
   const visible = page.data.filter(
     (c) => c.status === "scheduled" || c.status === "active",
@@ -1540,7 +1540,7 @@ async function listCohortsPublic(ctx: ReqCtx, deps: Deps): Promise<void> {
   const projected = await Promise.all(
     visible.map(async (c) => {
       const enrollments = await deps.store.enrollments.byCohort(c.code);
-      // Don't count withdrawn against capacity — they vacated the seat.
+      // Don't count withdrawn against capacity - they vacated the seat.
       const filled = enrollments.filter((e) => e.status !== "withdrawn").length;
       const seats_remaining =
         typeof c.capacity === "number" ? Math.max(0, c.capacity - filled) : null;
@@ -1615,7 +1615,7 @@ async function patchCohort(ctx: ReqCtx, deps: Deps): Promise<void> {
  * Bump (or reset, with override) the cohort's coverage watermark.
  *
  * The instructor calls this from /instructor after each live class. Normal
- * bumps must go forward only — that's the whole point of the watermark — so
+ * bumps must go forward only - that's the whole point of the watermark - so
  * we 409 on attempts to lower without `override: true`. The override path
  * exists for honest mistakes (instructor said "covered 7" but actually got
  * through 6); we audit-log both.
@@ -1648,7 +1648,7 @@ async function patchCohortCoverage(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!updated) return err(ctx, 404, "not_found", "cohort not found");
   send(ctx, 200, updated);
 }
-// Instructor Copilot — deterministic cohort analysis for faculty (read-only).
+// Instructor Copilot - deterministic cohort analysis for faculty (read-only).
 async function getCohortCopilot(ctx: ReqCtx, deps: Deps): Promise<void> {
   const code = ctx.params["code"] ?? "";
   ctx.resourceType = "cohort_copilot";
@@ -1727,7 +1727,7 @@ function weakPassword(pw: string): boolean {
 // ── candidate end-user auth (public signup/login → candidate-bound session) ──
 async function postSignup(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!authRateLimitOk(`auth:${ctx.ip}`))
-    return err(ctx, 429, "rate_limited", "too many attempts — please wait a moment");
+    return err(ctx, 429, "rate_limited", "too many attempts - please wait a moment");
   const verr = validate(ctx.body, SCHEMAS.signup);
   if (!verr.ok) return validationError(ctx, verr.errors);
   const full_name = str(ctx.body, "full_name");
@@ -1773,7 +1773,7 @@ async function sendVerificationEmail(
   try {
     await deps.email.send({
       to: candidate.email,
-      subject: "Verify your email — Florence Academy",
+      subject: "Verify your email - Florence Academy",
       text: `Welcome to Florence Academy! Confirm your email address: ${url}`,
       html: `<p>Welcome to Florence Academy!</p><p><a href="${url}">Confirm your email address</a></p>`,
     });
@@ -1812,7 +1812,7 @@ async function postResendVerification(ctx: ReqCtx, deps: Deps): Promise<void> {
 
 async function postLogin(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!authRateLimitOk(`auth:${ctx.ip}`))
-    return err(ctx, 429, "rate_limited", "too many attempts — please wait a moment");
+    return err(ctx, 429, "rate_limited", "too many attempts - please wait a moment");
   const verr = validate(ctx.body, SCHEMAS.login);
   if (!verr.ok) return validationError(ctx, verr.errors);
   const emailRaw = str(ctx.body, "email");
@@ -1823,7 +1823,7 @@ async function postLogin(ctx: ReqCtx, deps: Deps): Promise<void> {
 
   const locked = loginLockRemaining(email);
   if (locked > 0)
-    return err(ctx, 429, "account_locked", `too many failed attempts — try again in ${Math.ceil(locked / 60)} min`);
+    return err(ctx, 429, "account_locked", `too many failed attempts - try again in ${Math.ceil(locked / 60)} min`);
 
   const cred = await deps.store.credentials.getByEmail(email);
   // Always run exactly one scrypt verify (real hash or a fixed dummy) so response
@@ -1882,7 +1882,7 @@ async function getMyCohort(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!active) return send(ctx, 204, null);
   const cohort = await deps.store.cohorts.getByCode(active.cohort);
   if (!cohort) return send(ctx, 204, null);
-  // Narrow projection — never leak instructor_ref / internal id to the candidate.
+  // Narrow projection - never leak instructor_ref / internal id to the candidate.
   send(ctx, 200, {
     code: cohort.code,
     name: cohort.name,
@@ -1900,12 +1900,12 @@ function classifyActor(actor: string | undefined): string {
   if (!actor) return "system";
   if (actor === "academy_session") return "you";
   // Known agents go here as we wire them. Everything else with a verified
-  // M2M client id is an ops/partner action — bucket as "ops".
+  // M2M client id is an ops/partner action - bucket as "ops".
   if (/pathway[-_]?agent/i.test(actor)) return "agent";
   return "ops";
 }
 
-// "Who has accessed my data?" — FERPA/GDPR-style transparency for the candidate.
+// "Who has accessed my data?" - FERPA/GDPR-style transparency for the candidate.
 async function getMyAudit(ctx: ReqCtx, deps: Deps): Promise<void> {
   const bound = ctx.auth?.candidateId;
   if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
@@ -1997,7 +1997,7 @@ async function postPathwayTask(ctx: ReqCtx, deps: Deps): Promise<void> {
   const id = ctx.params["id"] ?? "";
   ctx.resourceType = "pathway_task";
   ctx.resourceId = id;
-  // Session tokens (candidates) can never POST — only the Pathway Agent (M2M with
+  // Session tokens (candidates) can never POST - only the Pathway Agent (M2M with
   // pathway:write scope, enforced by the route table below).
   if (isSessionToken(ctx))
     return err(ctx, 403, "forbidden", "pathway-task writes are operator/agent actions");
@@ -2038,7 +2038,7 @@ async function listPathwayTasks(ctx: ReqCtx, deps: Deps): Promise<void> {
 }
 
 // Hand a pathway-ready candidate off to the Florence Pathway Agent (operator
-// action — not candidate-triggered). The Academy stops at readiness; the Pathway
+// action - not candidate-triggered). The Academy stops at readiness; the Pathway
 // Agent owns university/visa/financing/licensure under AI-drafts → human-QA →
 // candidate-attests. Dormant (dry-run) until PATHWAY_AGENT_URL is set.
 async function postPathwayHandoff(ctx: ReqCtx, deps: Deps): Promise<void> {
@@ -2073,7 +2073,7 @@ async function postPathwayHandoff(ctx: ReqCtx, deps: Deps): Promise<void> {
  *
  * Idempotent on rerun: each lead is upserted by lower(email). Returns counts
  * (created / updated / unchanged) so the CSV importer can show a real diff.
- * Per-row errors are collected, not fatal — bad rows don't sink the batch.
+ * Per-row errors are collected, not fatal - bad rows don't sink the batch.
  *
  * Scope: leads:write (operator-only). The endpoint is INTERNAL and never
  * returned in any public response.
@@ -2298,7 +2298,7 @@ async function postDripTick(ctx: ReqCtx, deps: Deps): Promise<void> {
         headers: { "List-Unsubscribe": `<${dctx.unsubUrl}>` },
       });
     } catch {
-      // Relay failed — leave the lead due, retry next tick. No PII logged.
+      // Relay failed - leave the lead due, retry next tick. No PII logged.
       failed++;
       continue;
     }
@@ -2370,7 +2370,7 @@ async function postDripPreview(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { step, ...email });
 }
 
-/** Public one-click opt-out. No auth — the token is the proof. Idempotent. */
+/** Public one-click opt-out. No auth - the token is the proof. Idempotent. */
 async function postDripUnsubscribe(ctx: ReqCtx, deps: Deps): Promise<void> {
   const token = str(ctx.body, "token") ?? ctx.query.get("token") ?? "";
   if (!token) return err(ctx, 400, "invalid_request", "token required");
@@ -2692,7 +2692,7 @@ function mapLobEventToStatus(
 }
 
 /** Public-ish activation lookup. Returns the school + offer for a given code.
- *  No auth — but only emits the offer payload, never internal target details. */
+ *  No auth - but only emits the offer payload, never internal target details. */
 async function getActivation(ctx: ReqCtx, deps: Deps): Promise<void> {
   const code = ctx.params["code"] ?? "";
   const target = await deps.store.outreach.targets.getByCode(code);
@@ -2769,7 +2769,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/auth/verify", null, false, postVerifyEmail),
   compile("POST", "/v1/auth/resend", null, true, postResendVerification),
   compile("GET", "/v1/me", "candidates:read", true, getMe),
-  // Candidate's currently-active cohort — read by AcademyHome to gate sections.
+  // Candidate's currently-active cohort - read by AcademyHome to gate sections.
   compile("GET", "/v1/me/cohort", "candidates:read", true, getMyCohort),
   compile("GET", "/v1/me/audit", "candidates:read", true, getMyAudit),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
@@ -2786,7 +2786,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/enrollments", "enrollment:write", true, createEnrollment),
   compile("PATCH", "/v1/enrollments/:id", "enrollment:write", true, patchEnrollment),
   compile("GET", "/v1/cohorts", "cohorts:read", true, listCohorts),
-  // Public marketing endpoint — narrow projection of scheduled/active cohorts.
+  // Public marketing endpoint - narrow projection of scheduled/active cohorts.
   compile("GET", "/v1/public/cohorts", null, false, listCohortsPublic),
   // Instructor: bump the cohort's coverage watermark (one-call-per-class).
   compile("PATCH", "/v1/cohorts/:id/coverage", "cohorts:write", true, patchCohortCoverage),
@@ -2831,7 +2831,7 @@ export const routes: Route[] = [
   // Candidate affiliations (signup-time attestation; their own only).
   compile("POST", "/v1/candidates/:id/affiliations", "candidates:write", true, postAffiliation),
   compile("GET", "/v1/candidates/:id/affiliations", "candidates:read", true, listMyAffiliations),
-  // Outreach-ready list — internal (kept off /v1/schools/:slug to avoid the
+  // Outreach-ready list - internal (kept off /v1/schools/:slug to avoid the
   // routing collision; this is an ops query, not a school resource).
   compile("GET", "/v1/outreach/ready", "schools:read", true, listOutreachReady),
   compile("GET", "/v1/payments", "payments:read", true, listPayments),
@@ -2839,7 +2839,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/payments/checkout", null, true, postCheckout),
   compile("POST", "/v1/payments/webhook/stripe", null, false, postStripeWebhook),
   compile("POST", "/v1/payments/:id/mock-complete", null, false, postMockComplete),
-  // Leads (Florence core mirror) — operator-only; never returned to candidates.
+  // Leads (Florence core mirror) - operator-only; never returned to candidates.
   compile("POST", "/v1/leads/import", "leads:write", true, postLeadsImport),
   compile("GET", "/v1/leads", "leads:read", true, listLeads),
   compile("GET", "/v1/leads/rollup", "leads:read", true, getLeadRollup),

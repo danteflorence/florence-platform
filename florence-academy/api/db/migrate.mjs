@@ -1,5 +1,5 @@
 // Apply db/schema.sql to the Postgres database in DATABASE_URL.
-// Idempotent — the schema uses CREATE TABLE IF NOT EXISTS throughout, so it's
+// Idempotent - the schema uses CREATE TABLE IF NOT EXISTS throughout, so it's
 // safe to re-run. Requires the `pg` driver (npm i pg in api/).
 //
 //   DATABASE_URL=postgres://user:pass@host:5432/florence node db/migrate.mjs
@@ -21,7 +21,7 @@ let pg;
 try {
   pg = await import("pg");
 } catch {
-  console.error("the 'pg' package is not installed — run `npm i pg` in api/");
+  console.error("the 'pg' package is not installed - run `npm i pg` in api/");
   process.exit(1);
 }
 

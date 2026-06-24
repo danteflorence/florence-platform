@@ -4,7 +4,7 @@ import type {
   CandidateProfile, WorkflowType, WorkflowStatus, WorkflowInstance,
   ConsistencyFlag, MissingItem, LedgerMilestone, RiskLevel, Owner,
   QaReview, FormDraft, AuditEntry, OfficialResource, JurisdictionRule, PathwayDocument,
-  Confidence,
+  Confidence, ConsularPaymentStatus, ConsularPaymentOrder,
 } from './types'
 import type { InterviewPrep } from './interview-prep'
 import type { SsnPolicy, SsnAction } from './ssn-policy'
@@ -84,6 +84,72 @@ export interface RequirementGroup {
   completeCount: number
   totalCount: number
   totalFeesUsd: number
+}
+
+export interface I901PaymentSummary {
+  required: boolean
+  eligible: boolean
+  missing: string[]
+  status: ConsularPaymentStatus
+  statusLabel: string
+  orderId?: string
+  paymentLink?: string
+  receiptQaStatus?: 'pending' | 'approved' | 'rejected'
+  receiptDocumentId?: string
+  sevisIdMasked?: string
+  school?: string
+  nextStep: string
+}
+
+export interface ConsularPaymentsView {
+  i901: I901PaymentSummary
+}
+
+export interface ConsularPaymentDashboardRow {
+  order: ConsularPaymentOrder
+  candidateName: string
+  country: string
+  school: string
+  maskedSevisId: string
+  i20Status: string
+  paymentStatus: ConsularPaymentStatus
+  statusLabel: string
+  slaDaysLeft?: number
+  interviewDate?: string
+  risk: 'green' | 'orange' | 'red'
+  owner?: string
+  nextAction: string
+}
+
+export interface ConsularPaymentDashboard {
+  counts: Record<string, number>
+  queues: {
+    readyForPayment: ConsularPaymentDashboardRow[]
+    awaitingCandidateAttestation: ConsularPaymentDashboardRow[]
+    paymentInProgress: ConsularPaymentDashboardRow[]
+    receiptPending: ConsularPaymentDashboardRow[]
+    receiptQaNeeded: ConsularPaymentDashboardRow[]
+    blockedCorrectionNeeded: ConsularPaymentDashboardRow[]
+    interviewAtRisk: ConsularPaymentDashboardRow[]
+    completed: ConsularPaymentDashboardRow[]
+  }
+  rows: ConsularPaymentDashboardRow[]
+}
+
+export interface ConsularPaymentReconciliation {
+  totalPaymentOrders: number
+  studentPaid: number
+  florencePaid: number
+  officialFeeUsd: number
+  serviceFeeUsd: number
+  taxOrProcessingFeeUsd: number
+  localAmountByCurrency: { currency: string; amount: number }[]
+  failedPaymentReasons: { reason: string; count: number }[]
+  refundRequests: number
+  receiptsVerified: number
+  receiptsRejected: number
+  studentsBlockedByMissingPayment: number
+  averageDaysI20ToReceipt: number | null
 }
 
 /** A canonical-profile field with its provenance — collect once, reuse everywhere. */
@@ -234,6 +300,8 @@ export interface CandidateView {
   countryPlaybook: CountryPlaybook | null
   /** Every requirement element across the pathway — fee, official source, completion. */
   requirements: RequirementGroup[]
+  /** Consular Payments V1: I-901 SEVIS fee orchestration. */
+  consularPayments: ConsularPaymentsView
 }
 
 export interface QaQueueItem {
@@ -303,6 +371,15 @@ export interface AdminMetrics {
   productionCounts: { stage: string; count: number }[]
   /** Control Tower: in-flight starts bucketed by expected-start month. */
   expectedStartsByMonth: { month: string; count: number }[]
+  /** Staff summary for Consular Payments. Detailed queues come from /v1/consular/payments/dashboard. */
+  consularPayments: {
+    totalOrders: number
+    awaitingAttestation: number
+    receiptQaNeeded: number
+    completed: number
+    blockedOrCorrection: number
+    studentsBlockedByMissingPayment: number
+  }
 }
 
 export interface CandidateSummary {

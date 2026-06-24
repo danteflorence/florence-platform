@@ -4,6 +4,7 @@
 
 import type { Ctx } from "../server.ts";
 import type { CoreClaims } from "../crypto.ts";
+import type { AccessPolicyRequest } from "../tenant.ts";
 
 /** Gateway request context = Core's Ctx + resolved path params + the verified token. */
 export interface GwCtx extends Ctx {
@@ -20,6 +21,7 @@ export interface GwResult {
   contentType?: string;
 }
 export type GwHandler = (ctx: GwCtx) => Promise<GwResult> | GwResult;
+export type GwAccessPolicy = (ctx: GwCtx) => Promise<AccessPolicyRequest> | AccessPolicyRequest;
 
 export interface GwRouteDef {
   method: string;
@@ -30,6 +32,8 @@ export interface GwRouteDef {
   /** A STATIC required scope the pipeline enforces, or null when the handler
    *  self-gates (e.g. the passport read, whose scope depends on the audience). */
   scope?: string | null;
+  /** Optional tenant/program policy evaluated after auth/scope and before handler. */
+  accessPolicy?: GwAccessPolicy;
   /** Marks a create route as retry-safe via the Idempotency-Key header. */
   idempotent?: boolean;
   summary?: string;

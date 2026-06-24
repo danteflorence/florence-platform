@@ -145,7 +145,7 @@ export default function VitalsMonitor() {
           <div className="mb-3 grid grid-cols-3 gap-2">
             <Readout
               label="HR"
-              value={asystole ? "— —" : String(sample.hr)}
+              value={asystole ? "- -" : String(sample.hr)}
               unit="bpm"
               color="#FF5C61"
               alarm={asystole}
@@ -277,7 +277,7 @@ export default function VitalsMonitor() {
             </p>
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-florence-slate/80">
-            Illustrative trace for teaching the adenosine response — not a real
+            Illustrative trace for teaching the adenosine response - not a real
             patient recording.
           </p>
         </div>

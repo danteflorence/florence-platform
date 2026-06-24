@@ -5,7 +5,7 @@
 // session token (it can only touch that one candidate's own data). We hold it in
 // localStorage and attach it to progress / telemetry / readiness calls.
 //
-// SAFETY: this is the LEARNER surface — it only ever carries education data
+// SAFETY: this is the LEARNER surface - it only ever carries education data
 // (identity, progress, assessment performance, readiness band). No financial,
 // visa, or underwriting fields exist here. The token is candidate-scoped, so a
 // leak exposes one learner's own study data, briefly.
@@ -132,7 +132,7 @@ function persistSession(token: SessionToken, cand: CandidateProfile): void {
     localStorage.setItem(TOKEN_KEY, token.access_token);
     localStorage.setItem(CAND_KEY, JSON.stringify(cand));
   } catch {
-    /* storage disabled — session is in-memory only for this tab */
+    /* storage disabled - session is in-memory only for this tab */
   }
 }
 
@@ -344,7 +344,7 @@ export async function verifyEmail(token: string): Promise<boolean> {
 
 export interface ResendResult {
   sent: boolean;
-  /** Present only with the mock email provider — lets dev complete without an inbox. */
+  /** Present only with the mock email provider - lets dev complete without an inbox. */
   dev_url?: string;
   already_verified?: boolean;
 }
@@ -363,7 +363,7 @@ export interface PublicSchool {
   programs?: string[];
 }
 
-/** Public eligible-school directory — no auth required. Empty when no API. */
+/** Public eligible-school directory - no auth required. Empty when no API. */
 export async function fetchSchoolsPublic(): Promise<PublicSchool[]> {
   const base = apiBaseUrl();
   if (!base) return [];
@@ -430,7 +430,7 @@ export async function fetchActivation(code: string): Promise<ActivationLookup | 
 }
 
 /**
- * Public cohort schedule — no auth required. Used by the public landing page.
+ * Public cohort schedule - no auth required. Used by the public landing page.
  * Returns [] when no API is configured (the landing still renders, the cohort
  * grid just falls back to "schedule posted soon").
  */
@@ -513,7 +513,7 @@ export async function fetchMyCohort(): Promise<MyCohort | null> {
 
 export type AffiliationRole = "student" | "alumni";
 
-/** Self-attest as a student or alumna of a listed school — drops the deposit. */
+/** Self-attest as a student or alumna of a listed school - drops the deposit. */
 export async function attestAffiliation(
   candidateId: string,
   schoolSlug: string,

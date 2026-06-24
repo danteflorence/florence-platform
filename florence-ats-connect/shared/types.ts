@@ -230,6 +230,7 @@ export interface EmployerShareConsent {
   candidateId: string
   employerId: string
   jobRequisitionId?: string
+  programId?: string
   purpose: string
   allowedData: string[]
   consentTextVersion: string
@@ -276,6 +277,7 @@ export interface ApplicationPacket {
   candidateId: string
   jobRequisitionId: string
   employerId: string
+  programId?: string
   readinessPassport: ReadinessPassportSummary
   documents: PacketDocument[]
   /** Fields actually shared with the employer (post data-minimization). */
@@ -316,7 +318,7 @@ export interface ATSApplication {
   atsCandidateId?: string
   atsApplicationId?: string
   atsStage?: string
-  /** Unguessable token for the public resume-PDF link (manual bridge + URL-ingesting ATSs). */
+  /** Deprecated legacy token field. Packet URLs must be minted by Document Vault. */
   resumeToken?: string
   status: ATSApplicationStatus
   statusReason?: string

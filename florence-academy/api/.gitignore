@@ -7,3 +7,7 @@ dist/
 !.env.example
 # Local NDJSON audit sink (never commit — may contain PII references)
 audit-*.ndjson
+# Generated narration assets + manifest — these go to object storage / a prod
+# volume (AUDIO_DIR + AUDIO_PUBLIC_BASE), never into git (large, regenerable).
+data/audio/
+data/audio-content.json

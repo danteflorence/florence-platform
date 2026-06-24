@@ -2,7 +2,7 @@
 // global-mobile, low-bandwidth case: preload="none" (no bytes until the learner
 // hits play), a playback-speed control, and a download button for offline study
 // on a spotty connection. Audio IS the data-saver path, so there's no video to
-// gate — just a light, accessible control.
+// gate - just a light, accessible control.
 
 import { useEffect, useRef, useState } from "react";
 
@@ -27,7 +27,7 @@ export default function AudioPlayer({
   label?: string;
   /** Fired when playback finishes (used by the e-book's play-all to advance). */
   onEnded?: () => void;
-  /** Play on mount / src change — only set true after a user gesture (play-all). */
+  /** Play on mount / src change - only set true after a user gesture (play-all). */
   autoPlay?: boolean;
 }) {
   const ref = useRef<HTMLAudioElement | null>(null);

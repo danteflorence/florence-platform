@@ -20,14 +20,18 @@ const VIEW_TO_AUDIENCE: Record<string, Audience> = {
   self: "self",
   lender: "lender",
   university: "university",
+  amn_vms_partner: "amn_vms_partner",
+  amn: "amn_vms_partner",
+  vms: "amn_vms_partner",
   investor: "investor",
+  investor_board_aggregate: "investor_board_aggregate",
   instructor: "instructor",
 };
 
 // The ONLY passport audiences an external (org-bound) partner may request. Each is
 // consent-gated + org-matched in policy.ts; partners can NEVER request internal_ops/
 // self/investor/instructor. Lender follows this same path (it was the original template).
-const PARTNER_AUDIENCES = new Set<string>(["employer", "university", "lender"]);
+const PARTNER_AUDIENCES = new Set<string>(["employer", "amn_vms_partner", "university", "lender"]);
 
 export function nursesModule(store: Store, audit: Audit): GwRoute[] {
   return [
@@ -36,7 +40,7 @@ export function nursesModule(store: Store, audit: Audit): GwRoute[] {
       pattern: "/v1/nurses/:id/passport",
       auth: true,
       scope: null, // audience-dependent — readPassportView enforces the right scope
-      summary: "Permissioned Nurse Passport view (?view=internal|employer|candidate|lender|university|investor).",
+      summary: "Permissioned Nurse Passport view (?view=internal|employer|amn_vms_partner|candidate|lender|university|investor).",
       handler: async (ctx) => {
         const claims = ctx.claims!;
         let role: Role = isRole(String(claims.role ?? "")) ? (claims.role as Role) : "candidate";
@@ -53,8 +57,9 @@ export function nursesModule(store: Store, audit: Audit): GwRoute[] {
           if (!requestedAudience || !PARTNER_AUDIENCES.has(requestedAudience)) {
             return { status: 403, body: { error: "audience_not_allowed", detail: "partner tokens may read only employer/university/lender views" } };
           }
-          role = requestedAudience as Role;
+          role = requestedAudience === "amn_vms_partner" ? "employer" : requestedAudience as Role;
         }
+        const needsEmployerGate = requestedAudience === "employer" || requestedAudience === "amn_vms_partner" || role === "employer";
         return readPassportView(store, audit, {
           selector: { nurseId: ctx.params.id },
           role,
@@ -64,6 +69,18 @@ export function nursesModule(store: Store, audit: Audit): GwRoute[] {
           actor: String(claims.email ?? claims.sub ?? "service"),
           ...(requestedAudience ? { requestedAudience } : {}),
           ...(ctx.query.get("purpose") ? { purpose: ctx.query.get("purpose")! } : {}),
+          ...(needsEmployerGate
+            ? {
+                applicationGate: {
+                  action: "release_employer_profile" as const,
+                  ...(ctx.query.get("programId") ? { programId: ctx.query.get("programId")! } : {}),
+                  ...(ctx.query.get("jobRequisitionId") ? { jobRequisitionId: ctx.query.get("jobRequisitionId")! } : {}),
+                  ...(ctx.query.get("jobStatus") ? { jobStatus: ctx.query.get("jobStatus")! } : {}),
+                  ...(ctx.query.get("requiredLicenseState") ? { requiredLicenseState: ctx.query.get("requiredLicenseState")! } : {}),
+                  channel: requestedAudience === "amn_vms_partner" ? "amn" as const : "direct" as const,
+                },
+              }
+            : {}),
         });
       },
     }),

@@ -1,11 +1,11 @@
-# Florence Academy Data API — Security & Compliance Design
+# Florence Academy Data API - Security & Compliance Design
 
 Status: **v1 design** for review. Governs the API that moves **enrollment,
 performance, and financial** data between Florence and external systems (CRMs,
 and later underwriting/financing partners).
 
 This data is sensitive: it identifies real internationally-educated nurses,
-records their assessment performance, and tracks payments — and some of it may
+records their assessment performance, and tracks payments - and some of it may
 later inform a **lending decision**. The bar is therefore "underwriting-grade":
 authenticated, least-privilege, encrypted, fully audited, and consent-aware.
 
@@ -57,7 +57,7 @@ inbound from a CRM is treated as untrusted input and validated.
   must switch to RS256/ES256 with KMS-managed keys** (`kid` header already
   present) so signing keys can rotate and never live in app memory.
 
-## 3. Authorization — least privilege scopes
+## 3. Authorization - least privilege scopes
 
 ```
 candidates:read   candidates:write
@@ -69,7 +69,7 @@ webhooks:manage
 
 - A token only carries scopes that are (a) granted to the client **and**
   (b) requested. A CRM that needs readiness scores gets `performance:read`
-  only — never `payments:*`.
+  only - never `payments:*`.
 - Every route declares the scope it requires; missing scope → `403` (audited).
 - **Field-level redaction:** financial fields are omitted from responses unless
   the token holds `payments:read`, even on a shared resource.
@@ -89,14 +89,14 @@ webhooks:manage
   financial/underwriting signals. Keys are KMS-managed and rotated.
 - **PII minimization.** We store only what a downstream purpose needs.
   Pseudonymous external IDs (`cand_…`, `enr_…`) are used in URLs, webhooks, and
-  logs — never the phone/email in a URL or query string.
+  logs - never the phone/email in a URL or query string.
 - **No raw card or bank-account data, ever.** Payments store only a payment
   processor's token + reference IDs. This keeps the service out of PCI-DSS
   cardholder-data scope and is a hard rule.
 - **Secrets** come from the environment (`.env` is gitignored); none in the
   repo. OTPs and secrets are never logged.
 
-## 6. Audit — provenance for underwriting
+## 6. Audit - provenance for underwriting
 
 Every authenticated request appends an immutable record to `audit_log`:
 
@@ -125,7 +125,7 @@ silently changed.
 - Each candidate carries a **consent record** with explicit, separately-toggled
   purposes: `service` (run the Academy), `crm_sync`, and **`underwriting`**.
 - **Using performance/financial data for underwriting requires the
-  `underwriting` consent to be present** — it is a distinct secondary purpose,
+  `underwriting` consent to be present** - it is a distinct secondary purpose,
   not covered by a blanket signup checkbox. Handlers check it; the check is
   audited.
 - **Data-subject rights:** export (machine-readable) and deletion/erasure
@@ -133,7 +133,7 @@ silently changed.
   documented retention policy where law permits.
 - Applicable regimes: **PH Data Privacy Act** (Manila pilot), GDPR/CCPA, plus
   US lending rules (e.g., Reg Z) when financing attaches. *This document is an
-  engineering design, not legal advice — the consent text, retention windows,
+  engineering design, not legal advice - the consent text, retention windows,
   and lending disclosures need review by counsel before go-live.*
 
 ## 9. Abuse & integrity controls
@@ -151,9 +151,9 @@ These need accounts / credentials / infrastructure and are the operator's call:
 - Managed **Postgres** + a **KMS** for at-rest + column encryption.
 - An **OAuth/OIDC** provider (or run the built-in client-credentials issuer with
   RS256/KMS keys).
-- A **payment processor** (for deposit tokens — see the $100 commitment-deposit
+- A **payment processor** (for deposit tokens - see the $100 commitment-deposit
   design) so no raw financial instrument data touches this service.
-- **Hosting region(s)** — a data-residency decision driven by the Manila pilot
+- **Hosting region(s)** - a data-residency decision driven by the Manila pilot
   and US underwriting (may require region split or in-region storage).
 
 ## 11. Implemented in the reference
@@ -161,19 +161,19 @@ These need accounts / credentials / infrastructure and are the operator's call:
 Beyond the request lifecycle, the reference now implements (with tests):
 
 - **Native TLS** (TLS 1.2 floor, modern ECDHE/AEAD ciphers) + optional **mutual
-  TLS** — set `TLS_CERT_PATH`/`TLS_KEY_PATH` (+ `TLS_CLIENT_CA_PATH`). No
+  TLS** - set `TLS_CERT_PATH`/`TLS_KEY_PATH` (+ `TLS_CLIENT_CA_PATH`). No
   external terminator needed to protect data in transit.
 - **Strict CORS allowlist** + hardened headers (HSTS+preload, CSP, frame-deny).
 - **Envelope field encryption** (per-value DEK wrapped by a KEK) for phone +
   email + payment refs, with **KEK rotation** (old ciphertext still decrypts).
-  Encryption runs through a pluggable **`KeyProvider`** — swap `LocalKeyProvider`
+  Encryption runs through a pluggable **`KeyProvider`** - swap `LocalKeyProvider`
   for `KmsKeyProvider` (`src/kms.ts`) to move the KEK into a managed KMS.
 - **Candidate-bound session tokens** for browser reporting (downscoped, short
   TTL, subject-pinned) + **token revocation** (jti denylist enforced per request;
   `POST /v1/tokens/revoke`).
-- **Hash-chained audit log** — tamper-evident; `verifyChain()` catches edits.
+- **Hash-chained audit log** - tamper-evident; `verifyChain()` catches edits.
 
-## 12. Reference vs. production — remaining gaps
+## 12. Reference vs. production - remaining gaps
 
 Still required before real user data (each needs provisioned infrastructure):
 a **KMS** holding the KEK (select `KmsKeyProvider`) + **RS256/ES256** JWT

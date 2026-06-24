@@ -1,4 +1,4 @@
-// Audio asset store — file-backed manifest of generated narration clips.
+// Audio asset store - file-backed manifest of generated narration clips.
 //
 // Generated MP3s are STATIC: render once, serve forever. So we keep them on disk
 // (a mounted volume in prod) under AUDIO_DIR and record a manifest mapping a

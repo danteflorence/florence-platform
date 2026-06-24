@@ -1,4 +1,4 @@
-// Shared lesson-prose renderer — extracted from SectionLesson so the e-book reader
+// Shared lesson-prose renderer - extracted from SectionLesson so the e-book reader
 // renders identical content. `Blocks` renders the typed ContentBlock prose; `Widget`
 // mounts the optional interactive widget after a segment.
 

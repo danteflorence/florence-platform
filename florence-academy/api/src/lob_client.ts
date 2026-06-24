@@ -43,7 +43,7 @@ export interface LobCreateInput {
   /** Required by Lob for postcards. */
   use_type: "marketing" | "operational";
   metadata?: Record<string, string>;
-  /** Idempotency key — derived from (campaign, target). */
+  /** Idempotency key - derived from (campaign, target). */
   idempotency_key: string;
   /** Operator-supplied Lob API key (test_… or live_…). */
   api_key: string;
@@ -61,7 +61,7 @@ export interface LobCreated {
   id: string;
   url: string; // preview PDF URL
   expected_delivery_date?: string;
-  price?: string; // dollar string e.g. "0.87" — convert to cents
+  price?: string; // dollar string e.g. "0.87" - convert to cents
   mode: MailPieceMode;
   raw: unknown;
 }

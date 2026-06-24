@@ -20,6 +20,7 @@ import { LEGAL_HELP, DISCLAIMER } from '../shared/help'
 import { consentStates, canShare } from '../shared/consent'
 import { getSsnPolicy, ssnAction, ssnResources, SSN_PRIVACY_NOTE } from '../shared/ssn-policy'
 import { F1_INTERVIEW_PREP } from '../shared/interview-prep'
+import { candidatePaymentSummary, consularPaymentsDashboard, consularPaymentsReconciliation } from './consularPayments'
 import { extractFacts } from './agents/dataExtraction'
 import { checkConsistency, highestSeverity } from './agents/consistency'
 import { findMissing } from './agents/missingData'
@@ -288,6 +289,7 @@ export function assembleCandidateView(candidateId: string): CandidateView | null
     backgroundTasks,
     countryPlaybook: getCountryPlaybook(d.profile.citizenship),
     requirements,
+    consularPayments: candidatePaymentSummary(candidateId),
   }
 }
 
@@ -443,6 +445,8 @@ export function assembleAdminMetrics(): AdminMetrics {
     { stage: 'Starts', count: pc.starts },
   ]
   const expectedStartsByMonth = [...startBuckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, count]) => ({ month, count }))
+  const payments = consularPaymentsDashboard()
+  const reconciliation = consularPaymentsReconciliation()
 
   const ledgerAll = store.ledger.all()
   const bottleneckStatuses: WorkflowStatus[] = ['needs_candidate_data', 'needs_human_qa', 'needs_document', 'blocked', 'deficiency_received']
@@ -476,6 +480,14 @@ export function assembleAdminMetrics(): AdminMetrics {
     }).sort((a, b) => Number(b.stale) - Number(a.stale)),
     productionCounts,
     expectedStartsByMonth,
+    consularPayments: {
+      totalOrders: payments.rows.length,
+      awaitingAttestation: payments.queues.awaitingCandidateAttestation.length,
+      receiptQaNeeded: payments.queues.receiptQaNeeded.length,
+      completed: payments.queues.completed.length,
+      blockedOrCorrection: payments.queues.blockedCorrectionNeeded.length,
+      studentsBlockedByMissingPayment: reconciliation.studentsBlockedByMissingPayment,
+    },
   }
 }
 

@@ -216,7 +216,7 @@ try {
   assert.equal(fnl.start, 1);
   ok("PostgresStore outcomes create + funnel (fake SqlClient)");
 
-  console.log(`\nPASS — ${passed} checks`);
+  console.log(`\nPASS - ${passed} checks`);
   process.exit(0);
 } catch (e) {
   console.error("\nFAIL:", e);

@@ -69,7 +69,7 @@ export function newToken(): string {
   return randomBytes(24).toString("hex");
 }
 
-/** Stable SHA-256 over a result's meaningful fields — tamper-evidence. */
+/** Stable SHA-256 over a result's meaningful fields - tamper-evidence. */
 export function contentHash(obj: unknown): string {
   return createHash("sha256").update(JSON.stringify(obj)).digest("hex");
 }
@@ -369,7 +369,7 @@ export interface Store {
     ): Promise<Page<AttendanceRecord>>;
     rollup(): Promise<AttendanceRollup>;
   };
-  /** University Affiliate Network — directory + candidate ↔ school affiliations. */
+  /** University Affiliate Network - directory + candidate ↔ school affiliations. */
   schools: {
     create(input: SchoolInput): Promise<School>;
     get(slug: string): Promise<School | undefined>;
@@ -377,7 +377,7 @@ export interface Store {
     list(): Promise<School[]>;
   };
   affiliations: {
-    /** Upserts (candidate × school × role) — re-attestation refreshes verification only. */
+    /** Upserts (candidate × school × role) - re-attestation refreshes verification only. */
     upsert(input: AffiliationInput): Promise<CandidateSchoolAffiliation>;
     listByCandidate(candidateId: string): Promise<CandidateSchoolAffiliation[]>;
     listBySchool(slug: string): Promise<CandidateSchoolAffiliation[]>;
@@ -399,7 +399,7 @@ export interface Store {
       get(id: string): Promise<OutreachCampaign | undefined>;
       patch(id: string, patch: OutreachCampaignPatch): Promise<OutreachCampaign | undefined>;
       list(): Promise<OutreachCampaign[]>;
-      /** Recompute totals from the campaign's targets — call after any
+      /** Recompute totals from the campaign's targets - call after any
        *  target status change so the campaign list view stays accurate. */
       recountTotals(id: string): Promise<void>;
     };
@@ -420,7 +420,7 @@ export interface Store {
       listByCampaign(campaignId: string): Promise<MailPiece[]>;
     };
     events: {
-      /** Append-only — every Lob webhook lands here, dedup by lob_event_id. */
+      /** Append-only - every Lob webhook lands here, dedup by lob_event_id. */
       record(input: MailPieceEventInput): Promise<MailPieceEvent | undefined>;
       listByPiece(mailPieceId: string): Promise<MailPieceEvent[]>;
     };
@@ -451,7 +451,7 @@ export interface Store {
     rollup(): Promise<LeadRollup>;
     events: {
       listByLead(leadId: string): Promise<LeadEvent[]>;
-      /** All events across the population, newest first — for the
+      /** All events across the population, newest first - for the
        *  "status changes since X" reconciliation view. */
       listRecent(since: string | undefined, limit: number): Promise<LeadEvent[]>;
     };
@@ -558,7 +558,7 @@ export interface MailPieceEventInput {
   occurred_at: string;
 }
 
-/** Input to leads.upsert — strips the server-managed id/timestamps. */
+/** Input to leads.upsert - strips the server-managed id/timestamps. */
 export interface LeadInput {
   email: string;
   external_id?: string;
@@ -603,7 +603,7 @@ export interface LeadDripOverview {
   sends_today: number;
   sends_7d: number;
   due_now: number; // active leads eligible for the next tick (pre-interval estimate)
-  consent_rate: number; // engaged / (invited + engaged) — re-permission yield
+  consent_rate: number; // engaged / (invited + engaged) - re-permission yield
   unsubscribe_rate: number; // suppressed / ever-enrolled
 }
 
@@ -679,7 +679,7 @@ export function buildOutcome(input: OutcomeInput): OutcomeEvent {
   };
 }
 
-/** Distinct-candidate counts per milestone — the conversion tail. Pure. */
+/** Distinct-candidate counts per milestone - the conversion tail. Pure. */
 export function computeOutcomeFunnel(
   events: { candidate_id: string; kind: OutcomeKind; status?: string }[],
 ): OutcomeFunnel {
@@ -1090,7 +1090,7 @@ export class MemoryStore implements Store {
       const hash = walkthroughBodyHash(input);
       const existing = this._walkthroughs.find((w) => w.question_id === input.question_id);
       if (existing) {
-        if (existing.content_hash === hash) return existing; // idempotent — unchanged
+        if (existing.content_hash === hash) return existing; // idempotent - unchanged
         Object.assign(existing, buildWalkthroughBody(input, hash), { updated_at: now });
         // AI body change on an approved row → re-review; templated stays approved.
         existing.status = input.status ?? (input.provenance === "templated" ? "approved" : "draft");
@@ -1848,7 +1848,7 @@ export class MemoryStore implements Store {
       record: async (
         input: MailPieceEventInput,
       ): Promise<MailPieceEvent | undefined> => {
-        // Dedup by Lob event id — webhooks can retry; we accept once.
+        // Dedup by Lob event id - webhooks can retry; we accept once.
         if (
           input.lob_event_id &&
           this._mailPieceEvents.some((e) => e.lob_event_id === input.lob_event_id)

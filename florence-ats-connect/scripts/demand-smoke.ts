@@ -153,6 +153,10 @@ const recon = await ingestReconciliation('amn_update', [{ candidateId: licensed.
 ok('reconciliation recorded + ledger event', recon.recorded === 1 && recon.ledgerEvents === 1, JSON.stringify(recon))
 ok('ledger has an ATTESTED started event (not bare ATS status)', (await store.ledger.byCandidate(licensed.id)).some((e) => e.stage === 'started' && e.verifiedVia === 'employer_attestation'))
 ok('attribution has recon.started', (await store.attribution.byCandidate(licensed.id)).some((a) => a.eventType === 'recon.started'))
+const beforePacketShareLedger = (await store.ledger.byCandidate(licensed.id)).filter((e) => e.stage === 'ats_application_submitted').length
+const reconPacketShare = await ingestReconciliation('employer_update', [{ candidateId: licensed.id, jobId: ijob.id, status: 'packet_shared' }])
+const afterPacketShareLedger = (await store.ledger.byCandidate(licensed.id)).filter((e) => e.stage === 'ats_application_submitted').length
+ok('reconciliation packet_shared is attribution-only, not a formal submission', reconPacketShare.recorded === 1 && reconPacketShare.ledgerEvents === 0 && afterPacketShareLedger === beforePacketShareLedger)
 const rrows = reconRowsFromCsv(`candidateId,jobId,status,notes\n${licensed.id},${ijob.id},retained_90,"90-day confirmed"\n`)
 ok('reconciliation CSV parsed', rrows.length === 1 && rrows[0].status === 'retained_90')
 const recon2 = await ingestReconciliation('csv', rrows)

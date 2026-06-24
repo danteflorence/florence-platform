@@ -1,12 +1,12 @@
--- Florence Academy Data API — Postgres schema (system of record)
+-- Florence Academy Data API - Postgres schema (system of record)
 --
 -- Conventions:
 --   • Sensitive columns (phone, payment refs, financial signals) are marked
---     ENCRYPTED — store ciphertext from app-side column encryption (KMS data
+--     ENCRYPTED - store ciphertext from app-side column encryption (KMS data
 --     key), NOT plaintext. Postgres sees only bytea/text ciphertext.
 --   • assessment_results and audit_log are APPEND-ONLY: the app role is granted
 --     INSERT/SELECT only (see GRANTs at the end). Corrections are new rows.
---   • External IDs are opaque + prefixed (cand_, enr_, asr_, pay_) — safe to put
+--   • External IDs are opaque + prefixed (cand_, enr_, asr_, pay_) - safe to put
 --     in URLs, webhooks, and logs.
 --
 -- Run: psql "$DATABASE_URL" -f db/schema.sql
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS assessment_results (
 );
 CREATE INDEX IF NOT EXISTS idx_asr_candidate ON assessment_results (candidate_id, created_at);
 
--- ── Payments (token references only — NO raw instrument data) ───────────────
+-- ── Payments (token references only - NO raw instrument data) ───────────────
 CREATE TABLE IF NOT EXISTS payments (
   id            text PRIMARY KEY,            -- pay_…
   candidate_id  text NOT NULL REFERENCES candidates (id),
@@ -109,7 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_candidate ON payments (candidate_id);
 
 -- ── Candidate credentials (end-user login; distinct from api_clients) ────────
 -- Authenticates a NURSE signing into the learner app. password_hash is
--- scrypt(salt+password) — never plaintext. A successful login mints a
+-- scrypt(salt+password) - never plaintext. A successful login mints a
 -- short-lived, candidate-BOUND session token (see src/auth.ts).
 CREATE TABLE IF NOT EXISTS candidate_credentials (
   candidate_id  text NOT NULL REFERENCES candidates (id),
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS question_walkthroughs (
 CREATE INDEX IF NOT EXISTS idx_walkthrough_status ON question_walkthroughs (status);
 CREATE INDEX IF NOT EXISTS idx_walkthrough_client_need ON question_walkthroughs (client_need);
 
--- Per-response signal (append-only) — item analytics + measurement substrate.
+-- Per-response signal (append-only) - item analytics + measurement substrate.
 CREATE TABLE IF NOT EXISTS question_responses (
   id                   text PRIMARY KEY,
   candidate_id         text NOT NULL,
@@ -240,7 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_attendance_location ON attendance_records (locati
 -- Two tiers (load-bearing): an "eligible" school is just listed (no logo, no
 -- "partner" claim); an "affiliate" has a signed agreement; "lab_partner" runs a
 -- co-branded Live Lab. logo_use_granted gates name/logo rendering on partner
--- views — server-side enforced.
+-- views - server-side enforced.
 CREATE TABLE IF NOT EXISTS schools (
   id                text PRIMARY KEY,            -- sch_…
   slug              text NOT NULL UNIQUE,        -- FLORENCE-PH-UPMANILA
@@ -320,7 +320,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   seq           bigint,
   prev_hash     text,
   hash          text
-  -- NOTE: never store PII/financial VALUES here — IDs + field names only.
+  -- NOTE: never store PII/financial VALUES here - IDs + field names only.
 );
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log (ts);
 CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_log (resource_type, resource_id);
@@ -349,7 +349,7 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
 -- ── Leads (Florence core nurse pipeline mirror) ─────────────────────────────
 -- A lead is a nurse known to Florence core but not yet enrolled in the Academy
 -- (or enrolled, in which case they're cross-linked to a candidate). Mutable
--- projection — every change drops a row in lead_events for audit + drip-trigger.
+-- projection - every change drops a row in lead_events for audit + drip-trigger.
 CREATE TABLE IF NOT EXISTS leads (
   id                  text PRIMARY KEY,           -- ld_…
   email               text NOT NULL UNIQUE,       -- canonical, lowercased
@@ -379,7 +379,7 @@ CREATE INDEX IF NOT EXISTS leads_type_idx    ON leads (type);
 CREATE INDEX IF NOT EXISTS leads_nclex_idx   ON leads (nclex_status);
 CREATE INDEX IF NOT EXISTS leads_updated_idx ON leads (updated_at DESC);
 
--- ── Drip campaign (Phase 3) — lifecycle + consent + send-state on each lead ──
+-- ── Drip campaign (Phase 3) - lifecycle + consent + send-state on each lead ──
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_stage   text NOT NULL DEFAULT 'new';
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS consent_marketing boolean;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS drip_step         integer;
@@ -421,7 +421,7 @@ ALTER TABLE lead_events ADD  CONSTRAINT lead_events_kind_check
 -- ── Outreach campaigns (Lob print + mail) ────────────────────────────────────
 -- NOTE: api/src/store.postgres.ts currently delegates outreach to an in-process
 -- MemoryStore. When prod migrates off MemoryStore, port this DDL into real
--- queries — the shape below is what the adapter will expect.
+-- queries - the shape below is what the adapter will expect.
 CREATE TABLE IF NOT EXISTS outreach_campaigns (
   id           text PRIMARY KEY,
   name         text NOT NULL,

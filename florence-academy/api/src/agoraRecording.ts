@@ -7,7 +7,7 @@
 // Provisioned by YOU: enable Cloud Recording on the Agora project, create a
 // RESTful Customer ID/Secret, and a storage bucket (S3/GCS/Azure/OSS) + keys.
 // Until all are set, recordingConfigured() is false and the Record button is
-// hidden — the class still streams + replays nothing.
+// hidden - the class still streams + replays nothing.
 
 import { agoraAppId, buildRtcToken } from "./agora.ts";
 

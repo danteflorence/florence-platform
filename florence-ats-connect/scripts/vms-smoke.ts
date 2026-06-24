@@ -2,7 +2,7 @@
 // Application Gate) + the VMS-safe (employer-safe) packet. Interest is free; FlorenceRN
 // submits to a VMS/MSP ONLY when consent + visa + license + QA + job-open + channel are all
 // clear (fail-closed). The VMS packet excludes financing/visa/nationality by default.
-// Pure (no store) — runs identically on any backend; later slices add SubmissionLock + ledger.
+// Pure (no store) — runs identically on any backend.
 import { randomUUID } from 'node:crypto'
 import { canSubmitToVMS, VMS_SUBJECT_TO } from '../shared/vms'
 import { buildPacket } from '../shared/packet'
@@ -32,7 +32,13 @@ const requisition = (over: Partial<VMSRequisition> = {}): VMSRequisition => ({
   normalizedRole: 'registered_nurse', specialty: 'med_surg', setting: 'hospital', state: ST, requiredLicenseState: ST,
   status: 'open', firstSeenAt: now(), ...over,
 })
-const READY = { packetQaApproved: true, documentsComplete: true }
+const READY = {
+  employerShareConsentGranted: true,
+  packetQaApproved: true,
+  documentsComplete: true,
+  dataMinimizedPacketGenerated: true,
+  duplicateSubmissionLockClear: true,
+}
 
 // ── canSubmitToVMS — fully ready ───────────────────────────────────────────────
 const ready = canSubmitToVMS({ candidate: mkCand({}), requisition: requisition(), program: program(), opts: READY })
@@ -43,7 +49,7 @@ ok('vms-gate: ready decision carries vms_or_msp_acceptance in subject_to', ready
 const visaUnknown = canSubmitToVMS({ candidate: mkCand({ visaStatus: 'unknown' }), requisition: requisition(), program: program(), opts: READY })
 ok('vms-gate: visa unknown ⇒ BLOCKED + express_interest (fail-closed headline)', !visaUnknown.ok && visaUnknown.missing_gates.includes('visa_approved') && visaUnknown.gate_status === 'visa_pending' && visaUnknown.allowed_action === 'express_interest')
 ok('vms-gate: visa undefined ⇒ BLOCKED', !canSubmitToVMS({ candidate: mkCand({ visaStatus: undefined }), requisition: requisition(), program: program(), opts: READY }).ok)
-ok('vms-gate: no consent ⇒ missing_consent', (() => { const g = canSubmitToVMS({ candidate: mkCand({ employerShareConsent: 'not_requested' }), requisition: requisition(), program: program(), opts: READY }); return g.missing_gates.includes('employer_share_consent') && g.gate_status === 'missing_consent' })())
+ok('vms-gate: no consent ⇒ missing_consent', (() => { const g = canSubmitToVMS({ candidate: mkCand({}), requisition: requisition(), program: program(), opts: { ...READY, employerShareConsentGranted: false } }); return g.missing_gates.includes('employer_share_consent') && g.gate_status === 'missing_consent' })())
 ok('vms-gate: license not verified ⇒ license_pending', (() => { const g = canSubmitToVMS({ candidate: mkCand({ licenseStatus: 'submitted' }), requisition: requisition(), program: program(), opts: READY }); return g.missing_gates.includes('license_verified_active') && g.gate_status === 'license_pending' })())
 ok('vms-gate: no QA ⇒ qa_pending', canSubmitToVMS({ candidate: mkCand({}), requisition: requisition(), program: program(), opts: {} }).gate_status === 'qa_pending')
 ok('vms-gate: requisition on hold ⇒ job_open missing', canSubmitToVMS({ candidate: mkCand({}), requisition: requisition({ status: 'hold' }), program: program(), opts: READY }).missing_gates.includes('job_open'))

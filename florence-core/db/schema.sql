@@ -27,6 +27,45 @@ CREATE TABLE IF NOT EXISTS orgs (
 );
 CREATE INDEX IF NOT EXISTS orgs_external_ref_idx ON orgs (external_ref);
 
+-- Partner tenant isolation: every external partner maps to one tenant scope, and
+-- every program workspace declares its owner plus authorized partner orgs.
+CREATE TABLE IF NOT EXISTS partner_orgs (
+  id         text PRIMARY KEY,
+  kind       text NOT NULL CHECK (kind IN ('amn','employer','lender','university','ats_vms','internal')),
+  name       text NOT NULL,
+  tenant_id  text NOT NULL,
+  status     text NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS partner_orgs_tenant_idx ON partner_orgs (tenant_id);
+
+CREATE TABLE IF NOT EXISTS tenant_scopes (
+  id                  text PRIMARY KEY,
+  org_id              text NOT NULL UNIQUE,
+  tenant_id           text NOT NULL,
+  partner_org_id      text NOT NULL REFERENCES partner_orgs (id),
+  partner_kind        text NOT NULL CHECK (partner_kind IN ('amn','employer','lender','university','ats_vms','internal')),
+  allowed_program_ids text[] NOT NULL DEFAULT '{}',
+  allowed_purposes    text[] NOT NULL DEFAULT '{}',
+  created_at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tenant_scopes_tenant_idx ON tenant_scopes (tenant_id);
+
+CREATE TABLE IF NOT EXISTS program_scopes (
+  id                         text PRIMARY KEY,
+  name                       text NOT NULL,
+  owner_org_id               text NOT NULL,
+  employer_org_id            text,
+  authorized_partner_org_ids text[] NOT NULL DEFAULT '{}',
+  authorized_actions         text[] NOT NULL DEFAULT '{}',
+  approved_packet_nurse_ids  text[] NOT NULL DEFAULT '{}',
+  active_job_ids             text[] NOT NULL DEFAULT '{}',
+  status                     text NOT NULL DEFAULT 'active' CHECK (status IN ('active','paused','closed')),
+  created_at                 timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS program_scopes_owner_idx ON program_scopes (owner_org_id);
+ALTER TABLE program_scopes ADD COLUMN IF NOT EXISTS active_job_ids text[] NOT NULL DEFAULT '{}';
+
 -- user ↔ org ↔ role. Staff grants have org_id NULL (global).
 CREATE TABLE IF NOT EXISTS role_grants (
   id         text PRIMARY KEY,
@@ -124,6 +163,29 @@ CREATE TABLE IF NOT EXISTS nurses (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Application Gate duplicate-submission lock. A nurse may express interest
+-- anywhere, but a formal employer/ATS/VMS submission gets one active lock per
+-- candidate + employer + channel until released, expired, rejected, or withdrawn.
+CREATE TABLE IF NOT EXISTS application_submission_locks (
+  id                 text PRIMARY KEY,
+  nurse_id           text NOT NULL REFERENCES nurses (id) ON DELETE CASCADE,
+  employer_id        text NOT NULL,
+  program_id         text,
+  job_requisition_id text,
+  channel            text NOT NULL CHECK (channel IN ('direct','ats','vms','amn','other')),
+  submission_id      text,
+  status             text NOT NULL DEFAULT 'active' CHECK (status IN ('active','released','expired')),
+  locked_at          timestamptz NOT NULL DEFAULT now(),
+  expires_at         timestamptz,
+  released_at        timestamptz,
+  released_by        text
+);
+CREATE UNIQUE INDEX IF NOT EXISTS application_submission_locks_active_idx
+  ON application_submission_locks (nurse_id, employer_id, channel)
+  WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS application_submission_locks_lookup_idx
+  ON application_submission_locks (nurse_id, employer_id, channel, status);
+
 -- Per-app external id → canonical nurse (academy candidateId, pathway dossierId,
 -- ats candidateId). This is how four disconnected records become one.
 CREATE TABLE IF NOT EXISTS nurse_refs (
@@ -161,7 +223,8 @@ CREATE TABLE IF NOT EXISTS consents (
   nurse_id             text NOT NULL REFERENCES nurses (id) ON DELETE CASCADE,
   purpose              text NOT NULL,             -- 'employer_share'|'underwriting'|'education'|'visa'|'demand_radar'
   recipient_category   text NOT NULL,             -- 'employer'|'lender'|'university'|'internal'
-  recipient_org_id     text,                      -- null = category-wide; else the specific org
+  recipient_org_id     text,                      -- exact recipient org for external shares; null reserved for internal/aggregate cases
+  recipient_program_id text,                      -- exact program/workspace for employer-share consent when applicable
   allowed_fields       text[] NOT NULL DEFAULT '{}',
   consent_text_version text NOT NULL,
   consent_text_hash    text NOT NULL,
@@ -175,6 +238,61 @@ CREATE TABLE IF NOT EXISTS consents (
 );
 CREATE INDEX IF NOT EXISTS consents_nurse_idx ON consents (nurse_id, purpose);
 CREATE INDEX IF NOT EXISTS consents_recipient_idx ON consents (recipient_org_id);
+ALTER TABLE consents ADD COLUMN IF NOT EXISTS recipient_program_id text;
+CREATE INDEX IF NOT EXISTS consents_program_idx ON consents (recipient_program_id);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- DOCUMENT VAULT
+-- Restricted source documents are stored only as envelope-encrypted blobs and
+-- accessed through short-lived opaque signed grants. Public URLs carry only a
+-- random token, never nurse IDs, names, document IDs, passport numbers, or SEVIS.
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS restricted_documents (
+  id                  text PRIMARY KEY,
+  nurse_id            text NOT NULL REFERENCES nurses (id) ON DELETE CASCADE,
+  document_type       text NOT NULL,
+  data_class          text NOT NULL,
+  owner_org_id        text,
+  program_id          text,
+  content_type        text NOT NULL,
+  extension           text NOT NULL,
+  size_bytes          integer NOT NULL,
+  sha256              text NOT NULL,
+  encrypted_blob      text NOT NULL,
+  storage_key         text NOT NULL,
+  status              text NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked','deleted')),
+  retention_policy    text,
+  retain_until        timestamptz,
+  delete_after        timestamptz,
+  malware_scan_status text NOT NULL DEFAULT 'pending' CHECK (malware_scan_status IN ('clean','blocked','pending')),
+  created_by          text NOT NULL,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  revoked_at          timestamptz,
+  revoked_by          text,
+  deleted_at          timestamptz,
+  deleted_by          text
+);
+CREATE INDEX IF NOT EXISTS restricted_documents_nurse_idx ON restricted_documents (nurse_id, document_type);
+CREATE INDEX IF NOT EXISTS restricted_documents_owner_idx ON restricted_documents (owner_org_id, program_id);
+CREATE INDEX IF NOT EXISTS restricted_documents_status_idx ON restricted_documents (status);
+
+CREATE TABLE IF NOT EXISTS document_access_grants (
+  id               text PRIMARY KEY,
+  token_hash       text NOT NULL UNIQUE,
+  document_id      text NOT NULL REFERENCES restricted_documents (id) ON DELETE CASCADE,
+  nurse_id         text NOT NULL REFERENCES nurses (id) ON DELETE CASCADE,
+  recipient_view   text NOT NULL,
+  recipient_org_id text,
+  actor            text NOT NULL,
+  purpose          text NOT NULL,
+  action           text NOT NULL CHECK (action IN ('view','download')),
+  expires_at       timestamptz NOT NULL,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  used_at          timestamptz,
+  revoked_at       timestamptz
+);
+CREATE INDEX IF NOT EXISTS document_access_grants_document_idx ON document_access_grants (document_id);
+CREATE INDEX IF NOT EXISTS document_access_grants_expiry_idx ON document_access_grants (expires_at);
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- IDEMPOTENCY — gateway create routes replay the original response for a repeated

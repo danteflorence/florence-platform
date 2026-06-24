@@ -25,7 +25,7 @@ export default function ApplicationQueue() {
     <div className="space-y-5">
       <div>
         <h2 className="font-display text-2xl font-bold tracking-tight text-ink">Interest → Application Queue</h2>
-        <p className="text-sm text-slate-500">Nurses who expressed interest, the exact gates blocking submission, and expected release. FlorenceRN submits only after consent + visa + license + QA clear — interviews/offers remain subject to consular processing.</p>
+        <p className="text-sm text-slate-500">Nurses who expressed interest, the exact gates blocking submission, and expected release. FlorenceRN submits only after consent + visa + license + QA clear — interviews, offers, and starts remain subject to consular processing, final work authorization, credentialing, onboarding, and employer approval.</p>
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card className="p-4"><div className="text-xs uppercase tracking-wide text-slate-500">Interested</div><div className="mt-1 text-2xl font-bold text-ink">{rows.length}</div></Card>

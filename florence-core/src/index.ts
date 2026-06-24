@@ -9,6 +9,7 @@ import { seedDemoClient } from "./m2m.ts";
 import { buildRoutes } from "./routes.ts";
 import { createApp } from "./server.ts";
 import { createGateway } from "./gateway/index.ts";
+import { createLogger } from "./logger.ts";
 import { createStore } from "./store.ts";
 
 const store = await createStore(config);
@@ -20,16 +21,23 @@ const demo = await seedDemoClient(store);
 const gateway = createGateway({ store, keys, audit });
 const app = createApp(buildRoutes({ store, keys, audit }), gateway);
 const server = createServer(app);
+const logger = createLogger({ component: "startup" });
 
 server.listen(config.port, () => {
-  console.log(`florence-core listening on :${config.port}  (${config.publicUrl})`);
-  console.log(
-    `  issuer=${config.issuer} aud=${config.audience} cookie=${config.cookieName} ` +
-      `domain=${config.cookieDomain || "(host-only)"} secure=${config.cookieSecure}`,
-  );
-  console.log(`  google sign-in: ${googleConfigured() ? "configured" : "NOT configured (password login only)"}`);
-  console.log(`  signing kid=${keys.activeKid()}  jwks=${config.publicUrl}/.well-known/jwks.json`);
-  console.log(`  store=${config.databaseUrl ? "postgres" : config.stateFile ? `file:${config.stateFile}` : "memory"}`);
-  if (demo) console.log(`  seeded demo M2M client: ${demo.id} / ${demo.secret}`);
-  reportConfigWarnings((m) => console.log(m));
+  logger.info("florence-core listening", {
+    component: "startup",
+    port: config.port,
+    publicUrl: config.publicUrl,
+    issuer: config.issuer,
+    audience: config.audience,
+    cookieName: config.cookieName,
+    cookieDomain: config.cookieDomain || "(host-only)",
+    cookieSecure: config.cookieSecure,
+    googleConfigured: googleConfigured(),
+    signingKid: keys.activeKid(),
+    jwksPath: "/.well-known/jwks.json",
+    store: config.databaseUrl ? "postgres" : config.stateFile ? "file" : "memory",
+  });
+  if (demo) logger.info("seeded demo M2M client", { component: "startup", clientId: demo.id });
+  reportConfigWarnings((m) => logger.warn(m, { component: "startup" }));
 });

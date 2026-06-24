@@ -12,7 +12,7 @@ import {
 } from "../../lib/opsApi";
 
 /**
- * Florence core nurse pipeline mirror — the ops view.
+ * Florence core nurse pipeline mirror - the ops view.
  *
  * This is operator-only data. Never returned in any public endpoint, never
  * shown in the candidate-facing app. The page lets you:
@@ -20,7 +20,7 @@ import {
  *   2. Search + filter the lead list.
  *   3. Drill down into a single lead's event timeline ("Authorized →
  *      Passed on 2026-05-30").
- *   4. Scan the recent-changes feed across the whole population — useful
+ *   4. Scan the recent-changes feed across the whole population - useful
  *      after each weekly import to see what moved.
  */
 export default function LeadsPanel() {
@@ -468,7 +468,7 @@ function Row({ label, v }: { label: string; v?: string | null }) {
   return (
     <>
       <dt className="text-white/40">{label}</dt>
-      <dd className="text-white/90">{v || <span className="text-white/30">—</span>}</dd>
+      <dd className="text-white/90">{v || <span className="text-white/30">-</span>}</dd>
     </>
   );
 }

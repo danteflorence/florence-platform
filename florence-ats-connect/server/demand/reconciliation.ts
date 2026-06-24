@@ -10,8 +10,9 @@ import type { ReconciliationEvent, ReconciliationStatus } from '../../shared/dem
 import type { LedgerStage, VerificationSource } from '../../shared/types'
 
 const STATUS_TO_STAGE: Partial<Record<ReconciliationStatus, LedgerStage>> = {
-  packet_shared: 'ats_application_submitted',
-  packet_viewed: 'ats_application_submitted',
+  // Formal packet/application submission is created only by ApplicationGate-owned
+  // submit/lock paths. Reconciliation packet events remain attribution-only so
+  // external CSV/manual status cannot mint a FlorenceRN submission.
   interview_requested: 'interview_scheduled',
   interview_scheduled: 'interview_scheduled',
   interview_completed: 'interview_scheduled',

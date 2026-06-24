@@ -2,7 +2,7 @@
 // the optional `pg` driver — same approach as florence-academy/api. Apply the
 // schema first with `npm run migrate`.
 
-import type { ApiClient, AuditRow, ConsentRow, Nurse, NurseEvent, NurseRef, Org, RoleGrant, SessionRow, SigningKeyRow, Store, User } from "./store.ts";
+import type { ApiClient, ApplicationSubmissionLock, AuditRow, ConsentRow, DocumentAccessGrantRow, Nurse, NurseEvent, NurseRef, Org, PartnerOrg, ProgramScope, RestrictedDocumentRow, RoleGrant, SessionRow, SigningKeyRow, Store, SubmissionChannel, TenantScope, User } from "./store.ts";
 import type { Role } from "./roles.ts";
 
 const iso = (v: unknown): string => (v instanceof Date ? v.toISOString() : (v as string));
@@ -13,6 +13,7 @@ function consentRow(r: any): ConsentRow {
     purpose: r.purpose,
     recipient_category: r.recipient_category,
     recipient_org_id: r.recipient_org_id ?? undefined,
+    recipient_program_id: r.recipient_program_id ?? undefined,
     allowed_fields: r.allowed_fields ?? [],
     consent_text_version: r.consent_text_version,
     consent_text_hash: r.consent_text_hash,
@@ -51,7 +52,6 @@ function auditRowMap(r: any): AuditRow {
     row_hash: r.row_hash ?? undefined,
   };
 }
-
 export interface SqlClient {
   query(text: string, params?: unknown[]): Promise<{ rows: any[] }>;
   end?(): Promise<void>;
@@ -93,6 +93,102 @@ function orgRow(r: any): Org {
     name: r.name,
     external_ref: r.external_ref ?? undefined,
     created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+  };
+}
+function partnerOrgRow(r: any): PartnerOrg {
+  return {
+    id: r.id,
+    kind: r.kind,
+    name: r.name,
+    tenant_id: r.tenant_id,
+    status: r.status,
+    created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+  };
+}
+function tenantScopeRow(r: any): TenantScope {
+  return {
+    id: r.id,
+    org_id: r.org_id,
+    tenant_id: r.tenant_id,
+    partner_org_id: r.partner_org_id,
+    partner_kind: r.partner_kind,
+    allowed_program_ids: r.allowed_program_ids ?? [],
+    allowed_purposes: r.allowed_purposes ?? [],
+    created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+  };
+}
+function programScopeRow(r: any): ProgramScope {
+  return {
+    id: r.id,
+    name: r.name,
+    owner_org_id: r.owner_org_id,
+    employer_org_id: r.employer_org_id ?? undefined,
+    authorized_partner_org_ids: r.authorized_partner_org_ids ?? [],
+    authorized_actions: r.authorized_actions ?? [],
+    approved_packet_nurse_ids: r.approved_packet_nurse_ids ?? [],
+    active_job_ids: r.active_job_ids ?? [],
+    status: r.status,
+    created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+  };
+}
+function submissionLockRow(r: any): ApplicationSubmissionLock {
+  return {
+    id: r.id,
+    nurse_id: r.nurse_id,
+    employer_id: r.employer_id,
+    program_id: r.program_id ?? undefined,
+    job_requisition_id: r.job_requisition_id ?? undefined,
+    channel: r.channel,
+    submission_id: r.submission_id ?? undefined,
+    status: r.status,
+    locked_at: iso(r.locked_at),
+    expires_at: r.expires_at ? iso(r.expires_at) : undefined,
+    released_at: r.released_at ? iso(r.released_at) : undefined,
+    released_by: r.released_by ?? undefined,
+  };
+}
+function restrictedDocumentRow(r: any): RestrictedDocumentRow {
+  return {
+    id: r.id,
+    nurse_id: r.nurse_id,
+    document_type: r.document_type,
+    data_class: r.data_class,
+    owner_org_id: r.owner_org_id ?? undefined,
+    program_id: r.program_id ?? undefined,
+    content_type: r.content_type,
+    extension: r.extension,
+    size_bytes: Number(r.size_bytes),
+    sha256: r.sha256,
+    encrypted_blob: r.encrypted_blob,
+    storage_key: r.storage_key,
+    status: r.status,
+    retention_policy: r.retention_policy ?? undefined,
+    retain_until: r.retain_until ? iso(r.retain_until) : undefined,
+    delete_after: r.delete_after ? iso(r.delete_after) : undefined,
+    malware_scan_status: r.malware_scan_status,
+    created_by: r.created_by,
+    created_at: iso(r.created_at),
+    revoked_at: r.revoked_at ? iso(r.revoked_at) : undefined,
+    revoked_by: r.revoked_by ?? undefined,
+    deleted_at: r.deleted_at ? iso(r.deleted_at) : undefined,
+    deleted_by: r.deleted_by ?? undefined,
+  };
+}
+function documentAccessGrantRow(r: any): DocumentAccessGrantRow {
+  return {
+    id: r.id,
+    token_hash: r.token_hash,
+    document_id: r.document_id,
+    nurse_id: r.nurse_id,
+    recipient_view: r.recipient_view,
+    recipient_org_id: r.recipient_org_id ?? undefined,
+    actor: r.actor,
+    purpose: r.purpose,
+    action: r.action,
+    expires_at: iso(r.expires_at),
+    created_at: iso(r.created_at),
+    used_at: r.used_at ? iso(r.used_at) : undefined,
+    revoked_at: r.revoked_at ? iso(r.revoked_at) : undefined,
   };
 }
 function grantRow(r: any): RoleGrant {
@@ -166,6 +262,91 @@ export class PostgresStore implements Store {
   async listOrgs() {
     const { rows } = await this.sql.query("select * from orgs order by name");
     return rows.map(orgRow);
+  }
+
+  async getPartnerOrg(id: string) {
+    const { rows } = await this.sql.query("select * from partner_orgs where id=$1", [id]);
+    return rows[0] ? partnerOrgRow(rows[0]) : undefined;
+  }
+  async upsertPartnerOrg(o: PartnerOrg) {
+    await this.sql.query(
+      `insert into partner_orgs (id,kind,name,tenant_id,status,created_at)
+       values ($1,$2,$3,$4,$5,$6)
+       on conflict (id) do update set kind=excluded.kind, name=excluded.name, tenant_id=excluded.tenant_id, status=excluded.status`,
+      [o.id, o.kind, o.name, o.tenant_id, o.status, o.created_at],
+    );
+  }
+  async listPartnerOrgs() {
+    const { rows } = await this.sql.query("select * from partner_orgs order by name");
+    return rows.map(partnerOrgRow);
+  }
+  async getTenantScopeByOrgId(orgId: string) {
+    const { rows } = await this.sql.query("select * from tenant_scopes where org_id=$1", [orgId]);
+    return rows[0] ? tenantScopeRow(rows[0]) : undefined;
+  }
+  async upsertTenantScope(s: TenantScope) {
+    await this.sql.query(
+      `insert into tenant_scopes (id,org_id,tenant_id,partner_org_id,partner_kind,allowed_program_ids,allowed_purposes,created_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)
+       on conflict (org_id) do update set tenant_id=excluded.tenant_id, partner_org_id=excluded.partner_org_id,
+         partner_kind=excluded.partner_kind, allowed_program_ids=excluded.allowed_program_ids, allowed_purposes=excluded.allowed_purposes`,
+      [s.id, s.org_id, s.tenant_id, s.partner_org_id, s.partner_kind, s.allowed_program_ids, s.allowed_purposes, s.created_at],
+    );
+  }
+  async getProgramScope(id: string) {
+    const { rows } = await this.sql.query("select * from program_scopes where id=$1", [id]);
+    return rows[0] ? programScopeRow(rows[0]) : undefined;
+  }
+  async upsertProgramScope(p: ProgramScope) {
+    await this.sql.query(
+      `insert into program_scopes (id,name,owner_org_id,employer_org_id,authorized_partner_org_ids,authorized_actions,approved_packet_nurse_ids,active_job_ids,status,created_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       on conflict (id) do update set name=excluded.name, owner_org_id=excluded.owner_org_id, employer_org_id=excluded.employer_org_id,
+         authorized_partner_org_ids=excluded.authorized_partner_org_ids, authorized_actions=excluded.authorized_actions,
+         approved_packet_nurse_ids=excluded.approved_packet_nurse_ids, active_job_ids=excluded.active_job_ids, status=excluded.status`,
+      [p.id, p.name, p.owner_org_id, p.employer_org_id ?? null, p.authorized_partner_org_ids, p.authorized_actions, p.approved_packet_nurse_ids, p.active_job_ids ?? [], p.status, p.created_at],
+    );
+  }
+  async listProgramScopes() {
+    const { rows } = await this.sql.query("select * from program_scopes order by created_at");
+    return rows.map(programScopeRow);
+  }
+  async activeSubmissionLock(nurseId: string, employerId: string, channel: SubmissionChannel, nowIso?: string) {
+    const { rows } = await this.sql.query(
+      `select * from application_submission_locks
+       where nurse_id=$1 and employer_id=$2 and channel=$3 and status='active'
+         and (expires_at is null or expires_at > $4::timestamptz)
+       order by locked_at desc limit 1`,
+      [nurseId, employerId, channel, nowIso ?? new Date().toISOString()],
+    );
+    return rows[0] ? submissionLockRow(rows[0]) : undefined;
+  }
+  async acquireSubmissionLock(lock: ApplicationSubmissionLock) {
+    const existing = await this.activeSubmissionLock(lock.nurse_id, lock.employer_id, lock.channel, lock.locked_at);
+    if (existing) return { acquired: false as const, existing };
+    try {
+      await this.sql.query(
+        `insert into application_submission_locks
+          (id,nurse_id,employer_id,program_id,job_requisition_id,channel,submission_id,status,locked_at,expires_at,released_at,released_by)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          lock.id, lock.nurse_id, lock.employer_id, lock.program_id ?? null, lock.job_requisition_id ?? null,
+          lock.channel, lock.submission_id ?? null, lock.status, lock.locked_at, lock.expires_at ?? null,
+          lock.released_at ?? null, lock.released_by ?? null,
+        ],
+      );
+      return { acquired: true as const, lock };
+    } catch {
+      const after = await this.activeSubmissionLock(lock.nurse_id, lock.employer_id, lock.channel, lock.locked_at);
+      if (after) return { acquired: false as const, existing: after };
+      throw new Error("failed to acquire submission lock");
+    }
+  }
+  async releaseSubmissionLock(id: string, by: string) {
+    await this.sql.query(
+      "update application_submission_locks set status='released', released_at=now(), released_by=$1 where id=$2 and status='active'",
+      [by, id],
+    );
   }
 
   async grantsByUser(userId: string) {
@@ -384,11 +565,11 @@ export class PostgresStore implements Store {
   // ── Consent service ───────────────────────────────────────────────────────
   async insertConsent(c: ConsentRow) {
     await this.sql.query(
-      `insert into consents (id,nurse_id,purpose,recipient_category,recipient_org_id,allowed_fields,
+      `insert into consents (id,nurse_id,purpose,recipient_category,recipient_org_id,recipient_program_id,allowed_fields,
         consent_text_version,consent_text_hash,ip_hash,device_hash,status,granted_at,granted_by,revoked_at,revoked_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
       [
-        c.id, c.nurse_id, c.purpose, c.recipient_category, c.recipient_org_id ?? null, c.allowed_fields,
+        c.id, c.nurse_id, c.purpose, c.recipient_category, c.recipient_org_id ?? null, c.recipient_program_id ?? null, c.allowed_fields,
         c.consent_text_version, c.consent_text_hash, c.ip_hash ?? null, c.device_hash ?? null,
         c.status, c.granted_at, c.granted_by, c.revoked_at ?? null, c.revoked_by ?? null,
       ],
@@ -408,11 +589,80 @@ export class PostgresStore implements Store {
     const { rows } = await this.sql.query(
       `select * from consents
        where nurse_id=$1 and purpose=$2 and status='granted'
-         and (recipient_org_id is null or $3::text is null or recipient_org_id=$3)
+         and (($3::text is null and recipient_org_id is null) or recipient_org_id=$3)
        order by granted_at desc limit 1`,
       [nurseId, purpose, recipientOrgId ?? null],
     );
     return rows[0] ? consentRow(rows[0]) : undefined;
+  }
+
+  async insertRestrictedDocument(d: RestrictedDocumentRow) {
+    await this.sql.query(
+      `insert into restricted_documents
+        (id,nurse_id,document_type,data_class,owner_org_id,program_id,content_type,extension,size_bytes,sha256,encrypted_blob,storage_key,status,retention_policy,retain_until,delete_after,malware_scan_status,created_by,created_at,revoked_at,revoked_by,deleted_at,deleted_by)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+      [
+        d.id, d.nurse_id, d.document_type, d.data_class, d.owner_org_id ?? null, d.program_id ?? null,
+        d.content_type, d.extension, d.size_bytes, d.sha256, d.encrypted_blob, d.storage_key, d.status,
+        d.retention_policy ?? null, d.retain_until ?? null, d.delete_after ?? null, d.malware_scan_status,
+        d.created_by, d.created_at, d.revoked_at ?? null, d.revoked_by ?? null, d.deleted_at ?? null, d.deleted_by ?? null,
+      ],
+    );
+  }
+  async getRestrictedDocument(id: string) {
+    const { rows } = await this.sql.query("select * from restricted_documents where id=$1", [id]);
+    return rows[0] ? restrictedDocumentRow(rows[0]) : undefined;
+  }
+  async updateRestrictedDocument(id: string, patch: Partial<RestrictedDocumentRow>) {
+    const allowed = new Set([
+      "document_type", "data_class", "owner_org_id", "program_id", "content_type", "extension", "size_bytes", "sha256",
+      "encrypted_blob", "storage_key", "status", "retention_policy", "retain_until", "delete_after", "malware_scan_status",
+      "revoked_at", "revoked_by", "deleted_at", "deleted_by",
+    ]);
+    const fields: string[] = [];
+    const vals: unknown[] = [];
+    let i = 1;
+    for (const [k, v] of Object.entries(patch)) {
+      if (!allowed.has(k)) continue;
+      fields.push(`${k}=$${i++}`);
+      vals.push(v ?? null);
+    }
+    if (!fields.length) return;
+    vals.push(id);
+    await this.sql.query(`update restricted_documents set ${fields.join(",")} where id=$${i}`, vals);
+  }
+  async restrictedDocumentsByNurse(nurseId: string) {
+    const { rows } = await this.sql.query("select * from restricted_documents where nurse_id=$1 order by created_at desc", [nurseId]);
+    return rows.map(restrictedDocumentRow);
+  }
+  async insertDocumentAccessGrant(g: DocumentAccessGrantRow) {
+    await this.sql.query(
+      `insert into document_access_grants
+        (id,token_hash,document_id,nurse_id,recipient_view,recipient_org_id,actor,purpose,action,expires_at,created_at,used_at,revoked_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [
+        g.id, g.token_hash, g.document_id, g.nurse_id, g.recipient_view, g.recipient_org_id ?? null,
+        g.actor, g.purpose, g.action, g.expires_at, g.created_at, g.used_at ?? null, g.revoked_at ?? null,
+      ],
+    );
+  }
+  async getDocumentAccessGrantByHash(tokenHash: string) {
+    const { rows } = await this.sql.query("select * from document_access_grants where token_hash=$1", [tokenHash]);
+    return rows[0] ? documentAccessGrantRow(rows[0]) : undefined;
+  }
+  async updateDocumentAccessGrant(id: string, patch: Partial<DocumentAccessGrantRow>) {
+    const allowed = new Set(["recipient_view", "recipient_org_id", "actor", "purpose", "action", "expires_at", "used_at", "revoked_at"]);
+    const fields: string[] = [];
+    const vals: unknown[] = [];
+    let i = 1;
+    for (const [k, v] of Object.entries(patch)) {
+      if (!allowed.has(k)) continue;
+      fields.push(`${k}=$${i++}`);
+      vals.push(v ?? null);
+    }
+    if (!fields.length) return;
+    vals.push(id);
+    await this.sql.query(`update document_access_grants set ${fields.join(",")} where id=$${i}`, vals);
   }
 
   async getIdempotency(key: string) {

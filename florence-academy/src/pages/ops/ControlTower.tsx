@@ -182,7 +182,7 @@ export default function ControlTower() {
 
         {status === "ready" && metrics && (
           <>
-            {/* Tab nav — Dashboard | Leads. Internal-only surface; Leads is
+            {/* Tab nav - Dashboard | Leads. Internal-only surface; Leads is
                 the Florence-core mirror, not visible to candidates. */}
             <nav className="mt-6 flex gap-1 border-b border-white/10">
               {(["dashboard", "leads", "outreach"] as Tab[]).map((t) => (
@@ -307,7 +307,7 @@ function Dashboard({
         </Panel>
       </div>
 
-      <Panel title="Forecasted RN starts by month" subtitle="Stage-weighted — the bridge to ARR">
+      <Panel title="Forecasted RN starts by month" subtitle="Stage-weighted - the bridge to ARR">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={m.startsByMonth} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
             <XAxis dataKey="month" tick={{ fill: "#94A3B8", fontSize: 11 }} />
@@ -374,7 +374,7 @@ function Dashboard({
         Forecast model (v0): expected starts weight each stage by historical start probability
         (completed 0.9, attending 0.6, deposit paid 0.3, registered 0.1). Expected ARR ={" "}
         expected starts × {usd(MONTHLY_SHARE_USD)}/mo Florence share × 12. Assumptions are operator-tunable
-        and will be replaced by outcome-trained estimates as starts accrue. Internal figures — never shown to
+        and will be replaced by outcome-trained estimates as starts accrue. Internal figures - never shown to
         candidates, employers, or universities.
       </p>
 
@@ -477,7 +477,7 @@ function ProductionReviewDrawer({ cohort, onClose }: { cohort: CohortRow; onClos
               {copied ? "Copied ✓" : `Copy ${role} memo`}
             </button>
             <p className="mt-3 text-xs text-white/35">
-              ARR + financial lines appear only on the management/investor views — never on employer or university memos.
+              ARR + financial lines appear only on the management/investor views - never on employer or university memos.
             </p>
           </div>
         )}
@@ -499,7 +499,7 @@ function OutreachReadyPanel({ outreach }: { outreach: OutreachReadyRow[] }) {
       </div>
       {outreach.length === 0 ? (
         <p className="text-sm text-white/40">
-          None yet — add schools (admin endpoint) and let students attest to see the list.
+          None yet - add schools (admin endpoint) and let students attest to see the list.
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -529,7 +529,7 @@ function OutreachReadyPanel({ outreach }: { outreach: OutreachReadyRow[] }) {
                   <td className="py-2.5 pr-4 tabular-nums">{s.affiliated}</td>
                   <td className="py-2.5 pr-4 tabular-nums">{s.paid_deposits}</td>
                   <td className="py-2.5 pr-4 tabular-nums">
-                    {s.avg_readiness != null ? `${Math.round(s.avg_readiness * 100)}%` : "—"}
+                    {s.avg_readiness != null ? `${Math.round(s.avg_readiness * 100)}%` : "-"}
                   </td>
                   <td className="py-2.5 text-white/70 capitalize">
                     {s.outreach_status.replace(/_/g, " ")}
@@ -601,8 +601,8 @@ function SchoolReportDrawer({ slug, onClose }: { slug: string; onClose: () => vo
             {report.suppressed_for_privacy ? (
               <div className="rounded-lg bg-white/[0.04] p-4 text-sm text-white/70">
                 <strong className="text-white">Suppressed for privacy.</strong> Below K={report.k_floor}{" "}
-                affiliated candidates, the report shows participation counts only — no
-                demographic breakdown — to protect individual identities.
+                affiliated candidates, the report shows participation counts only - no
+                demographic breakdown - to protect individual identities.
               </div>
             ) : (
               <>
@@ -650,7 +650,7 @@ function SchoolReportDrawer({ slug, onClose }: { slug: string; onClose: () => vo
             )}
 
             <p className="text-xs leading-relaxed text-white/40">
-              Education readiness only — never financial / ARR / visa data. K floor:{" "}
+              Education readiness only - never financial / ARR / visa data. K floor:{" "}
               {report.k_floor}. This is the report a school sees once an affiliate
               data-sharing agreement is signed.
             </p>
@@ -723,7 +723,7 @@ function CopilotDrawer({ code, onClose }: { code: string; onClose: () => void })
               </div>
             </CopilotSection>
 
-            <CopilotSection title="Reteach next — weakest client needs">
+            <CopilotSection title="Reteach next - weakest client needs">
               {report.top_reteach.length === 0 ? (
                 <p className="text-sm text-white/40">Not enough data.</p>
               ) : (
@@ -742,7 +742,7 @@ function CopilotDrawer({ code, onClose }: { code: string; onClose: () => void })
 
             <CopilotSection title="Falling behind">
               {report.fallers.length === 0 ? (
-                <p className="text-sm text-vital-ok">Nobody flagged — strong cohort.</p>
+                <p className="text-sm text-vital-ok">Nobody flagged - strong cohort.</p>
               ) : (
                 <ul className="space-y-1.5">
                   {report.fallers.map((f) => (
@@ -750,7 +750,7 @@ function CopilotDrawer({ code, onClose }: { code: string; onClose: () => void })
                       <span className="text-white/85">{f.full_name ?? f.candidate_id}</span>
                       <span className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ background: BAND_COLOR[f.band] }} />
-                        <span className="tabular-nums text-white/50">{f.readiness != null ? `${Math.round(f.readiness * 100)}%` : "—"}</span>
+                        <span className="tabular-nums text-white/50">{f.readiness != null ? `${Math.round(f.readiness * 100)}%` : "-"}</span>
                       </span>
                     </li>
                   ))}
@@ -772,7 +772,7 @@ function CopilotDrawer({ code, onClose }: { code: string; onClose: () => void })
             </CopilotSection>
 
             <p className="text-xs leading-relaxed text-white/35">
-              Deterministic analysis for faculty review — not an automated decision. Generated{" "}
+              Deterministic analysis for faculty review - not an automated decision. Generated{" "}
               {report.generated_at.slice(0, 19).replace("T", " ")} UTC.
             </p>
           </div>
@@ -843,7 +843,7 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
         <div>
           <h2 className="text-base font-semibold text-white">Candidates</h2>
           <p className="text-xs text-white/50">
-            {filtered.length} of {roster.length} · click a row for the readiness passport
+            {filtered.length} of {roster.length} · click a row for candidate detail
           </p>
           {followUpCount > 0 && (
             <button
@@ -912,13 +912,13 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
                   <span className="font-medium text-white">{r.name}</span>
                   {r.country && <span className="ml-2 text-xs text-white/40">{r.country}</span>}
                 </td>
-                <td className="py-2.5 pr-4 font-mono text-xs text-white/60">{r.cohort ?? "—"}</td>
+                <td className="py-2.5 pr-4 font-mono text-xs text-white/60">{r.cohort ?? "-"}</td>
                 <td className="py-2.5 pr-4 text-white/70">{STAGE_LABEL[r.stage]}</td>
                 <td className="py-2.5 pr-4">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full" style={{ background: BAND_COLOR[r.band] }} />
                     <span className="tabular-nums text-white/70">
-                      {r.readiness != null ? `${Math.round(r.readiness * 100)}%` : "—"}
+                      {r.readiness != null ? `${Math.round(r.readiness * 100)}%` : "-"}
                     </span>
                   </span>
                 </td>
@@ -930,7 +930,7 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
                   ) : r.deposit.status === "failed" ? (
                     <span className="text-vital-danger">Failed</span>
                   ) : (
-                    <span className="text-white/30">—</span>
+                    <span className="text-white/30">-</span>
                   )}
                 </td>
                 <td className="py-2.5 text-white/80">{r.nextAction}</td>
@@ -962,7 +962,7 @@ function CandidateDetail({ row, onClose }: { row: RosterRow; onClose: () => void
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-florence-teal">Readiness passport</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-florence-teal">Candidate detail</p>
             <h3 className="mt-1 text-xl font-semibold text-white">{row.name}</h3>
             <p className="text-sm text-white/50">
               {[row.country, row.cohort, STAGE_LABEL[row.stage]].filter(Boolean).join(" · ")}
@@ -985,7 +985,7 @@ function CandidateDetail({ row, onClose }: { row: RosterRow; onClose: () => void
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <DetailStat label="Readiness band" value={BAND_LABEL[row.band]} dot={BAND_COLOR[row.band]} />
-          <DetailStat label="Projected pass" value={row.readiness != null ? `${Math.round(row.readiness * 100)}%` : "—"} />
+          <DetailStat label="Projected pass" value={row.readiness != null ? `${Math.round(row.readiness * 100)}%` : "-"} />
           <DetailStat label="Assessments" value={String(row.assessmentsCount)} />
           <DetailStat
             label="Seat deposit"
@@ -1040,7 +1040,7 @@ function CandidateDetail({ row, onClose }: { row: RosterRow; onClose: () => void
                 <li key={i} className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-1.5 text-sm">
                   <span className="text-white/70">{h.kind ?? "assessment"}</span>
                   <span className="tabular-nums text-white/85">
-                    {h.readiness != null ? `${Math.round(h.readiness * 100)}%` : "—"}
+                    {h.readiness != null ? `${Math.round(h.readiness * 100)}%` : "-"}
                   </span>
                 </li>
               ))}

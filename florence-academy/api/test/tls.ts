@@ -20,7 +20,7 @@ try {
     { stdio: "ignore" },
   );
 } catch {
-  console.log("  ⚠ SKIP: openssl unavailable — cannot generate a test cert");
+  console.log("  ⚠ SKIP: openssl unavailable - cannot generate a test cert");
   process.exit(0);
 }
 
@@ -86,7 +86,7 @@ try {
   assert.ok(String(r.headers["strict-transport-security"]).includes("max-age="));
   ok("HSTS header present on TLS responses");
 
-  console.log(`\nPASS — ${passed} checks`);
+  console.log(`\nPASS - ${passed} checks`);
   server.close();
   process.exit(0);
 } catch (e) {

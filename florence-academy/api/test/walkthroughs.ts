@@ -18,7 +18,7 @@ const store = new MemoryStore();
 const lab: WalkthroughDraftInput = {
   questionId: "lab-potassium-below", topic: "Serum potassium", stem: "K+ is 2.9 mEq/L. Interpretation?",
   options: ["Below normal", "Within normal limits", "Above normal"], correctIndices: [0],
-  clientNeed: "reduction-of-risk", cjmm: "analyze-cues", rationale: "Normal K+ is 3.5–5.0; 2.9 is hypokalemia.",
+  clientNeed: "reduction-of-risk", cjmm: "analyze-cues", rationale: "Normal K+ is 3.5-5.0; 2.9 is hypokalemia.",
 };
 assert.equal(isTemplatedId(lab.questionId), true);
 const labWt = await store.walkthroughs.upsert(toUpsertInput(lab, templatedDraft(lab), { provenance: "templated", model: "templated" }));
@@ -47,7 +47,7 @@ const mc: WalkthroughDraftInput = {
   clientNeed: "physiological-adaptation", cjmm: "take-actions", rationale: "Hypotension + acute change → restore perfusion first.",
 };
 const llm = getWalkthroughLlm();
-assert.equal(llm.mode, "heuristic"); // no ANTHROPIC_API_KEY in CI
+assert.equal(llm.mode, "heuristic"); // no Core Model Gateway in CI
 const draft = await llm.draftWalkthrough(mc);
 const mcWt = await store.walkthroughs.upsert(toUpsertInput(mc, draft, { provenance: "ai_drafted", model: llm.model }));
 assert.equal(mcWt.status, "draft");
@@ -78,7 +78,7 @@ const audioQids = new Set(audio.map((a) => a.refId.split("#")[0]));
 assert.ok(audioQids.has("lab-potassium-below") && audioQids.has("fab-00042"), "approved items get audio");
 assert.equal(audioQids.has("fab-99999"), false, "the draft-only item gets NO audio");
 assert.ok(audio.some((a) => a.kind === "walkthrough") && audio.some((a) => a.kind === "coaching"), "emits both walkthrough + coaching clips");
-ok("audio ⊆ approved — the draft-only walkthrough is never voiced");
+ok("audio ⊆ approved - the draft-only walkthrough is never voiced");
 
 // --- 4) Idempotency: re-upserting identical content is a no-op --------------------
 const again = await store.walkthroughs.upsert(toUpsertInput(lab, templatedDraft(lab), { provenance: "templated", model: "templated" }));
@@ -105,5 +105,5 @@ assert.equal(an.by_option[1], 2);
 assert.equal(an.walkthrough_seen_rate, 1);
 ok("item analytics: attempts/pass-rate/most-common-wrong/by-option roll up correctly");
 
-console.log(`\nPASS — ${passed} checks`);
+console.log(`\nPASS - ${passed} checks`);
 process.exit(0);

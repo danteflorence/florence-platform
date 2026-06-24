@@ -26,8 +26,8 @@ const cand = (name: string, o: Partial<FlorenceCandidate>): FlorenceCandidate =>
   expectedStartWindow: '2027-Q1', employerShareConsent: 'granted', humanQaStatus: 'approved',
   createdAt: now(), updatedAt: now(), ...o,
 })
-const grantConsent = async (candidateId: string, employerId: string) => {
-  const c: EmployerShareConsent = { id: uid(), candidateId, employerId, purpose: 'employer review', allowedData: ['resume', 'readiness_summary'], consentTextVersion: 'v1', consentTextHash: 'h', grantedAt: now() }
+const grantConsent = async (candidateId: string, employerId: string, jobRequisitionId: string, programId: string) => {
+  const c: EmployerShareConsent = { id: uid(), candidateId, employerId, jobRequisitionId, programId, purpose: 'employer_share', allowedData: ['resume', 'credential_summary', 'readiness_summary', 'video_profile'], consentTextVersion: 'v1', consentTextHash: 'h', grantedAt: now() }
   await store.consents.insert(c)
 }
 
@@ -44,14 +44,14 @@ async function main() {
   const cCA = cand('CA Nurse', { targetStates: [CASTATE] })
   const cPathway = cand('Pathway', { nclexStatus: 'not_started', licenseStatus: 'not_started', readinessBand: 'orange' })
   for (const c of [cLicensed, cNoConsent, cCA, cPathway]) await store.candidates.insert(c)
-  await grantConsent(cLicensed.id, employer.id)
-  await grantConsent(cCA.id, employer.id) // consented, but wrong state → still excluded
 
   // Program + waves.
   const program: Program = { id: uid(), employerId: employer.id, name: `Kaiser 200-RN ${run}`, targetCount: 200, waveStructure: [50, 50, 100], status: 'active', channel: 'amn', createdAt: now(), updatedAt: now() }
   await store.programs.insert(program)
   for (let i = 0; i < program.waveStructure.length; i++) await store.programWaves.insert({ id: uid(), programId: program.id, waveNumber: i + 1, targetCount: program.waveStructure[i]!, status: 'planned', createdAt: now() })
   const waves = await store.programWaves.byProgram(program.id)
+  await grantConsent(cLicensed.id, employer.id, req.id, program.id)
+  await grantConsent(cCA.id, employer.id, req.id, program.id) // consented, but wrong state → still excluded
 
   // 1) Licensed slate
   const slate = await generateLicensedSlate(program.id)
@@ -68,10 +68,17 @@ async function main() {
   const withheld = (packet?.withheldFields ?? []).map((w) => w.field)
   ok('packet withholds visa + financing (Kaiser redaction)', withheld.some((f) => /visa/i.test(f)) && withheld.some((f) => /financ/i.test(f)), withheld.join(','))
   ok('shared fields carry NO visa/financing', !Object.keys(packet?.sharedFields ?? {}).some((k) => /visa|financ|national/i.test(k)))
+  if (packet) {
+    packet.status = 'ready_to_submit'
+    packet.humanQaStatus = 'approved'
+    await store.packets.update(packet)
+  }
 
   // 3) Lock wave 1 → freeze + exclude from re-run
   const locked = await lockSlate(program.id, waves[0]!.id, [cLicensed.id])
   ok('slate locked (submittedAt set, candidate frozen)', !!locked.submittedAt && locked.candidateIds.includes(cLicensed.id))
+  const lockAudits = await store.audit.recent(100)
+  ok('slate lock writes a submission-attempt audit event', lockAudits.some((a) => a.action === 'program_slate_submission_attempted' && a.entityId === program.id))
   const slate2 = await generateLicensedSlate(program.id)
   ok('locked candidate no longer in eligible', !slate2.eligible.some((e) => e.candidateId === cLicensed.id))
 

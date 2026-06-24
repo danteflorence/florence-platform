@@ -1,13 +1,13 @@
 /**
- * Florence Academy — unified NCLEX question model.
+ * Florence Academy - unified NCLEX question model.
  *
  * One discriminated union covers every NCLEX-style item type (classic + Next
  * Generation), so a single runner and a single CAT engine can drive all of
  * them. Every item carries the metadata the adaptive engine needs:
- *   - `difficulty`  — Rasch difficulty on the logit scale (b parameter)
- *   - `clientNeed`  — NCSBN 2026 RN Test Plan category (for content balancing)
- *   - `section`     — which course Section it belongs to (1..20)
- *   - `cjmm`        — Next-Gen Clinical Judgment step, when applicable
+ *   - `difficulty`  - Rasch difficulty on the logit scale (b parameter)
+ *   - `clientNeed`  - NCSBN 2026 RN Test Plan category (for content balancing)
+ *   - `section`     - which course Section it belongs to (1..20)
+ *   - `cjmm`        - Next-Gen Clinical Judgment step, when applicable
  *
  * All content here is original, Florence-authored. The commercial prep banks
  * (UWorld / Archer / Saunders / Klimek) are used only as topical reference.
@@ -205,7 +205,7 @@ export interface TrendQuestion extends QuestionMeta {
 // ---------------------------------------------------------------------------
 // Image / media item types
 //
-// NCLEX increasingly ships items built on a clinical image — an ECG strip, a
+// NCLEX increasingly ships items built on a clinical image - an ECG strip, a
 // wound photo, an X-ray. These three shapes scaffold that family. The CONTENT
 // (alt text, options, rationale, geometry) is authored now; the binary ASSET
 // (`MediaAsset.src`) is supplied later by the content team. Renderers degrade
@@ -303,7 +303,7 @@ export interface CaseStudy {
   title: string;
   /** Tabs of clinical data (Nurses' Notes, Vital Signs, Labs, Orders, …). */
   tabs: { label: string; body: string }[];
-  /** Ordered item ids — typically 6, one per CJMM step. */
+  /** Ordered item ids - typically 6, one per CJMM step. */
   questionIds: string[];
 }
 

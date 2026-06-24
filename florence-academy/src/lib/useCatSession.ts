@@ -43,7 +43,7 @@ interface SessionState {
   finishedAt?: number;
   /** When the session was paused (ms epoch), or null while running. */
   pausedAt: number | null;
-  /** Total time already spent paused (ms) — pushes the deadline out by the same. */
+  /** Total time already spent paused (ms) - pushes the deadline out by the same. */
   pausedMs: number;
 }
 

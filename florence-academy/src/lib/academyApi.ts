@@ -7,9 +7,9 @@
 //
 // SECURITY: the browser must NEVER hold a client_secret. Reporting is OFF unless
 // the deployment injects BOTH a Data API base URL and a SHORT-LIVED bearer token
-// (minted server-side / by a backend proxy — not a hardcoded secret) plus the
+// (minted server-side / by a backend proxy - not a hardcoded secret) plus the
 // signed-in candidate's id. With any of those missing, every call is a no-op, so
-// the static app is unaffected. Failures are swallowed — reporting must never
+// the static app is unaffected. Failures are swallowed - reporting must never
 // break the learner's results screen.
 // ───────────────────────────────────────────────────────────────────────────
 

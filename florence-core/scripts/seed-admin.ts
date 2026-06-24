@@ -33,6 +33,7 @@ if (!promoted) {
   }
 }
 
-console.log(`✓ seeded super_admin: ${email} / ${password}`);
+console.log(`✓ seeded super_admin: ${email}`);
+console.log("  password: [not printed]");
 console.log(`  store=${config.databaseUrl ? "postgres" : config.stateFile ? `file:${config.stateFile}` : "memory (NOT persisted — set CORE_STATE_FILE)"}`);
 process.exit(0);

@@ -17,7 +17,7 @@ import { scoreCandidateForJob } from '../../demand/opportunityFit'
 import { runApplicationGate, overrideFromBody } from '../../applicationGateEnforce'
 import { recordLedger, ledgerForecast } from '../../ledger'
 import { getCorePassportView, passportEnabled } from '../../passport'
-import type { JobRequisition } from '../../../shared/types'
+import { acquireSubmissionLock, attachSubmissionToLock, releaseSubmissionLock } from '../../submissionLock'
 
 const PRICING_API_URL = (process.env.PRICING_API_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '')
 
@@ -49,6 +49,35 @@ export function requireScope(scope: string) {
     if (!ROLE_SCOPES[u.role]?.includes(scope)) return res.status(403).json({ error: `Missing scope: ${scope}` })
     next()
   }
+}
+
+function scopedEmployerId(req: Request): string | undefined {
+  const u = currentUser(req)
+  return u?.role === 'employer' ? u.employerId : undefined
+}
+
+function auditTenantScopeDenied(req: Request, entity: string, entityId: string, scopeId: string) {
+  audit(currentUser(req)?.role === 'employer' ? 'connector' : 'ops', 'tenant_scope_denied', entity, entityId, `scope=${scopeId}`)
+}
+
+async function employerCanReadCandidate(req: Request, candidateId: string): Promise<boolean> {
+  const employerId = scopedEmployerId(req)
+  if (!employerId) return true
+  const candidate = await store.candidates.get(candidateId)
+  if (!candidate) return false
+  const packets = (await store.packets.byCandidate(candidateId)).filter((p) => p.employerId === employerId)
+  for (const packet of packets) {
+    const requisition = await store.requisitions.get(packet.jobRequisitionId)
+    if (!requisition) continue
+    const gate = await runApplicationGate({ candidate, requisition, packet, auditEntity: 'candidate', action: 'profile_release', channel: 'ats' })
+    if (gate.allowed) return true
+  }
+  return false
+}
+
+function filterScopedEmployerRows<T extends { employerId?: string }>(req: Request, rows: T[]): T[] {
+  const employerId = scopedEmployerId(req)
+  return employerId ? rows.filter((row) => row.employerId === employerId) : rows
 }
 
 // --- idempotency -------------------------------------------------------------
@@ -94,6 +123,11 @@ apiV1.get('/nurses/:id/passport', h(async (req, res) => {
   if (!ROLE_SCOPES[u.role]?.includes(need)) return res.status(403).json({ error: `Missing scope: ${need}` })
   const c = await store.candidates.get(req.params.id)
   if (!c) return res.status(404).json({ error: 'not found' })
+  const employerId = scopedEmployerId(req)
+  if (employerId && !(await employerCanReadCandidate(req, c.id))) {
+    auditTenantScopeDenied(req, 'candidate_passport', c.id, employerId)
+    return res.status(403).json({ error: 'Out of scope for your employer.' })
+  }
   audit(u.role === 'employer' ? 'connector' : 'ops', 'v1.passport.read', 'candidate', c.id, view)
   // Core-canonical read (strangler): prefer Core's redactor when enabled + reachable,
   // else fall back to the local projection. Both withhold visa/financing from employers.
@@ -159,7 +193,17 @@ apiV1.post('/applications/eligibility-check', requireScope('applications:eligibi
   if (!candidate || !job) return res.status(404).json({ error: 'candidate or job not found' })
   const state = await resolveOpportunityState(job)
   const gate = applicationGate({ candidate, job: { id: job.id, status: job.status, requiredLicenseState: job.requiredLicenseState, state: job.state }, opportunityState: state, opts: {} })
-  res.json({ candidateId: candidate.id, jobId: job.id, applicationGateStatus: gate.status, missing: gate.missing, allowedAction: gate.allowedAction, subjectTo: gate.subjectTo })
+  audit('system', 'application_gate_checked', 'job', job.id, `candidate=${candidate.id};action=eligibility_check;status=${gate.status};missing=${gate.missing.join(',') || 'none'}`)
+  res.json({ candidateId: candidate.id, jobId: job.id, applicationGateStatus: gate.status, missing: gate.missing, allowedAction: gate.allowedAction, subjectTo: gate.subjectTo, subjectToMessage: gate.subjectToMessage })
+}))
+apiV1.get('/applications/:packetId/gate-check', requireScope('applications:eligibility'), h(async (req, res) => {
+  const p = await store.packets.get(req.params.packetId)
+  if (!p) return res.status(404).json({ error: 'packet not found' })
+  const requisition = await store.requisitions.get(p.jobRequisitionId)
+  const candidate = await store.candidates.get(p.candidateId)
+  if (!requisition || !candidate) return res.status(404).json({ error: 'requisition or candidate not found' })
+  const gate = await runApplicationGate({ candidate, requisition, packet: p, auditEntity: 'packet', action: 'gate_check', channel: 'ats' })
+  res.json({ allowed: gate.allowed, packetId: p.id, status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
 }))
 apiV1.post('/applications/:packetId/submit', requireScope('applications:submit'), h(async (req, res) => {
   const idem = await idempotent(req, res); if (idem.hit) return
@@ -168,10 +212,24 @@ apiV1.post('/applications/:packetId/submit', requireScope('applications:submit')
   const requisition = await store.requisitions.get(p.jobRequisitionId)
   const candidate = await store.candidates.get(p.candidateId)
   if (!requisition || !candidate) return res.status(404).json({ error: 'requisition or candidate not found' })
-  const gate = await runApplicationGate({ candidate, requisition, packet: p, override: overrideFromBody(req.body), auditEntity: 'packet' })
-  if (!gate.allowed) return res.status(409).json({ error: 'application gate not cleared', status: gate.result.status, missing: gate.result.missing, subjectTo: gate.result.subjectTo })
-  await recordLedger({ candidateId: candidate.id, stage: 'ats_application_submitted', sourceId: p.id, employerId: requisition.employerId, jobRequisitionId: requisition.id, notes: 'v1 submit (gate cleared)' })
-  await idem.commit(201, { ok: true, packetId: p.id, status: 'submitted', subjectTo: gate.result.subjectTo })
+  audit('ops', 'application_submission_attempted', 'packet', p.id, `candidate=${candidate.id};employer=${requisition.employerId}`)
+  const gate = await runApplicationGate({ candidate, requisition, packet: p, override: overrideFromBody(req.body), auditEntity: 'packet', action: 'submission_attempt', channel: 'ats' })
+  if (!gate.allowed) return res.status(409).json({ error: 'application gate not cleared', status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  if (p.status !== 'ready_to_submit') return res.status(409).json({ error: 'packet must be QA-approved (ready_to_submit) before submission', status: gate.result.status, missing: gate.result.missing, reasons: gate.result.reasons, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  const lockResult = await acquireSubmissionLock({ candidateId: candidate.id, employerId: requisition.employerId, requisitionId: requisition.id, channel: 'ats' }, p.id)
+  if (!lockResult.ok) return res.status(409).json({ error: 'duplicate submission lock active', status: 'duplicate_submission', lockId: lockResult.lock.id, subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  let lock = lockResult.lock
+  try {
+    await recordLedger({ candidateId: candidate.id, stage: 'ats_application_submitted', sourceId: p.id, employerId: requisition.employerId, jobRequisitionId: requisition.id, notes: 'v1 submit (gate cleared)' })
+    p.status = 'submitted'
+    p.updatedAt = now()
+    await store.packets.update(p)
+    lock = await attachSubmissionToLock(lock, p.id)
+    await idem.commit(201, { ok: true, packetId: p.id, status: 'submitted', subjectTo: gate.result.subjectTo, subjectToMessage: gate.result.subjectToMessage })
+  } catch (err) {
+    await releaseSubmissionLock(lock, 'v1_submission_failed')
+    throw err
+  }
 }))
 
 // --- Pricing (deterministic; proxy the Workforce Economist; no runtime LLM) ---
@@ -189,10 +247,18 @@ apiV1.post('/pricing/quote', requireScope('pricing:quote'), h(async (req, res) =
 }))
 
 // --- Programs ----------------------------------------------------------------
-apiV1.get('/programs', requireScope('programs:read'), h(async (_req, res) => res.json(await store.programs.all())))
+apiV1.get('/programs', requireScope('programs:read'), h(async (req, res) => {
+  const employerId = scopedEmployerId(req)
+  res.json(employerId ? await store.programs.byEmployer(employerId) : await store.programs.all())
+}))
 apiV1.get('/programs/:id', requireScope('programs:read'), h(async (req, res) => {
   const p = await store.programs.get(req.params.id)
   if (!p) return res.status(404).json({ error: 'not found' })
+  const employerId = scopedEmployerId(req)
+  if (employerId && p.employerId !== employerId) {
+    auditTenantScopeDenied(req, 'program', p.id, employerId)
+    return res.status(403).json({ error: 'Out of scope for your employer.' })
+  }
   res.json({ program: p, waves: await store.programWaves.byProgram(p.id) })
 }))
 
@@ -207,10 +273,29 @@ apiV1.post('/events', requireScope('ledger:write'), h(async (req, res) => {
 }))
 apiV1.get('/events', requireScope('ledger:read'), h(async (req, res) => {
   const cid = String(req.query.candidate_id ?? '')
-  res.json(cid ? await store.attribution.byCandidate(cid) : (await store.attribution.all()).slice(0, 200))
+  const employerId = scopedEmployerId(req)
+  if (employerId && cid && !(await employerCanReadCandidate(req, cid))) {
+    auditTenantScopeDenied(req, 'attribution_events', cid, employerId)
+    return res.status(403).json({ error: 'Out of scope for your employer.' })
+  }
+  const rows = cid ? await store.attribution.byCandidate(cid) : (await store.attribution.all()).slice(0, 200)
+  res.json(filterScopedEmployerRows(req, rows))
 }))
 apiV1.get('/ledger', requireScope('ledger:read'), h(async (req, res) => {
   const cid = String(req.query.candidate_id ?? '')
-  res.json(cid ? await store.ledger.byCandidate(cid) : (await store.ledger.all()).slice(0, 200))
+  const employerId = scopedEmployerId(req)
+  if (employerId && cid && !(await employerCanReadCandidate(req, cid))) {
+    auditTenantScopeDenied(req, 'production_ledger', cid, employerId)
+    return res.status(403).json({ error: 'Out of scope for your employer.' })
+  }
+  const rows = cid ? await store.ledger.byCandidate(cid) : (await store.ledger.all()).slice(0, 200)
+  res.json(filterScopedEmployerRows(req, rows))
 }))
-apiV1.get('/ledger/forecast', requireScope('ledger:read'), h(async (_req, res) => res.json(await ledgerForecast())))
+apiV1.get('/ledger/forecast', requireScope('ledger:read'), h(async (req, res) => {
+  const employerId = scopedEmployerId(req)
+  if (employerId) {
+    auditTenantScopeDenied(req, 'production_ledger_forecast', employerId, employerId)
+    return res.status(403).json({ error: 'Employer-scoped forecast is not available yet.' })
+  }
+  res.json(await ledgerForecast())
+}))

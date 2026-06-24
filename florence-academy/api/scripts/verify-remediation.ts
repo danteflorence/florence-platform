@@ -8,7 +8,7 @@ import { MemoryStore } from "../src/store.ts";
 
 let pass = 0, fail = 0;
 const ok = (label: string, cond: boolean, extra?: string) => {
-  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` — ${extra}` : ""}`);
+  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` - ${extra}` : ""}`);
   cond ? (pass += 1) : (fail += 1);
 };
 
@@ -55,5 +55,5 @@ await store.remediations.dispatch({ candidate_id, dim: "cjmm", key: "analyze-cue
 list = await store.remediations.listByCandidate(candidate_id);
 ok("re-dispatch after clear re-opens (assigned)", list.find((x) => x.key === "analyze-cues")!.status === "assigned");
 
-console.log(`\n${fail ? "REMEDIATION FAILED" : "REMEDIATION PASSED"} — ${pass} passed, ${fail} failed`);
+console.log(`\n${fail ? "REMEDIATION FAILED" : "REMEDIATION PASSED"} - ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

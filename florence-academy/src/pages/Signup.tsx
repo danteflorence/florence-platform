@@ -12,19 +12,19 @@ import {
 } from "../lib/academyAuth";
 
 /**
- * Public signup conversion route — the path from the marketing landing to a
+ * Public signup conversion route - the path from the marketing landing to a
  * paid deposit, in one screen.
  *
  * Query params, pre-selected by the landing CTAs:
- *   ?cohort=MNL-2026-07   — pre-select a cohort card
- *   ?school=FLR-PH-UST    — pre-select the user's school (drives $75 vs $100)
+ *   ?cohort=MNL-2026-07   - pre-select a cohort card
+ *   ?school=FLR-PH-UST    - pre-select the user's school (drives $75 vs $100)
  *
  * Flow on submit:
  *   1. signup → returns a candidate-bound session token
  *   2. attestAffiliation(...) (only if a school was selected)
  *   3. startDepositCheckout() → redirects to hosted processor
  *
- * Each step has independent failure handling — auth succeeds even if the
+ * Each step has independent failure handling - auth succeeds even if the
  * deposit redirect fails, so the candidate can retry from their account page.
  */
 export default function Signup() {
@@ -130,7 +130,7 @@ function SidebarBrief({
             </>
           ) : (
             <span className="text-florence-slate">
-              Choose a cohort after signup — schedule lives on the{" "}
+              Choose a cohort after signup - schedule lives on the{" "}
               <Link to="/#cohorts" className="font-semibold text-florence-teal-dark">
                 landing page
               </Link>
@@ -151,7 +151,7 @@ function SidebarBrief({
             </>
           ) : (
             <span className="text-florence-slate">
-              Not selected — you can add it later from your account.
+              Not selected - you can add it later from your account.
             </span>
           )}
         </Row>
@@ -159,8 +159,8 @@ function SidebarBrief({
           <span className="font-semibold text-florence-ink">{amount}</span>
           <span className="block text-xs text-florence-slate">
             {preferred
-              ? "Preferred tier — eligible school confirmed."
-              : "Standard tier — applied to tuition when you enroll."}
+              ? "Preferred tier - eligible school confirmed."
+              : "Standard tier - applied to tuition when you enroll."}
           </span>
         </Row>
       </div>
@@ -176,7 +176,7 @@ function SidebarBrief({
         </li>
         <li className="flex gap-2">
           <span className="mt-0.5 text-florence-teal-dark">✓</span>
-          Card data never touches our servers — hosted processor checkout.
+          Card data never touches our servers - hosted processor checkout.
         </li>
       </ul>
     </aside>
@@ -237,13 +237,13 @@ function SignupForm({
       })) as { id: string };
 
       // 2. Best-effort affiliation attestation. This drops the deposit tier
-      //    to $75. Don't block signup if it fails — the candidate can attest
+      //    to $75. Don't block signup if it fails - the candidate can attest
       //    later from /academy/account.
       if (preselectedSchool) {
         try {
           await attestAffiliation(cand.id, preselectedSchool, "student");
         } catch {
-          // swallow — non-blocking
+          // swallow - non-blocking
         }
       }
 
@@ -256,7 +256,7 @@ function SignupForm({
         try {
           sessionStorage.setItem("florence:pending_cohort", preselectedCohort);
         } catch {
-          // private browsing — ignore
+          // private browsing - ignore
         }
       }
 
@@ -286,7 +286,7 @@ function SignupForm({
           <Link to="/academy/account" className="font-semibold text-florence-teal-dark">
             open your account
           </Link>{" "}
-          and click <em>Pay deposit</em>.
+          and click Pay deposit.
         </p>
       </div>
     );

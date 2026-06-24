@@ -190,6 +190,7 @@ export default function CandidateCopilot() {
         <div className="space-y-5 lg:col-span-2">
           <PathwayPassportCard v={v} />
           <YourWeekCard v={v} />
+          <SevisPaymentCard v={v} onChange={reload} />
           <RecommendedRouteCard v={v} />
           <PathwayMapCard v={v} />
           <TargetStateCard v={v} onChoose={() => setChoosingState(true)} />
@@ -227,6 +228,112 @@ function HeaderStat({ label, value, tone = 'plain' }: { label: string; value: nu
       <div className={cx('font-display text-2xl font-extrabold leading-none tabular-nums', color)}>{value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">{label}</div>
     </div>
+  )
+}
+
+function SevisPaymentCard({ v, onChange }: { v: CandidateView; onChange: () => void }) {
+  const p = v.consularPayments.i901
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [receipt, setReceipt] = useState({ filename: '', sevisId: '', legalName: '', schoolCode: '', amountUsd: '' })
+  const tone = p.status === 'receipt_qa_approved' || p.status === 'not_required' ? 'success' : p.status.includes('rejected') || p.status.includes('failed') ? 'danger' : p.status === 'not_started' ? 'neutral' : 'warn'
+
+  const run = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label); setError('')
+    try { await fn(); onChange() }
+    catch (e) { setError((e as Error).message) }
+    finally { setBusy(null) }
+  }
+
+  const attest = () => {
+    if (!p.orderId || !name.trim()) return
+    void run('attest', () => api.i901Attest(p.orderId!, name.trim()))
+  }
+  const handoff = () => {
+    if (!p.orderId) return
+    void run('handoff', async () => {
+      const out = await api.i901Handoff(p.orderId!)
+      const link = out?.handoff?.paymentLink
+      if (link) window.open(link, '_blank', 'noopener,noreferrer')
+    })
+  }
+  const upload = () => {
+    if (!p.orderId || !receipt.filename.trim() || !receipt.sevisId.trim()) return
+    void run('receipt', () => api.i901Receipt(p.orderId!, {
+      filename: receipt.filename.trim(),
+      sevisId: receipt.sevisId.trim(),
+      ...(receipt.legalName.trim() ? { legalName: receipt.legalName.trim() } : {}),
+      ...(receipt.schoolCode.trim() ? { schoolCode: receipt.schoolCode.trim() } : {}),
+      ...(receipt.amountUsd.trim() ? { amountUsd: Number(receipt.amountUsd) } : {}),
+    }))
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Your SEVIS payment"
+        subtitle={p.school ? `${p.school} · ${p.sevisIdMasked ?? 'SEVIS pending'}` : 'I-901 SEVIS fee'}
+        right={<Badge tone={tone}>{p.statusLabel}</Badge>}
+      />
+      <div className="space-y-4 px-5 py-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Requirement</div>
+            <div className="mt-1 text-sm font-medium text-ink">{p.required ? 'Required' : 'Not required'}</div>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Receipt</div>
+            <div className="mt-1 text-sm font-medium text-ink">{p.receiptQaStatus ?? 'Not verified'}</div>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Next</div>
+            <div className="mt-1 text-sm font-medium text-ink">{p.nextStep}</div>
+          </div>
+        </div>
+
+        {p.missing.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Waiting on: {p.missing.join(', ')}
+          </div>
+        )}
+        {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div>}
+
+        {p.orderId && p.status === 'awaiting_student_attestation' && (
+          <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Type your full legal name"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-florence-400 focus:outline-none" />
+            <Button onClick={attest} disabled={!name.trim() || busy === 'attest'}>{busy === 'attest' ? 'Signing…' : 'Confirm details'}</Button>
+          </div>
+        )}
+
+        {p.orderId && (p.status === 'ready_for_sevismate' || p.status === 'payment_link_generated') && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-florence-200 bg-florence-50 px-3 py-3">
+            <div className="text-sm text-slate-700">SEVISmate handoff is ready.</div>
+            <Button onClick={handoff} disabled={busy === 'handoff'}>{busy === 'handoff' ? 'Opening…' : 'Pay I-901 through SEVISmate'}</Button>
+          </div>
+        )}
+
+        {p.orderId && p.required && p.status !== 'receipt_qa_approved' && p.status !== 'not_required' && (
+          <div className="rounded-lg border border-slate-200 p-3">
+            <div className="mb-2 text-sm font-semibold text-ink">Upload receipt metadata</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input value={receipt.filename} onChange={(e) => setReceipt({ ...receipt, filename: e.target.value })} placeholder="Receipt filename"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-florence-400 focus:outline-none" />
+              <input value={receipt.sevisId} onChange={(e) => setReceipt({ ...receipt, sevisId: e.target.value })} placeholder="SEVIS ID"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-florence-400 focus:outline-none" />
+              <input value={receipt.legalName} onChange={(e) => setReceipt({ ...receipt, legalName: e.target.value })} placeholder="Name on receipt"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-florence-400 focus:outline-none" />
+              <input value={receipt.schoolCode} onChange={(e) => setReceipt({ ...receipt, schoolCode: e.target.value })} placeholder="School code"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-florence-400 focus:outline-none" />
+            </div>
+            <div className="mt-2 flex justify-end">
+              <Button variant="outline" onClick={upload} disabled={!receipt.filename.trim() || !receipt.sevisId.trim() || busy === 'receipt'}>{busy === 'receipt' ? 'Uploading…' : 'Upload receipt'}</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   )
 }
 

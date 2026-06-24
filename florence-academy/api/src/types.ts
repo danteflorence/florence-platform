@@ -106,11 +106,11 @@ export interface Cohort {
   name: string;
   starts_at?: string;
   capacity?: number;
-  /** Owning instructor (email / client id) — metadata, not an auth principal. */
+  /** Owning instructor (email / client id) - metadata, not an auth principal. */
   instructor_ref?: string;
   status: CohortStatus;
   /**
-   * Per-cohort coverage watermark — how far the live cohort has progressed.
+   * Per-cohort coverage watermark - how far the live cohort has progressed.
    * 0 = nothing covered yet, N = sections 1..N have been taught live and are
    * revisitable. The instructor bumps this from /instructor after each class.
    * Students see this on their AcademyHome via /v1/me/cohort. Optional so old
@@ -155,11 +155,11 @@ export interface AssessmentResult {
   by_client_need?: Record<string, number>;
   /** Pass-probability per NGN clinical-judgment (NCJMM) step, when items were tagged. */
   by_cjmm?: Record<string, number>;
-  /** Per-subscale ability (Client Need + CJMM step) — feeds gates + remediation. */
+  /** Per-subscale ability (Client Need + CJMM step) - feeds gates + remediation. */
   mastery?: { dim: string; key: string; theta: number; se: number; passProb: number; items: number }[];
   /** ID of a prior result this row corrects (corrections never edit in place). */
   supersedes?: string;
-  /** SHA-256 of the canonical payload — tamper-evidence. */
+  /** SHA-256 of the canonical payload - tamper-evidence. */
   content_hash: string;
   created_at: string;
 }
@@ -186,7 +186,7 @@ export interface RemediationAssignment {
 }
 
 /**
- * Per-response signal (append-only) — the measurement substrate: which option each
+ * Per-response signal (append-only) - the measurement substrate: which option each
  * learner chose, whether it was right, time spent, optional "explain-first" reasoning,
  * and whether they viewed the walkthrough. Powers item analytics ("most common wrong
  * answer", "did the walkthrough reduce repeat misses") + future A/B.
@@ -228,7 +228,7 @@ export interface Payment {
   currency: string;
   status: PaymentStatus;
   processor?: string;
-  /** Processor token/charge id only — never a raw card/bank number. Encrypted. */
+  /** Processor token/charge id only - never a raw card/bank number. Encrypted. */
   processor_ref?: string;
   created_at: string;
   updated_at: string;
@@ -266,7 +266,7 @@ export interface ApiClient {
 // browser only ever holds a token scoped to its own candidate.
 export interface CandidateCredential {
   candidate_id: string;
-  /** Lowercased login email — the natural key. */
+  /** Lowercased login email - the natural key. */
   email: string;
   /** scrypt(salt + password), "salt:hash". Never plaintext. */
   password_hash: string;
@@ -280,7 +280,7 @@ export interface ProgressRecord {
   candidate_id: string;
   section_slug: string;
   status: ProgressStatus;
-  /** 0..100 — percent of the section's segments completed. */
+  /** 0..100 - percent of the section's segments completed. */
   percent: number;
   last_segment?: string;
   updated_at: string;
@@ -288,7 +288,7 @@ export interface ProgressRecord {
 
 export type ReadinessBand = "none" | "red" | "orange" | "yellow" | "green";
 
-/** Day-5 readiness routing (NOT pathway/visa routing — that's the Pathway Agent). */
+/** Day-5 readiness routing (NOT pathway/visa routing - that's the Pathway Agent). */
 export type RouteClass =
   | "interview_ready"
   | "repeat"
@@ -297,7 +297,7 @@ export type RouteClass =
   | "in_progress";
 
 /**
- * Passport v0 — a COMPUTED, role-scoped readiness snapshot (derived from
+ * Passport v0 - a COMPUTED, role-scoped readiness snapshot (derived from
  * append-only assessment_results + progress; never itself persisted). This is
  * the learner-facing projection: it carries no ARR, loan, or financial fields.
  */
@@ -306,7 +306,7 @@ export interface ReadinessSnapshot {
   band: ReadinessBand;
   /** Day-5 readiness routing derived from the band. */
   route: RouteClass;
-  /** Learner-facing study next-best-action (no pathway/visa — that's the Agent). */
+  /** Learner-facing study next-best-action (no pathway/visa - that's the Agent). */
   next_action: string;
   /** Latest projected pass probability 0..1, if assessed. */
   readiness?: number;
@@ -316,13 +316,13 @@ export interface ReadinessSnapshot {
   by_client_need?: Record<string, number>;
   sections_completed: number;
   sections_total: number;
-  /** Weakest client-need areas (lowest mean score first) — the remediation hint. */
+  /** Weakest client-need areas (lowest mean score first) - the remediation hint. */
   focus_areas: string[];
   updated_at: string;
 }
 
 // ── Pathway tasks (status updates from the Florence Pathway Agent) ──────────
-// Append-only event log — each row is a status change. Latest-per-(candidate,
+// Append-only event log - each row is a status change. Latest-per-(candidate,
 // kind) wins for the candidate-facing display. The Academy does NOT generate
 // these; the Pathway Agent posts them through a scoped M2M client.
 export type PathwayTaskKind =
@@ -353,19 +353,19 @@ export interface PathwayTaskEvent {
   status: PathwayTaskStatus;
   /** Short note for the candidate when status is awaiting_candidate or blocked. */
   note?: string;
-  /** SHA-256 of the canonical payload — tamper-evidence. */
+  /** SHA-256 of the canonical payload - tamper-evidence. */
   content_hash: string;
   created_at: string;
 }
 
 // ── University Affiliate Network ─────────────────────────────────────────────
-// Two tiers (load-bearing): an "eligible" school is just listed — students/alumni
+// Two tiers (load-bearing): an "eligible" school is just listed - students/alumni
 // qualify for the $75 preferred deposit, but Florence makes NO endorsement claim
 // and the school's logo never renders. An "affiliate" has a signed agreement.
 // "lab_partner" is a deeper relationship (co-branded Live Lab).
 export type SchoolTier = "eligible" | "affiliate" | "lab_partner";
 
-/** Outreach lifecycle — internal-only; never visible to the school itself. */
+/** Outreach lifecycle - internal-only; never visible to the school itself. */
 export type OutreachStatus =
   | "eligible_listed" // baseline on creation
   | "contacted"
@@ -386,9 +386,9 @@ export interface School {
   tier: SchoolTier;
   /** TRUE only with a signed agreement; gates name/logo rendering on partner views. */
   logo_use_granted: boolean;
-  /** Trusted email domains (e.g. ["upm.edu.ph"]) — power v1 verification. */
+  /** Trusted email domains (e.g. ["upm.edu.ph"]) - power v1 verification. */
   email_domains?: string[];
-  /** Internal outreach status — never sent to the school. */
+  /** Internal outreach status - never sent to the school. */
   outreach_status: OutreachStatus;
   /** Internal-only contact for outreach. */
   contact_email?: string;
@@ -402,7 +402,7 @@ export type AffiliationVerification =
   | "email_domain" // matches school.email_domains
   | "manual_qa"; // future: uploaded transcript reviewed by ops
 
-/** One row per (candidate × school) — a candidate can attest to multiple schools (rare). */
+/** One row per (candidate × school) - a candidate can attest to multiple schools (rare). */
 export interface CandidateSchoolAffiliation {
   candidate_id: string;
   school_slug: string;
@@ -422,10 +422,10 @@ export interface AttendanceRecord {
   cohort?: string;
   /** "Manila Hotel" | "MNL University" | undefined (online-only). */
   location?: string;
-  /** ISO date (yyyy-mm-dd) — one entry per candidate × session_date × cohort. */
+  /** ISO date (yyyy-mm-dd) - one entry per candidate × session_date × cohort. */
   session_date: string;
   status: AttendanceStatus;
-  /** SHA-256 of canonical payload — tamper-evidence. */
+  /** SHA-256 of canonical payload - tamper-evidence. */
   content_hash: string;
   created_at: string;
 }
@@ -463,12 +463,12 @@ export interface OutcomeEvent {
   detail?: Record<string, unknown>;
   /** When the outcome happened (vs created_at = when it was recorded). */
   occurred_at: string;
-  /** SHA-256 of the canonical payload — tamper-evidence. */
+  /** SHA-256 of the canonical payload - tamper-evidence. */
   content_hash: string;
   created_at: string;
 }
 
-/** Distinct-candidate counts per milestone — the conversion tail. */
+/** Distinct-candidate counts per milestone - the conversion tail. */
 export interface OutcomeFunnel {
   nclex_pass: number;
   nclex_fail: number;
@@ -533,7 +533,7 @@ export interface Lead {
   /** Slug into the school directory, set once we can join leads to schools.
    *  Today the export doesn't carry school; we'll backfill once core ships it. */
   school_slug?: string;
-  // ── Drip campaign (Phase 3) — all optional so the CSV importer path is
+  // ── Drip campaign (Phase 3) - all optional so the CSV importer path is
   //    untouched. A lead enters the drip only via the operator enroll flow. ──
   /** Where the lead sits in the lifecycle funnel. Defaults to "new". */
   lifecycle_stage?: LeadLifecycleStage;
@@ -543,7 +543,7 @@ export interface Lead {
   /** 0-based index of the last drip stage SENT to this lead. */
   drip_step?: number;
   drip_enrolled_at?: string;
-  /** Last time any drip email was sent — gates the per-stage re-send window. */
+  /** Last time any drip email was sent - gates the per-stage re-send window. */
   last_contacted_at?: string;
   /** Set when the lead one-click unsubscribes; terminal for the drip. */
   unsubscribed_at?: string;
@@ -558,13 +558,13 @@ export interface Lead {
 }
 
 /** Lead lifecycle funnel for the drip campaign.
- *   new        — imported, not in the drip
- *   invited    — opt-in (re-permission) email sent, awaiting a click
- *   engaged    — consented; receiving the value sequence
- *   reserved   — started a deposit checkout
- *   enrolled   — paid deposit / became a candidate
- *   converted  — downstream outcome (RN start)
- *   suppressed — unsubscribed or hard-bounced; terminal */
+ *   new        - imported, not in the drip
+ *   invited    - opt-in (re-permission) email sent, awaiting a click
+ *   engaged    - consented; receiving the value sequence
+ *   reserved   - started a deposit checkout
+ *   enrolled   - paid deposit / became a candidate
+ *   converted  - downstream outcome (RN start)
+ *   suppressed - unsubscribed or hard-bounced; terminal */
 export type LeadLifecycleStage =
   | "new"
   | "invited"
@@ -591,7 +591,7 @@ export interface LeadEvent {
   id: string; // le_…
   lead_id: string;
   kind: LeadEventKind;
-  /** Partial before/after — only the fields that actually changed.
+  /** Partial before/after - only the fields that actually changed.
    *  Values are JSON-serializable Lead field values (string/number/boolean). */
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
@@ -617,7 +617,7 @@ export interface LeadEvent {
 //   - Theme: teal or purple per brand tokens.
 //
 // SAFETY: outreach lives in ops. Never returned in any candidate-facing
-// endpoint. Lob API keys are NEVER bundled with the SPA — operator types
+// endpoint. Lob API keys are NEVER bundled with the SPA - operator types
 // the key per campaign launch into a sessionStorage-only credential field.
 
 export type OutreachKind =
@@ -675,7 +675,7 @@ export interface OutreachTarget {
   org_name: string; // "University of Edinburgh" / "PNA Greater Toronto Chapter"
   recipient_name?: string; // "Dr. Jane Smith"
   recipient_title?: string; // "Dean of Nursing"
-  /** Mailing address — Lob verifies + standardizes on send. */
+  /** Mailing address - Lob verifies + standardizes on send. */
   address_line1: string;
   address_line2?: string;
   city: string;

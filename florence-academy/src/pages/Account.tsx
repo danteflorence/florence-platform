@@ -57,10 +57,8 @@ function subscaleLabel(r: RemediationAssignment): string {
 }
 
 /**
- * Targeted remediation queue. The closed-loop pass-rate engine auto-assigns a
- * module for each subscale the candidate is below the passing standard on; this
- * card surfaces the open assignments with a one-tap path to focused practice +
- * the FlorenceRN voice coach, and lets the learner mark one cleared.
+ * Targeted practice queue with a one-tap path to focused practice + the
+ * FlorenceRN voice coach, and a simple way for the learner to mark one cleared.
  */
 function RemediationCard({ candidateId }: { candidateId: string }) {
   const [rows, setRows] = useState<RemediationAssignment[] | null>(null);
@@ -95,7 +93,7 @@ function RemediationCard({ candidateId }: { candidateId: string }) {
     <div className="fl-card mt-6 p-6">
       <h2 className="text-lg font-semibold">Your targeted practice</h2>
       <p className="mt-1 text-sm text-florence-slate">
-        Auto-assigned where you're below the passing standard. Clear these to close your gap to exam-ready.
+        Recommended from your recent practice. Clear these to keep moving toward exam-ready.
       </p>
       <ul className="mt-3 divide-y divide-florence-line">
         {open.map((r) => (
@@ -133,7 +131,7 @@ export default function Account() {
           <p className="mt-2 text-sm text-florence-slate">
             This build isn't connected to the Academy data service, so progress and
             readiness aren't being saved. You can still use every lesson and the full
-            practice bank — nothing is gated.
+            practice bank - nothing is gated.
           </p>
           <Link to="/learn" className="mt-4 inline-block text-sm font-semibold text-florence-teal-dark">
             ← Back to the curriculum
@@ -181,7 +179,7 @@ export default function Account() {
 
       {!candidate.email_verified && <VerifyBanner email={candidate.email} />}
 
-      {/* Readiness passport (learner-facing projection) */}
+      {/* Study status card */}
       <div className={`fl-card mt-6 p-6 ring-1 ${band.ring}`}>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Readiness</h2>
@@ -198,7 +196,7 @@ export default function Account() {
             <span className={`h-3.5 w-3.5 rounded-full ${band.dot}`} />
             <span className={`text-xl font-semibold ${band.text}`}>{band.label}</span>
           </div>
-          <Stat label="Projected pass" value={pct != null ? `${pct}%` : "—"} />
+          <Stat label="Projected pass" value={pct != null ? `${pct}%` : "-"} />
           <Stat label="Questions answered" value={String(readiness?.items_completed ?? 0)} />
           <Stat
             label="Sections completed"
@@ -211,7 +209,7 @@ export default function Account() {
               →
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-florence-teal-dark">
+              <p className="text-sm font-medium text-florence-teal-dark">
                 Your next step
               </p>
               <p className="text-sm text-florence-ink">{readiness.next_action}</p>
@@ -221,7 +219,7 @@ export default function Account() {
 
         {readiness && readiness.focus_areas.length > 0 && (
           <div className="mt-4 border-t border-florence-line pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-florence-slate">
+            <p className="text-sm font-medium text-florence-slate">
               Focus next
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -299,7 +297,7 @@ function VerifyBanner({ email }: { email?: string }) {
             disabled={status === "sending"}
             className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
           >
-            {status === "sending" ? "Sending…" : status === "sent" ? "Sent ✓ — resend" : "Resend email"}
+            {status === "sending" ? "Sending…" : status === "sent" ? "Sent ✓ - resend" : "Resend email"}
           </button>
         </div>
       </div>
@@ -314,7 +312,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
   const [preferred, setPreferred] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Auto-enrollment outcome message — surfaced only after a deposit-success
+  // Auto-enrollment outcome message - surfaced only after a deposit-success
   // return when there was a pending cohort code from the public landing.
   const [autoEnroll, setAutoEnroll] = useState<string | null>(null);
 
@@ -362,9 +360,9 @@ function DepositCard({ candidateId }: { candidateId: string }) {
         } else if (outcome.code === "already_enrolled") {
           setAutoEnroll(`Already enrolled in ${pending}.`);
         } else if (outcome.code === "cohort_full") {
-          setAutoEnroll(`${pending} is full — we'll move you to the next cohort.`);
+          setAutoEnroll(`${pending} is full - we'll move you to the next cohort.`);
         } else if (outcome.code === "cohort_closed") {
-          setAutoEnroll(`${pending} has closed — ops will pick a new cohort for you.`);
+          setAutoEnroll(`${pending} has closed - ops will pick a new cohort for you.`);
         } else {
           setAutoEnroll(`Couldn't auto-enroll in ${pending}: ${outcome.message}. Ops will follow up.`);
         }
@@ -381,7 +379,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [returned]);
 
-  // Cancelled checkout — re-fetch to surface "not paid" state, then drop param.
+  // Cancelled checkout - re-fetch to surface "not paid" state, then drop param.
   useEffect(() => {
     if (returned !== "cancelled") return;
     void refresh();
@@ -413,14 +411,14 @@ function DepositCard({ candidateId }: { candidateId: string }) {
       <h2 className="text-lg font-semibold">Seat deposit</h2>
       {returned === "cancelled" && !paid && (
         <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-          Checkout cancelled — your seat isn’t reserved yet.
+          Checkout cancelled - your seat isn’t reserved yet.
         </p>
       )}
       {paid ? (
         <div className="mt-3 space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-florence-ink">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-vital-ok/15 text-vital-ok">✓</span>
-            Seat reserved — your commitment deposit is paid.
+            Seat reserved - your commitment deposit is paid.
           </div>
           {autoEnroll && (
             <p className="rounded-lg border border-florence-teal-soft bg-florence-teal-soft/40 px-3 py-2 text-sm text-florence-teal-dark">
@@ -432,7 +430,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
         <>
           {preferred && (
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-florence-teal-soft/60 px-2.5 py-1 text-xs font-semibold text-florence-teal-dark">
-              ★ Preferred access — student/alumna of an eligible school
+              ★ Preferred access - student/alumna of an eligible school
             </p>
           )}
           <p className="mt-1 text-sm text-florence-slate">
@@ -440,7 +438,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
             <strong className="text-florence-ink">
               {preferred ? "$75 preferred access" : "$100"}
             </strong>{" "}
-            commitment deposit. Checkout happens on a secure hosted page — your card
+            commitment deposit. Checkout happens on a secure hosted page - your card
             details never touch this app. The self-guided Academy is always free.
           </p>
           {error && (
@@ -452,7 +450,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
             disabled={busy}
             className="mt-4 rounded-xl bg-florence-indigo px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-indigo-dark disabled:opacity-50"
           >
-            {busy ? "Starting…" : preferred ? "Reserve your seat — $75" : "Reserve your seat — $100"}
+            {busy ? "Starting…" : preferred ? "Reserve your seat - $75" : "Reserve your seat - $100"}
           </button>
         </>
       )}
@@ -480,13 +478,13 @@ const CONSENT_PURPOSES: ConsentPurposeMeta[] = [
     key: "crm_sync",
     title: "Florence team updates",
     description:
-      "Let the Florence team contact you and sync your study profile to our internal CRM for support and reminders.",
+      "Let the Florence team contact you with support, reminders, and important Academy updates.",
   },
   {
     key: "pathway",
-    title: "Florence Pathway Agent",
+    title: "Pathway support",
     description:
-      "Allow the Florence Pathway Agent to receive your readiness and help track the steps toward becoming a US-ready RN. You can revoke this at any time.",
+      "Let Florence help organize optional next steps toward becoming a US-ready RN. You can revoke this at any time.",
   },
   {
     key: "financing",
@@ -498,13 +496,13 @@ const CONSENT_PURPOSES: ConsentPurposeMeta[] = [
     key: "employer_sharing",
     title: "Employer interview-day sharing",
     description:
-      "Allow Florence to share your interview-ready packet (education readiness only — no financial details) with employer partners.",
+      "Allow Florence to share your interview-ready Academy summary with employer partners when you choose to be considered.",
   },
   {
     key: "underwriting",
-    title: "Underwriting use",
+    title: "Financing review",
     description:
-      "Allow your readiness/performance data to be used in financing underwriting if you choose to apply for financing later.",
+      "Allow Florence to help prepare financing information if you choose to apply later.",
   },
 ];
 
@@ -531,7 +529,7 @@ function ConsentCard() {
     <div className="fl-card mt-6 p-6">
       <h2 className="text-lg font-semibold">Your consents</h2>
       <p className="mt-1 text-sm text-florence-slate">
-        You control how Florence uses your data. Each consent below is independent —
+        You control how Florence uses your data. Each consent below is independent -
         revoke any of them at any time. The free self-guided Academy never requires any
         of these.
       </p>
@@ -558,7 +556,7 @@ function ConsentCard() {
                 {busy === p.key
                   ? "Saving…"
                   : granted
-                    ? "✓ Granted — revoke"
+                    ? "✓ Granted - revoke"
                     : "Grant consent"}
               </button>
             </li>
@@ -569,7 +567,7 @@ function ConsentCard() {
   );
 }
 
-// ── Phase 4b · Your Pathway (read-only projection from the Florence Pathway Agent) ──
+// ── Phase 4b · Your Pathway ──
 const PATHWAY_KIND_LABEL: Record<PathwayTaskKind, string> = {
   university_app: "University application",
   financing_packet: "Financing packet",
@@ -634,15 +632,15 @@ function PathwayTasksCard({
     <div className="fl-card mt-6 p-6">
       <h2 className="text-lg font-semibold">Your pathway</h2>
       <p className="mt-1 text-sm text-florence-slate">
-        Live status from the Florence Pathway Agent. This is a read-only summary —
-        we'll tell you when something needs your input.
+        A read-only summary of optional next steps. We'll tell you when something
+        needs your input.
       </p>
       {tasks === null ? (
         <p className="mt-4 animate-pulse text-sm text-florence-slate">Loading…</p>
       ) : tasks.length === 0 ? (
         <p className="mt-4 text-sm text-florence-slate">
-          No pathway updates yet. Once the Florence Pathway Agent starts on your
-          file, the steps will show up here.
+          No pathway updates yet. When support begins, your next steps will show
+          up here.
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-florence-line">
@@ -695,7 +693,7 @@ function AuditLogCard() {
     <div className="fl-card mt-6 p-6">
       <h2 className="text-lg font-semibold">Data access log</h2>
       <p className="mt-1 text-sm text-florence-slate">
-        Recent activity on your account. We never log the values of your data —
+        Recent activity on your account. We never log the values of your data -
         only who took what action, so you can see who has touched your record.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -724,7 +722,7 @@ function AuditLogCard() {
 function actorLabel(actor: string): string {
   if (actor === "you") return "You";
   if (actor === "ops") return "Florence ops";
-  if (actor === "agent") return "Pathway Agent";
+  if (actor === "agent") return "Florence support";
   if (actor === "system") return "System";
   return actor;
 }
@@ -824,7 +822,7 @@ function AuthForms() {
           full_name: fullName.trim(), email: email.trim(), password,
           country: country.trim() || undefined,
         });
-        // Attest the school affiliation right after signup, before any deposit —
+        // Attest the school affiliation right after signup, before any deposit -
         // this is what unlocks the $75 preferred-access rate. Best-effort.
         if (schoolSlug) await attestAffiliation(cand.id, schoolSlug, schoolRole);
       } else {
@@ -895,14 +893,14 @@ function AuthForms() {
         {mode === "signup" && schools.length > 0 && (
           <Field
             label="Your nursing school"
-            hint="Optional — preferred access if your school is listed"
+            hint="Optional - preferred access if your school is listed"
           >
             <select
               value={schoolSlug}
               onChange={(e) => setSchoolSlug(e.target.value)}
               className="fl-input"
             >
-              <option value="">— I'm not from a listed school —</option>
+              <option value="">- I'm not from a listed school -</option>
               {schools.map((s) => (
                 <option key={s.slug} value={s.slug}>
                   {s.name} ({s.country})

@@ -1,4 +1,4 @@
-// Instructor Copilot — deterministic cohort analytics that help faculty run the
+// Instructor Copilot - deterministic cohort analytics that help faculty run the
 // production line: who's falling behind, what to reteach, how to group, and the
 // Day-5 routing draft. AI doesn't make the calls here; it surfaces the evidence
 // (an LLM narrative layer can be added later behind a model key). Faculty review.
@@ -33,7 +33,7 @@ export interface CohortCopilot {
   avg_readiness: number | null;
   /** Lowest-readiness / unassessed candidates, weakest first. */
   fallers: CopilotFaller[];
-  /** Weakest client-need areas across the cohort — what to reteach tomorrow. */
+  /** Weakest client-need areas across the cohort - what to reteach tomorrow. */
   top_reteach: CopilotReteach[];
   /** Candidates grouped by their single weakest client need. */
   groups: CopilotGroup[];

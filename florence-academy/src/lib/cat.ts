@@ -1,5 +1,5 @@
 /**
- * Computerized Adaptive Testing (CAT) engine — Rasch (1-PL) model.
+ * Computerized Adaptive Testing (CAT) engine - Rasch (1-PL) model.
  *
  * This mirrors how the real NCLEX adapts: estimate the candidate's ability
  * after every item, then serve the next item that is both (a) maximally
@@ -23,7 +23,7 @@ export interface CatResponse {
   clientNeed: ClientNeed;
   /** Continuous score in [0, 1]. */
   score: number;
-  /** Optional NGN clinical-judgment step — enables per-CJMM-layer mastery. */
+  /** Optional NGN clinical-judgment step - enables per-CJMM-layer mastery. */
   cjmm?: CjmmStep;
 }
 
@@ -148,12 +148,12 @@ export function selectNextItem(
     if (pick) return pick;
   }
 
-  // Blueprint exhausted for the needed categories — fall back to any unused item.
+  // Blueprint exhausted for the needed categories - fall back to any unused item.
   return mostInformative(pool.filter((q) => !answeredIds.has(q.id)));
 }
 
 // ---------------------------------------------------------------------------
-// Case-level selection — NGN unfolding cases play as fixed 6-item units, so
+// Case-level selection - NGN unfolding cases play as fixed 6-item units, so
 // difficulty climbs BETWEEN cases (not within). A CaseStudy has no difficulty
 // field of its own, so we derive it from the items it references.
 // ---------------------------------------------------------------------------
@@ -189,12 +189,12 @@ export function caseDifficulty(
  * Pick the next unfolding case: the unused case whose mean difficulty is most
  * informative at the current ability (Fisher information peaks when case b ≈ θ).
  * As the learner's θ climbs the engine serves harder cases; if they struggle, θ
- * falls and easier cases follow — the same adaptive logic as `selectNextItem`,
+ * falls and easier cases follow - the same adaptive logic as `selectNextItem`,
  * lifted to the case level.
  *
  * By default this returns the single most-informative case (deterministic). Pass
  * `topK > 1` to pick at random among the K nearest-difficulty cases, so two
- * sessions started at the same level don't replay the identical case — variety
+ * sessions started at the same level don't replay the identical case - variety
  * without drifting off the target difficulty. `rng` is injectable for tests.
  */
 export function selectNextCase(
@@ -248,7 +248,7 @@ export function shouldStop(
 }
 
 // ---------------------------------------------------------------------------
-// Timed-test pacing — pure countdown math so the UI and the tests agree on when
+// Timed-test pacing - pure countdown math so the UI and the tests agree on when
 // the clock is low and when it has expired.
 // ---------------------------------------------------------------------------
 
@@ -366,7 +366,7 @@ export const CAT_MODES: Record<CatMode, CatConfig> = {
 /**
  * The learner (or their instructor) picks where the session STARTS; CAT then
  * climbs or eases from there based on performance. "adaptive" is the
- * "let FlorenceRN choose" option — a neutral start that adapts from the very
+ * "let FlorenceRN choose" option - a neutral start that adapts from the very
  * first item, closest to the real exam. Every level resolves to a `startTheta`
  * that overrides the mode default.
  */

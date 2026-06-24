@@ -1,5 +1,5 @@
 // Minimal coverage of the partner-portal helpers (label lookups are pure maps;
-// the API does the heavy projection — these guard that the client knows the same
+// the API does the heavy projection - these guard that the client knows the same
 // shape the API ships).
 
 import { describe, it, expect } from "vitest";

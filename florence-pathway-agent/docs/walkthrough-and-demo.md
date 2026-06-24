@@ -18,11 +18,12 @@ npm run dev          # API on :8787, Vite on :5173 (the dev launcher starts both
 - **Node**: uses the local toolchain at `~/florence-work/.toolchain/node/bin` (Node 24).
 - **Database**: Node's built-in `node:sqlite` at `data/pathway.db` (no native deps). Delete the
   file to reseed the 4 demo candidates on next start.
-- **LLM**: optional. Set `ANTHROPIC_API_KEY` to use Claude for the candidate explanations, QA
-  narrative, deficiency classification, copilot chat, and (future) document vision-extraction.
-  Without a key it runs on a deterministic heuristic — the moat is the data + rules, not the prose.
+- **LLM**: optional. Set `CORE_MODEL_GATEWAY_URL` and `CORE_MODEL_GATEWAY_TOKEN` to route candidate
+  explanations, QA narrative, deficiency classification, and copilot chat through Florence Core's
+  governed Model Gateway. Without a gateway it runs on a deterministic heuristic - the moat is the
+  data + rules, not the prose.
 - **Optional env**: `FLORENCE_LEDGER_WEBHOOK` (milestones → FlorenceRN), `FLORENCE_NOTIFY_WEBHOOK`
-  (reminders → your email/SMS provider), `ANTHROPIC_MODEL`.
+  (reminders → your email/SMS provider).
 
 ---
 
@@ -157,8 +158,8 @@ deficiency), Aleksandra (Poland, NJ license → Texas endorsement), Priya (India
 - **Notification delivery** — the reminder *queue* and dispatch hook are built; actual email/SMS/WhatsApp
   needs a provider (Postmark/Twilio) + candidate consent → wire `FLORENCE_NOTIFY_WEBHOOK`.
 - **Document vision-extraction** — upload + storage + a pluggable extraction interface are built; real
-  OCR/field-extraction runs when `ANTHROPIC_API_KEY` is set (Claude vision). Binary file storage is a
-  metadata stub in the demo.
+  OCR/field-extraction must route through Core's Model Gateway and document controls. Binary file
+  storage is a metadata stub in the demo.
 - **Live portal status** — there are no partner APIs for CEAC / Pearson / embassy portals; status is
   candidate-reported by design (we forbid scraping).
 - **Endorsement state coverage** — 25 states grounded; the rest fall back to the generic rule. Each

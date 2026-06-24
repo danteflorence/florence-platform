@@ -28,6 +28,7 @@ export async function emitPassport(sel: NurseSelector, type: string, data?: Reco
 export async function mirrorConsentGrant(args: {
   sel: NurseSelector
   recipientOrgId: string
+  recipientProgramId?: string
   allowedFields: string[]
   consentTextVersion: string
   consentTextHash: string
@@ -39,6 +40,7 @@ export async function mirrorConsentGrant(args: {
       purpose: 'employer_share',
       recipientCategory: 'employer',
       recipientOrgId: args.recipientOrgId,
+      ...(args.recipientProgramId ? { recipientProgramId: args.recipientProgramId } : {}),
       allowedFields: args.allowedFields,
       consentTextVersion: args.consentTextVersion,
       consentTextHash: args.consentTextHash,

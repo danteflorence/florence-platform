@@ -3,7 +3,7 @@ import { buildRemediation } from "./remediation";
 import type { SubscaleMastery } from "./mastery";
 import type { CaseStudy, CjmmStep, ClientNeed, Question } from "../types/question";
 
-// Minimal Question objects — buildRemediation only reads id/clientNeed/cjmm/difficulty.
+// Minimal Question objects - buildRemediation only reads id/clientNeed/cjmm/difficulty.
 function q(id: string, clientNeed: ClientNeed, difficulty: number, cjmm?: CjmmStep): Question {
   return {
     id,

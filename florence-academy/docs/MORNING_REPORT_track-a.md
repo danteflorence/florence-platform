@@ -39,8 +39,8 @@ cd ~/florence-work/florence-academy
 # Terminal 1 — start the Data API (in-memory; resets each start)
 cd api && PORT=8088 \
   CORS_ALLOWED_ORIGINS="http://localhost:4173,http://localhost:5173" \
-  API_JWT_SECRET="dev-secret-change-me" \
-  DEMO_CLIENT_ID="demo-crm" DEMO_CLIENT_SECRET="dev-demo-secret" \
+  API_JWT_SECRET="<API_JWT_SECRET>" \
+  DEMO_CLIENT_ID="demo-crm" DEMO_CLIENT_SECRET="<DEMO_CLIENT_SECRET>" \
   RATE_LIMIT_CAPACITY=3000 RATE_LIMIT_REFILL_PER_SEC=800 \
   node src/index.ts
 

@@ -1,0 +1,25 @@
+{
+  "name": "florencern",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "FlorenceRN monorepo CI contract.",
+  "scripts": {
+    "ci:install": "node scripts/ci/run-npm.mjs install",
+    "typecheck": "node scripts/ci/run-npm.mjs typecheck",
+    "test": "node scripts/ci/run-npm.mjs test",
+    "lint": "node scripts/ci/lint-workspace.mjs",
+    "build": "node scripts/ci/run-npm.mjs build",
+    "security:secrets": "node scripts/security/scan-secrets.mjs",
+    "security:secrets:test": "node scripts/security/test-secret-scanner.mjs",
+    "security:deps": "node scripts/security/npm-audit.mjs",
+    "security:audit": "node scripts/security/npm-audit.mjs",
+    "security:ci:test": "node scripts/security/check-ci-workflow.mjs",
+    "security:static": "node scripts/security/static-analysis.mjs",
+    "security:test": "node scripts/security/test-secret-scanner.mjs && node scripts/security/check-ci-workflow.mjs",
+    "ci": "npm run ci:install && npm run typecheck && npm test && npm run lint && npm run build && npm run security:secrets && npm run security:secrets:test && npm run security:audit && npm run security:static && npm run security:ci:test"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

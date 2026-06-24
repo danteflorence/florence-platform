@@ -257,6 +257,11 @@ export default function CaseRunner({
             onChange={s.setAnswer}
             revealed={s.revealed}
             disabled={s.submitted}
+            tutorContext={{
+              source: "NGN unfolding case",
+              caseTitle: caseStudy.title,
+              caseTabs: caseStudy.tabs,
+            }}
           />
 
           {verdict && (
@@ -281,7 +286,7 @@ export default function CaseRunner({
           <p className="text-xs text-florence-slate">
             {s.revealed
               ? "Review the rationale, then continue the case."
-              : "Answer, then submit to see the rationale — right or wrong."}
+              : "Answer, then submit to see the rationale - right or wrong."}
           </p>
           {!s.submitted ? (
             <button

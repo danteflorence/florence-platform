@@ -83,9 +83,9 @@ export async function issueToken(
 export interface AuthContext {
   clientId: string;
   scopes: Set<Scope>;
-  /** Subject-binding from a session token — restricts access to this candidate. */
+  /** Subject-binding from a session token - restricts access to this candidate. */
   candidateId?: string;
-  /** Token id + expiry — used for revocation (denylist). */
+  /** Token id + expiry - used for revocation (denylist). */
   jti: string;
   exp: number;
 }
@@ -151,7 +151,7 @@ export const ACADEMY_SESSION_PRINCIPAL = "academy_session";
 
 /**
  * Mint a candidate-BOUND session token directly from a verified login (no parent
- * M2M token needed — the password check IS the proof). Bound to one candidate and
+ * M2M token needed - the password check IS the proof). Bound to one candidate and
  * carrying only CANDIDATE_SESSION_SCOPES; safe to hand to the browser.
  */
 export function issueCandidateSession(candidateId: string, ttlSec = 28_800): TokenResult {
@@ -188,7 +188,7 @@ function warnCoreUnavailable(e: unknown): void {
   const now = Date.now();
   if (now - lastCoreWarnMs < 60_000) return;
   lastCoreWarnMs = now;
-  console.warn("[auth] Core SSO verification unavailable — falling back to legacy token path:", (e as Error)?.message ?? e);
+  console.warn("[auth] Core SSO verification unavailable - falling back to legacy token path:", (e as Error)?.message ?? e);
 }
 
 /**
@@ -231,12 +231,12 @@ function cookieValue(header: string | undefined, name: string): string | undefin
  * (demo/M2M clients, locally-minted candidate sessions) during migration.
  */
 export async function authenticate(authHeader?: string, cookieHeader?: string): Promise<AuthResult> {
-  // 1) FlorenceRN Core SSO (RS256 via JWKS) — bearer or shared cookie.
+  // 1) FlorenceRN Core SSO (RS256 via JWKS) - bearer or shared cookie.
   const coreToken = bearerToken(authHeader) ?? cookieValue(cookieHeader, CORE_COOKIE);
   if (coreToken) {
     // Core verification is best-effort: an invalid/expired token returns null, but
     // an OPERATIONAL failure (Core unconfigured, or its JWKS unreachable during an
-    // outage) throws. Never let that 500 the request — degrade to the legacy HS256
+    // outage) throws. Never let that 500 the request - degrade to the legacy HS256
     // path so M2M/legacy tokens keep working, and a real SSO token simply gets a
     // clean 401 rather than a 500. Warn (throttled) so a Core outage stays visible.
     let p: Awaited<ReturnType<typeof verifyCoreToken>> = null;
@@ -258,7 +258,7 @@ export async function authenticate(authHeader?: string, cookieHeader?: string): 
     }
   }
 
-  // 2) Legacy HS256 fallback (Academy-minted tokens) — removed after full cutover.
+  // 2) Legacy HS256 fallback (Academy-minted tokens) - removed after full cutover.
   const token = bearerToken(authHeader);
   if (!token) return { ok: false, error: "missing bearer token" };
   const res = verifyJwt(token, config.jwtSecret, Math.floor(Date.now() / 1000));

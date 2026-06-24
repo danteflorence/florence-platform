@@ -1,6 +1,6 @@
 // Tiny, dependency-free request-body validator. Each write route declares a
 // schema; malformed bodies are rejected with precise per-field errors instead
-// of silently coercing bad input. Not a full JSON-Schema engine — just the
+// of silently coercing bad input. Not a full JSON-Schema engine - just the
 // field checks the API actually needs (type, required, enum, range, length).
 
 export interface FieldSpec {

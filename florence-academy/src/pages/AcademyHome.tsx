@@ -64,12 +64,8 @@ export default function AcademyHome() {
         <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-florence-teal-soft/70 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-florence-indigo-soft/70 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-16">
-          <p className="fl-eyebrow">NCLEX-RN Bootcamp · Companion to the Field Guide</p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
-            Pass the NCLEX —{" "}
-            <span className="italic text-florence-indigo">
-              one clinical section at a time.
-            </span>
+          <h1 className="max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
+            Pass the NCLEX - one clinical section at a time.
           </h1>
           <p className="mt-3 max-w-2xl text-base text-florence-slate sm:text-lg">
             An interactive bootcamp for internationally educated nurses: real
@@ -99,6 +95,44 @@ export default function AcademyHome() {
             >
               Nightly practice · 150 adaptive →
             </Link>
+            <Link
+              to="/academy/tutor"
+              className="rounded-xl border border-florence-line bg-white px-5 py-3 text-sm font-semibold text-florence-ink hover:bg-florence-mist"
+            >
+              Open FlorenceRN Tutor →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-florence-line bg-florence-mist">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 sm:px-8 lg:grid-cols-[0.95fr_1.05fr]">
+          <div>
+            <h2 className="mt-1 text-2xl font-semibold">
+              FlorenceRN Tutor for daily clinical judgment practice.
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-florence-slate">
+              Review missed items, answer similar questions, listen to rationales,
+              practice short scenarios, and get a focused next step.
+            </p>
+            <Link
+              to="/academy/tutor"
+              className="mt-4 inline-flex rounded-xl bg-florence-teal px-4 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-teal-dark"
+            >
+              Start today's round
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["Review", "Wrong-answer patterns and NCJMM walkthroughs."],
+              ["Simulate", "Short patient and SBAR scenarios."],
+              ["Practice", "Your next activity adapts to what you just worked on."],
+            ].map(([title, body]) => (
+              <div key={title} className="rounded-2xl border border-florence-line bg-white p-4 shadow-card">
+                <p className="font-semibold text-florence-ink">{title}</p>
+                <p className="mt-1 text-sm leading-6 text-florence-slate">{body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -110,9 +144,9 @@ export default function AcademyHome() {
             <p className="mt-1 text-sm text-florence-slate">
               {watermark === 0
                 ? cohort
-                  ? `${cohort.name} hasn't started yet — sections unlock as your instructor covers them live.`
-                  : "Your cohort hasn't started yet — sections unlock as your instructor covers them live."
-                : `Sections 1–${watermark} have been covered live${cohort ? ` in ${cohort.name}` : ""}. Revisit any of them; upcoming sections unlock as your instructor reaches them.`}
+                  ? `${cohort.name} hasn't started yet - sections unlock as your instructor covers them live.`
+                  : "Your cohort hasn't started yet - sections unlock as your instructor covers them live."
+                : `Sections 1-${watermark} have been covered live${cohort ? ` in ${cohort.name}` : ""}. Revisit any of them; upcoming sections unlock as your instructor reaches them.`}
             </p>
           </div>
         </div>

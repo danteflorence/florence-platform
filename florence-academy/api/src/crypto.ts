@@ -112,7 +112,7 @@ export function verifyWebhook(
 
 // ── column-level field encryption (AES-256-GCM) ─────────────────────────────
 // Encrypts a single PII/financial field for at-rest storage. The key is a
-// 32-byte data key — in production fetched/unwrapped from a KMS, never stored
+// 32-byte data key - in production fetched/unwrapped from a KMS, never stored
 // beside the ciphertext. Output: base64(iv[12] | tag[16] | ciphertext).
 export interface FieldCrypto {
   encrypt(plaintext: string): Promise<string>;
@@ -143,7 +143,7 @@ function gcmOpen(key: Buffer, blob: Buffer): Buffer {
 
 /**
  * Wraps/unwraps per-value data keys (DEKs) under a key-encryption key (KEK). The
- * KEK material stays inside the provider — in production that's a KMS, so the
+ * KEK material stays inside the provider - in production that's a KMS, so the
  * app never holds the KEK (see src/kms.ts). Swapping the provider is the only
  * change needed to move field encryption onto a managed KMS. Async because real
  * KMS calls are network calls.

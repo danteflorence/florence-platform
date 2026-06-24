@@ -47,7 +47,7 @@ export default function QnaPanel({
         <div className="flex max-h-[60vh] flex-col">
           <ul className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
             {qa.length === 0 && (
-              <li className="py-6 text-center text-xs text-white/40">No questions yet — ask one below.</li>
+              <li className="py-6 text-center text-xs text-white/40">No questions yet - ask one below.</li>
             )}
             {qa.map((q) => (
               <li key={q.id} className={`rounded-lg px-2.5 py-2 text-sm ${q.answered ? "bg-white/5 text-white/50" : "bg-white/10"}`}>

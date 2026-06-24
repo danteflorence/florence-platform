@@ -13,8 +13,8 @@ import {
 } from "../../lib/partnerApi";
 
 /**
- * Employer portal — readiness-cleared interview packets only. Education
- * readiness, strengths, gaps — NEVER deposits, ARR, financing, or visa detail.
+ * Employer portal - readiness-cleared interview packets only. Education
+ * readiness, strengths, gaps - NEVER deposits, ARR, financing, or visa detail.
  * Internal-only credentials entered at runtime (session storage), never bundled.
  */
 export default function EmployerPortal() {
@@ -100,7 +100,7 @@ export default function EmployerPortal() {
         )}
 
         <p className="mt-10 pb-10 text-xs leading-relaxed text-white/40">
-          Education readiness only — no financial, visa, or pathway detail. Contingent offers create an
+          Education readiness only - no financial, visa, or pathway detail. Contingent offers create an
           outcome event for the production ledger.
         </p>
       </div>
@@ -136,7 +136,7 @@ function PacketCard({ packet }: { packet: InterviewPacket }) {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <Metric label="Projected pass" value={packet.readiness != null ? `${Math.round(packet.readiness * 100)}%` : "—"} />
+        <Metric label="Projected pass" value={packet.readiness != null ? `${Math.round(packet.readiness * 100)}%` : "-"} />
         <Metric label="Sections" value={`${packet.sections_completed} / ${packet.sections_total}`} />
       </div>
 

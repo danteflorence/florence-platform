@@ -5,12 +5,10 @@
 //   CORE_STATE_FILE=data/core-dev.json node scripts/seed-app-clients.ts   # file/dev
 //   DATABASE_URL=postgres://… node scripts/seed-app-clients.ts            # prod
 //
-// Secrets come from FLORENCE_{APP}_CLIENT_SECRET if set, else are generated and
-// printed once. Copy each into the matching app's FLORENCE_CORE_CLIENT_ID/SECRET.
+// Secrets come from FLORENCE_{APP}_CLIENT_SECRET. They are never printed.
 // NOTE: with a FILE store, run this BEFORE starting Core (the running server
 // loads state at boot); with Postgres it can run anytime.
 
-import { randomUUID } from "node:crypto";
 import { config } from "../src/config.ts";
 import { createStore } from "../src/store.ts";
 import { hashSecret } from "../src/crypto.ts";
@@ -28,6 +26,7 @@ const APPS: { client_id: string; env: string; scopes?: string[] }[] = [
 
 const store = await createStore(config);
 let created = 0;
+let missingSecrets = 0;
 
 for (const a of APPS) {
   const existing = await store.getClient(a.client_id);
@@ -35,7 +34,12 @@ for (const a of APPS) {
     console.log(`= ${a.client_id} already exists (scopes: ${existing.allowed_scopes.join(", ")})`);
     continue;
   }
-  const secret = process.env[a.env] ?? randomUUID().replace(/-/g, "");
+  const secret = process.env[a.env];
+  if (!secret) {
+    missingSecrets += 1;
+    console.error(`✗ missing ${a.env}; provide it from a secrets manager or local shell environment, then rerun.`);
+    continue;
+  }
   await store.insertClient({
     client_id: a.client_id,
     name: a.client_id,
@@ -47,8 +51,8 @@ for (const a of APPS) {
   created += 1;
   console.log(`\n✓ created ${a.client_id}`);
   console.log(`    FLORENCE_CORE_CLIENT_ID=${a.client_id}`);
-  console.log(`    FLORENCE_CORE_CLIENT_SECRET=${secret}`);
+  console.log(`    FLORENCE_CORE_CLIENT_SECRET=[not printed; source ${a.env}]`);
 }
 
 console.log(`\n${created} created. store=${config.databaseUrl ? "postgres" : config.stateFile ? `file:${config.stateFile}` : "memory (NOT persisted — set CORE_STATE_FILE or DATABASE_URL)"}`);
-process.exit(0);
+process.exit(missingSecrets ? 1 : 0);

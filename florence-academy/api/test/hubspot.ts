@@ -105,7 +105,7 @@ try {
   assert.equal(verHandled.contact.properties["florence_email_verified"], "true");
   ok("candidate.email_verified resolves candidate via `id` + maps the flag");
 
-  console.log(`\nPASS — ${passed} checks`);
+  console.log(`\nPASS - ${passed} checks`);
   process.exit(0);
 } catch (e) {
   console.error("\nFAIL:", e);

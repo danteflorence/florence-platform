@@ -37,8 +37,7 @@ export default function LiveLobby() {
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
       <p className="fl-eyebrow mb-2">Live class</p>
       <h1 className="font-serif text-3xl font-semibold text-florence-ink sm:text-4xl">
-        Teach — or join — a{" "}
-        <span className="italic text-florence-indigo">synced room.</span>
+        Teach - or join - a synced room.
       </h1>
       <p className="mt-3 max-w-2xl text-florence-slate">
         One instructor drives the deck; every student’s screen follows in real
@@ -98,7 +97,7 @@ export default function LiveLobby() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && enter()}
-            placeholder="Shown to no one else for now — just a label"
+            placeholder="Shown to no one else for now - just a label"
             maxLength={40}
             className="mt-2 w-full rounded-xl border border-florence-line bg-white px-4 py-3 text-florence-ink outline-none focus:border-florence-teal focus:ring-2 focus:ring-florence-teal/30"
           />
@@ -135,7 +134,7 @@ export default function LiveLobby() {
   );
 }
 
-/** Replay library — past classes recorded to the cloud, playable on any device. */
+/** Replay library - past classes recorded to the cloud, playable on any device. */
 function RecentRecordings() {
   const [items, setItems] = useState<Replay[]>([]);
   const [base, setBase] = useState("");
@@ -157,7 +156,7 @@ function RecentRecordings() {
       <p className="fl-eyebrow mb-2">Class replays</p>
       <h2 className="font-serif text-2xl font-semibold text-florence-ink">Catch up on a past class</h2>
       <p className="mt-2 text-sm text-florence-slate">
-        Recorded sessions, playable on any device — handy across time zones and slow connections.
+        Recorded sessions, playable on any device - handy across time zones and slow connections.
       </p>
       {active && (
         <video src={active} controls autoPlay playsInline className="mt-4 aspect-video w-full rounded-xl bg-black" />

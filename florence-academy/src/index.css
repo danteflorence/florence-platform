@@ -53,7 +53,7 @@
   }
 
   .fl-eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-florence-teal-dark;
+    @apply text-sm font-medium text-florence-slate;
   }
 
   .fl-pill {
@@ -76,7 +76,7 @@
     @apply font-semibold text-florence-ink;
   }
 
-  /* "Skip to content" — visible only on keyboard focus */
+  /* "Skip to content" - visible only on keyboard focus */
   .fl-skip {
     @apply absolute left-4 -top-12 z-50 rounded-md bg-florence-indigo px-4 py-2 text-sm font-semibold text-white transition-all focus:top-4;
   }

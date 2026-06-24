@@ -20,7 +20,7 @@ const letter = (i: number) => String.fromCharCode(65 + i); // 0→A, 1→B …
 /**
  * The live-poll layer that floats over the deck. Instructors push a question,
  * watch responses land in real time, then reveal the answer to the whole room
- * at once. Students get big tap targets and — until the reveal — only their own
+ * at once. Students get big tap targets and - until the reveal - only their own
  * choice, never the running tally (so the class doesn't herd toward a leader).
  */
 export default function LivePoll({
@@ -197,12 +197,12 @@ export default function LivePoll({
             })}
           </div>
 
-          {/* Rationale — shown to the whole room on reveal, right or wrong. */}
+          {/* Rationale - shown to the whole room on reveal, right or wrong. */}
           {revealed && poll.rationale && (
             <div className="mt-4 rounded-xl border border-florence-line bg-florence-mist/50 p-4">
               <div className="mb-1.5 flex items-center gap-2">
                 <span aria-hidden>💡</span>
-                <span className="fl-eyebrow">Why — rationale</span>
+                <span className="fl-eyebrow">Why - rationale</span>
               </div>
               <p className="text-sm leading-relaxed text-florence-ink/90">
                 {poll.rationale}
@@ -272,14 +272,14 @@ function StatusLine({
   if (isInstructor) {
     text = revealed
       ? "Answer shown to the room."
-      : "Responses are landing live — reveal when you’re ready.";
+      : "Responses are landing live - reveal when you’re ready.";
   } else if (revealed) {
     if (!answered) text = "The instructor revealed the answer.";
     else if (myCorrect) {
-      text = "✓ Correct — nicely done.";
+      text = "✓ Correct - nicely done.";
       tone = "text-vital-ok font-semibold";
     } else {
-      text = "Not quite — the correct answer is highlighted.";
+      text = "Not quite - the correct answer is highlighted.";
       tone = "text-vital-danger font-medium";
     }
   } else if (answered) {

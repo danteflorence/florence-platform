@@ -3,12 +3,13 @@ import AccountNav from "./components/AccountNav";
 import VoiceTutor from "./components/VoiceTutor";
 
 /**
- * App shell — Florence Academy brand chrome shared across all routes.
+ * App shell - Florence Academy brand chrome shared across all routes.
  * The actual lesson content renders into <Outlet />.
  */
 export default function App() {
   const { pathname } = useLocation();
   const onPractice = pathname.includes("practice");
+  const onTutor = pathname.includes("tutor");
   const onHome = pathname === "/learn";
 
   return (
@@ -39,22 +40,23 @@ export default function App() {
             </span>
             <span className="flex flex-col leading-none">
               <span className="whitespace-nowrap font-serif text-base font-semibold text-florence-ink sm:text-lg">
-                Florence Academy
+                <span className="sm:hidden">Florence</span>
+                <span className="hidden sm:inline">Florence Academy</span>
               </span>
               {/* Hide subline on mobile so the wordmark + Practice + Sign in
                   fit on one row at 375px. */}
-              <span className="hidden whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.16em] text-florence-slate sm:block">
+              <span className="hidden whitespace-nowrap text-xs font-medium text-florence-slate sm:block">
                 NCLEX-RN Bootcamp
               </span>
             </span>
           </Link>
 
           <nav className="flex shrink-0 items-center gap-1 text-sm font-medium text-florence-slate">
-            {/* Redundant with the logo (also links home) on phones — hide it
+            {/* Redundant with the logo (also links home) on phones - hide it
                 there so the brand wordmark and Practice fit on one row. */}
             <Link
               to="/learn"
-              className={`hidden whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors hover:bg-florence-mist hover:text-florence-ink sm:block ${
+              className={`hidden whitespace-nowrap rounded-lg px-2 py-1.5 transition-colors hover:bg-florence-mist hover:text-florence-ink sm:block sm:px-3 ${
                 onHome ? "bg-florence-teal-soft text-florence-teal-dark" : ""
               }`}
             >
@@ -62,11 +64,19 @@ export default function App() {
             </Link>
             <Link
               to="/academy/practice"
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors hover:bg-florence-mist hover:text-florence-ink ${
+              className={`whitespace-nowrap rounded-lg px-2 py-1.5 transition-colors hover:bg-florence-mist hover:text-florence-ink sm:px-3 ${
                 onPractice ? "bg-florence-teal-soft text-florence-teal-dark" : ""
               }`}
             >
               Practice
+            </Link>
+            <Link
+              to="/academy/tutor"
+              className={`whitespace-nowrap rounded-lg px-2 py-1.5 transition-colors hover:bg-florence-mist hover:text-florence-ink sm:px-3 ${
+                onTutor ? "bg-florence-teal-soft text-florence-teal-dark" : ""
+              }`}
+            >
+              Tutor
             </Link>
             <AccountNav />
           </nav>
@@ -77,13 +87,13 @@ export default function App() {
         <Outlet />
       </main>
 
-      {/* Global voice tutor — invisible unless the instance has a tutor configured. */}
+      {/* Global voice tutor - invisible unless the instance has a tutor configured. */}
       <VoiceTutor />
 
       <footer className="mt-20 border-t border-florence-line bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-8 text-xs text-florence-slate sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <p>
-            Florence Academy — interactive NCLEX-RN preparation for
+            Florence Academy - interactive NCLEX-RN preparation for
             internationally educated nurses.
           </p>
           <p className="text-florence-slate/70">

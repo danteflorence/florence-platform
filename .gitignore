@@ -8,21 +8,33 @@ coverage/
 # ── local data + sqlite (never commit databases) ─────────────────────────────
 **/data/
 *.db
+*.db-journal
 *.db-wal
 *.db-shm
 *.sqlite
+*.sqlite3
 
-# ── secrets / local env — commit ONLY *.example templates ────────────────────
+# ── secrets / local env - commit ONLY *.example templates ────────────────────
 **/.env
+**/.en
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+!**/.env.SAFETY_NOTICE.md
+!.env.example
+!.env.testserver.example
 **/.env.local
 **/.env.*.local
 **/.env.development
 **/.env.production
 **/.env.staging
 **/.env.sandbox
+**/.auth_secret
 *.pem
 *.key
 *.p8
+*.p12
+*.pfx
 *-key.json
 service-account*.json
 **/secrets/

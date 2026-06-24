@@ -3,7 +3,7 @@
 //
 // INTERNAL ONLY. This surface is for Florence operators, not learners or
 // partners. It authenticates with an M2M client (read scopes only) entered at
-// runtime and held in sessionStorage — never baked into the bundle. It reads the
+// runtime and held in sessionStorage - never baked into the bundle. It reads the
 // production funnel and computes operator metrics (incl. expected ARR) that must
 // NEVER appear on any candidate / employer / university surface.
 // ───────────────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ export const STAGE_LABEL: Record<Stage, string> = {
 };
 
 // Probability a candidate at each stage becomes a billable RN start (the forecast
-// model — rules + assumptions now, outcome-trained later).
+// model - rules + assumptions now, outcome-trained later).
 const START_PROB: Record<Stage, number> = {
   registered: 0.1,
   deposit_paid: 0.3,
@@ -125,7 +125,7 @@ export function opsDisconnect(): void {
   }
 }
 
-/** True when connected — via the shared FlorenceRN Core staff cookie OR an M2M token. */
+/** True when connected - via the shared FlorenceRN Core staff cookie OR an M2M token. */
 export function opsConnected(): boolean {
   try {
     return !!(sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(CORE_KEY));
@@ -139,7 +139,7 @@ export function coreLoginUrl(): string {
   return `${CORE_URL}/login?redirect=${encodeURIComponent(location.href)}`;
 }
 
-/** Connect with the shared FlorenceRN Core staff cookie — no pasted credentials.
+/** Connect with the shared FlorenceRN Core staff cookie - no pasted credentials.
  *  Returns true when the cookie carries an ops/staff role. */
 export async function connectViaCore(): Promise<boolean> {
   const base = apiBaseUrl();
@@ -357,7 +357,7 @@ export function buildProductionReview(
     { label: "Cohort size", value: String(copilot.candidates), roles: ALL },
     { label: "Paid deposits", value: String(cohort.deposits), roles: MGMT_INV },
     { label: "Readiness (G/Y/O/R)", value: `${bc.green} / ${bc.yellow} / ${bc.orange} / ${bc.red}`, roles: ALL },
-    { label: "Avg readiness", value: copilot.avg_readiness != null ? `${Math.round(copilot.avg_readiness * 100)}%` : "—", roles: ALL },
+    { label: "Avg readiness", value: copilot.avg_readiness != null ? `${Math.round(copilot.avg_readiness * 100)}%` : "-", roles: ALL },
     { label: "Readiness-cleared", value: String(cohort.readinessCleared), roles: ALL },
     { label: "Interview-ready", value: String(copilot.routing.interview_ready.length), roles: ALL },
     { label: "Repeat / bridge / repair", value: `${copilot.routing.repeat.length} / ${copilot.routing.bridge.length} / ${copilot.routing.credential_repair.length}`, roles: ["management", "university"] },
@@ -365,7 +365,7 @@ export function buildProductionReview(
     { label: "Expected ARR", value: `$${arr.toLocaleString()}`, roles: MGMT_INV },
     { label: "Program outcomes to date (pass / starts / repaying)", value: `${funnel.nclex_pass} / ${funnel.start} / ${funnel.repayment_active}`, roles: MGMT_INV },
     { label: "Operational blockers (falling behind)", value: String(copilot.fallers.length), roles: ["management"] },
-    { label: "Faculty notes", value: "—", roles: ALL },
+    { label: "Faculty notes", value: "-", roles: ALL },
   ];
   return {
     cohort: cohort.code,
@@ -378,7 +378,7 @@ export function buildProductionReview(
 /** Render a role's view of the review as plain text (for copy/send). */
 export function reviewToText(review: ProductionReview, role: ReviewRole): string {
   const lines = [
-    `Production Review — ${review.cohort} — ${role}`,
+    `Production Review - ${review.cohort} - ${role}`,
     review.generatedAt.slice(0, 10),
     "",
     ...review.rows.filter((r) => r.roles.includes(role)).map((r) => `${r.label}: ${r.value}`),
@@ -615,22 +615,22 @@ export interface RosterRow {
   history: AssessmentHistoryEntry[];
 }
 
-/** The "next best action" heuristic — rules now, outcome-tuned later. */
+/** The "next best action" heuristic - rules now, outcome-tuned later. */
 export function nextBestAction(
   stage: Stage,
   band: ReadinessBand,
   depositPaid: boolean,
   topFocusLabel: string | undefined,
 ): string {
-  if (stage === "withdrawn") return "Withdrawn — re-engage or archive";
+  if (stage === "withdrawn") return "Withdrawn - re-engage or archive";
   if (band === "none") return "Assign a baseline diagnostic";
   if (band === "red" || band === "orange")
-    return topFocusLabel ? `Remediation — ${topFocusLabel}` : "Assign remediation";
+    return topFocusLabel ? `Remediation - ${topFocusLabel}` : "Assign remediation";
   if (stage === "registered" && !depositPaid) return "Follow up on the $100 deposit";
   if (band === "green" && (stage === "attending" || stage === "completed"))
     return "Route to employer interview";
   if (band === "yellow")
-    return topFocusLabel ? `Targeted review — ${topFocusLabel}` : "Targeted review";
+    return topFocusLabel ? `Targeted review - ${topFocusLabel}` : "Targeted review";
   return "On track";
 }
 

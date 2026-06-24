@@ -40,7 +40,7 @@ export async function issueClientToken(
     scope: granted.join(" "),
     // Org-bound clients (partner banks / employers) carry their org so the gateway
     // resolves them to an org-scoped, consent-gated audience (e.g. lender).
-    ...(client.org_id ? { org_id: client.org_id } : {}),
+    ...(client.org_id ? { org_id: client.org_id, tenant_id: client.org_id } : {}),
     m2m: true,
     iat: now,
     exp: now + config.m2mTokenTtlSec,

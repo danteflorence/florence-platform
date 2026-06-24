@@ -17,6 +17,7 @@ import { isRole, STAFF_ROLES, type Role } from "../../roles.ts";
 import { foldPassport } from "../../passport.ts";
 import { canonicalStage } from "../../ledgerStages.ts";
 import { id, nowIso } from "../../util.ts";
+import { actorFromClaims, authorizeTenantAccessWithAudit } from "../../tenantAccess.ts";
 
 const DECISIONS = new Set(["approved", "denied", "pending", "withdrawn"]);
 // The events a warehouse bank underwrites a facility against (income starts → retained → repaid).
@@ -38,6 +39,10 @@ function lenderRole(claims: GwCtx["claims"]): Role {
 }
 const actorOf = (claims: GwCtx["claims"]) => String(claims?.email ?? claims?.sub ?? "service");
 const scopesOf = (claims: GwCtx["claims"]) => String(claims?.scope ?? "").split(/\s+/).filter(Boolean);
+const denied = (reason: string) => ({ status: 403, body: { error: "forbidden", reason } });
+function lenderActor(claims: GwCtx["claims"]) {
+  return { ...actorFromClaims(claims), role: lenderRole(claims), partnerOrgKind: "lender" as const };
+}
 
 export function lenderModule(store: Store, audit: Audit): GwRoute[] {
   return [
@@ -70,6 +75,11 @@ export function lenderModule(store: Store, audit: Audit): GwRoute[] {
         await audit(actorOf(claims), "credit_data.read", "nurse", ctx.params.id, {
           org: claims.org_id, droppedProhibited: pkg.droppedProhibited, droppedByConsent: pkg.droppedByConsent.length,
         });
+        await audit(actorOf(claims), "lender_packet.view", "nurse", ctx.params.id, {
+          org: claims.org_id,
+          purpose: "underwriting",
+          source: "credit_data",
+        });
         return { status: 200, body: { nurseId: ctx.params.id, creditData: pkg.fields, excluded: { prohibitedBasis: pkg.droppedProhibited, byConsent: pkg.droppedByConsent } } };
       },
     }),
@@ -92,6 +102,14 @@ export function lenderModule(store: Store, audit: Audit): GwRoute[] {
         if (!nurseId || !decision || !DECISIONS.has(decision)) return { status: 400, body: { error: "nurseId + decision (approved|denied|pending|withdrawn) required" } };
         const nurse = await lookupNurse(store, { nurseId });
         if (!nurse) return { status: 404, body: { error: "nurse_not_found" } };
+        const consentOk = consentAllows(await store.consentsByNurse(nurse.id), "underwriting", orgId).ok;
+        const access = await authorizeTenantAccessWithAudit(audit, {
+          actor: lenderActor(claims),
+          action: "write",
+          purpose: "underwriting",
+          resource: { type: "lender_packet", id: nurse.id, ownerOrgId: orgId, consentOk, dataClass: "RESTRICTED_FINANCING" },
+        });
+        if (!access.allow) return denied(access.reason);
         const reasonCodes = Array.isArray(b.reason_codes) ? (b.reason_codes as unknown[]).filter((x): x is string => typeof x === "string") : [];
         if (decision === "denied" && reasonCodes.length === 0) return { status: 400, body: { error: "reason_codes required for a denial (ECOA/FCRA adverse action)" } };
         const rec: CreditDecision = {
@@ -114,8 +132,16 @@ export function lenderModule(store: Store, audit: Audit): GwRoute[] {
       scope: "credit:decide",
       summary: "Mark the adverse-action notice as issued for a denied credit decision.",
       handler: async (ctx) => {
+        const claims = ctx.claims!;
         const d = await store.getCreditDecision(ctx.params.id);
         if (!d) return { status: 404, body: { error: "decision_not_found" } };
+        const access = await authorizeTenantAccessWithAudit(audit, {
+          actor: lenderActor(claims),
+          action: "write",
+          purpose: "underwriting",
+          resource: { type: "lender_packet", id: d.id, ownerOrgId: d.lender_org_id, consentOk: true, dataClass: "RESTRICTED_FINANCING" },
+        });
+        if (!access.allow) return denied(access.reason);
         if (d.decision !== "denied") return { status: 409, body: { error: "adverse action applies only to a denied decision" } };
         const at = nowIso();
         await store.updateCreditDecision(d.id, { adverse_action_at: at });
@@ -132,10 +158,18 @@ export function lenderModule(store: Store, audit: Audit): GwRoute[] {
       scope: "credit:read",
       summary: "List the calling lender's credit decisions for a nurse.",
       handler: async (ctx) => {
+        const claims = ctx.claims!;
         const nurse = await lookupNurse(store, { nurseId: ctx.params.id });
         if (!nurse) return { status: 404, body: { error: "nurse_not_found" } };
+        const access = await authorizeTenantAccessWithAudit(audit, {
+          actor: lenderActor(claims),
+          action: "read",
+          purpose: "underwriting",
+          resource: { type: "lender_packet", id: nurse.id, ownerOrgId: claims.org_id, consentOk: true, dataClass: "RESTRICTED_FINANCING" },
+        });
+        if (!access.allow) return denied(access.reason);
         const all = await store.creditDecisionsByNurse(nurse.id);
-        const mine = ctx.claims?.org_id ? all.filter((d) => d.lender_org_id === ctx.claims!.org_id) : all;
+        const mine = claims.org_id ? all.filter((d) => d.lender_org_id === claims.org_id) : all;
         return { status: 200, body: { nurseId: nurse.id, decisions: mine } };
       },
     }),

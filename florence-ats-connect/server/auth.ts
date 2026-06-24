@@ -19,7 +19,10 @@ function toAuthUser(p: CorePrincipal): AuthUser | null {
   const role = atsRole(p)
   if (!role) return null
   const user: AuthUser = { username: p.email ?? p.userId, role }
-  if (role === 'employer' && p.orgId) user.employerId = p.orgId
+  if (role === 'employer') {
+    if (!p.orgId) return null
+    user.employerId = p.orgId
+  }
   return user
 }
 

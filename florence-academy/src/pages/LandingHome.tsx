@@ -11,16 +11,16 @@ import { SECTIONS, CLIENT_NEEDS } from "../data/blueprint";
 import manifest from "../data/bankManifest.json";
 
 /**
- * Public landing page — the front door for nurses who don't have an account yet.
+ * Public landing page - the front door for nurses who don't have an account yet.
  *
  * What we say here matters:
  *   - We cite only things we can prove from code (bank sizes, cohort schedule
  *     pulled from API, school list size). No pass-rate claims, no testimonials,
  *     no instructor names, no university endorsements.
- *   - We say nothing about visa, F-1, financing, FICA — those live behind auth.
+ *   - We say nothing about visa, F-1, financing, FICA - those live behind auth.
  *   - We sell the product, not aspirations. The bootcamp is the bootcamp.
  *
- * Authenticated visitors are redirected to /learn — they've already bought
+ * Authenticated visitors are redirected to /learn - they've already bought
  * the thing, no point selling them again.
  */
 export default function LandingHome() {
@@ -56,7 +56,7 @@ function MarketingHeader() {
             <span className="whitespace-nowrap font-serif text-base font-semibold sm:text-lg">
               Florence Academy
             </span>
-            {/* Mobile drops the "NCLEX-RN Bootcamp" subline — header has to
+            {/* Mobile drops the "NCLEX-RN Bootcamp" subline - header has to
                 fit the wordmark, sign-in, and reserve CTA on one row. */}
             <span className="hidden whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.16em] text-florence-slate sm:block">
               NCLEX-RN Bootcamp
@@ -108,15 +108,14 @@ function Hero() {
         <div>
           <p className="fl-eyebrow">NCLEX-RN bootcamp · for internationally educated nurses</p>
           <h1 className="mt-3 font-serif text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">
-            A live cohort, an adaptive question bank, and a&nbsp;
-            <span className="italic text-florence-indigo">readiness band</span> that
+            A live cohort, an adaptive question bank, and a readiness band that
             tells you the truth.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-florence-slate sm:text-lg">
             Twenty sections taught live, in order, by an instructor who works
             with internationally educated nurses every week. Between sessions
             you train on a content-balanced bank built to the 2026 NCSBN test
-            plan. We tell you where you stand — green, yellow, orange, red —
+            plan. We tell you where you stand - green, yellow, orange, red -
             and we don&apos;t move on until the band moves.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -221,7 +220,7 @@ function WhatYouGet() {
     {
       title: "Adaptive practice that maps to the test plan",
       body:
-        "Multiple choice, select-all-that-apply, drag-and-drop, extended multiple-response, bow-tie, NGN unfolding cases. Content-balanced to the 2026 NCSBN RN plan — your nightly 150 mirrors the real mix.",
+        "Multiple choice, select-all-that-apply, drag-and-drop, extended multiple-response, bow-tie, NGN unfolding cases. Content-balanced to the 2026 NCSBN RN plan - your nightly 150 mirrors the real mix.",
     },
     {
       title: "A readiness band that doesn't flatter you",
@@ -317,7 +316,7 @@ function CohortsSection() {
             </h2>
           </div>
           <p className="max-w-md text-sm text-florence-slate">
-            Cohort size is capped. Seats remaining is live — when it hits zero,
+            Cohort size is capped. Seats remaining is live - when it hits zero,
             we close enrollment and open the next.
           </p>
         </div>
@@ -420,12 +419,12 @@ function DepositSection() {
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-florence-slate">
             The deposit reserves your seat in a cohort and is applied to
-            tuition when you enroll. We charge two tiers — not to be coy, but
+            tuition when you enroll. We charge two tiers - not to be coy, but
             because graduates of an established nursing program have already
             cleared a real bar, and we want the math to reflect that.
           </p>
           <p className="mt-4 max-w-md text-sm text-florence-slate">
-            Your card data never touches our servers — checkout runs through a
+            Your card data never touches our servers - checkout runs through a
             hosted processor.
           </p>
         </div>
@@ -441,7 +440,7 @@ function DepositSection() {
             <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
               If you graduated from (or are currently in) a school on the
               eligible list. The list is maintained from public regulator
-              registries — Philippines (CHED), Kenya (NCK), UK (NMC-approved),
+              registries - Philippines (CHED), Kenya (NCK), UK (NMC-approved),
               and more added per cohort.
             </p>
             <a
@@ -459,7 +458,7 @@ function DepositSection() {
             <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
               If your school isn&apos;t on the list yet. You still get the
               full bootcamp. Self-attestation about your credentials is on the
-              honor system — and we audit.
+              honor system - and we audit.
             </p>
           </div>
         </div>
@@ -517,7 +516,7 @@ function SchoolQualifier() {
             <ul className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-florence-line bg-white shadow-sm">
               {matches.length === 0 ? (
                 <li className="px-4 py-3 text-sm text-florence-slate">
-                  Not in our directory yet — you&apos;d enroll at the standard
+                  Not in our directory yet - you&apos;d enroll at the standard
                   $100 tier. (We add new schools per cohort; let us know yours.)
                 </li>
               ) : (
@@ -619,19 +618,19 @@ function QualifierResult({ school, onClear }: { school: PublicSchool; onClear: (
 const FAQ: { q: string; a: string }[] = [
   {
     q: "Is this for the NCLEX-RN specifically?",
-    a: "Yes — the RN exam, current 2026 NCSBN test plan. The bootcamp does not cover the PN (practical-nurse) variant.",
+    a: "Yes - the RN exam, current 2026 NCSBN test plan. The bootcamp does not cover the PN (practical-nurse) variant.",
   },
   {
     q: "Do I need to be in the United States to enroll?",
     a: "No. The bootcamp runs live online; you can attend from anywhere. You'll sit the NCLEX at a Pearson VUE test center in the country you're authorized to test in.",
   },
   {
-    q: "What does the deposit get me — what's the rest of tuition?",
+    q: "What does the deposit get me - what's the rest of tuition?",
     a: "The deposit reserves your seat in a cohort and is credited toward tuition when you enroll. Full tuition is set per cohort and shared during enrollment. We don't quote it publicly because it varies with payment plan, sponsorship, and your country.",
   },
   {
     q: "How is my school being on \"the eligible list\" decided?",
-    a: "We build the list from public regulator registries — CHED (Philippines), the Nursing Council of Kenya, the UK NMC-approved programmes, and so on. If your school is regulator-approved and isn't on the list yet, tell us at signup and we add it.",
+    a: "We build the list from public regulator registries - CHED (Philippines), the Nursing Council of Kenya, the UK NMC-approved programmes, and so on. If your school is regulator-approved and isn't on the list yet, tell us at signup and we add it.",
   },
   {
     q: "What if I attend and decide it isn't for me?",
@@ -643,11 +642,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Who teaches?",
-    a: "A small group of nurse educators who work with internationally educated nurses every week. Instructor names are shared at enrollment — we don't put them on a marketing page.",
+    a: "A small group of nurse educators who work with internationally educated nurses every week. Instructor names are shared at enrollment - we don't put them on a marketing page.",
   },
   {
     q: "Is my data private?",
-    a: "Yes. The learner app only holds your study data — identity, progress, performance, readiness. Financial and regulatory workflows live elsewhere, behind separate authentication. You can see exactly who has accessed your record from your account page.",
+    a: "Yes. The learner app only holds your study data - identity, progress, performance, readiness. Financial and regulatory workflows live elsewhere, behind separate authentication. You can see exactly who has accessed your record from your account page.",
   },
 ];
 
@@ -686,7 +685,7 @@ function MarketingFooter() {
     <footer className="border-t border-florence-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-xs text-florence-slate sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div className="space-y-1">
-          <p>Florence Academy — NCLEX-RN preparation for internationally educated nurses.</p>
+          <p>Florence Academy - NCLEX-RN preparation for internationally educated nurses.</p>
           <p className="text-florence-slate/80">
             Educational use only. Clinical content reflects current NCLEX
             teaching frameworks; it is not medical advice.

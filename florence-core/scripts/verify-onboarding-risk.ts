@@ -15,7 +15,7 @@ import { classOf } from "../src/classification.ts";
 
 let pass = 0, fail = 0;
 const ok = (label: string, cond: boolean, extra?: string) => {
-  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` — ${extra}` : ""}`);
+  console.log(`${cond ? "✓" : "✗"} ${label}${extra ? ` - ${extra}` : ""}`);
   cond ? (pass += 1) : (fail += 1);
 };
 
@@ -80,13 +80,13 @@ ok("recommendedActionsByBand.critical[0] = manager_outreach", ct.onboardingRisks
 
 // ── passportView withholding (internal-only facet) ───────────────────────────
 const pv = fold("pv", [ev("pv", "academy.assessment_completed", { band: "green", theta: 1, mastery: [{ dim: "client_need", key: "pharm", theta: 0.5, passProb: 0.7, items: 8 }] }), ev("pv", "onboarding.start_signal", { signal: "manager_concern", value: 0.6 })]);
-ok("internal_ops view INCLUDES onboarding", (passportView(pv, { audience: "internal_ops" }).passport as any).onboarding !== undefined);
+ok("internal_ops view INCLUDES onboarding", (passportView(pv, { audience: "internal_ops", internalRole: true }).passport as any).onboarding !== undefined);
 for (const aud of ["employer", "lender", "instructor", "university", "investor"] as const) {
   const v = passportView(pv, { audience: aud, orgId: "x", consentOk: true });
   ok(`${aud} view WITHHOLDS onboarding`, !("onboarding" in (v.passport as any)) && v.withheld.some((w) => w.field === "onboarding"));
 }
-ok("classOf(onboarding.startSignals) = internal_business", classOf("onboarding.startSignals") === "internal_business");
-ok("classOf(readiness.subscaleMastery) = candidate_personal", classOf("readiness.subscaleMastery") === "candidate_personal");
+ok("classOf(onboarding.startSignals) = INTERNAL", classOf("onboarding.startSignals") === "INTERNAL");
+ok("classOf(readiness.subscaleMastery) = RESTRICTED_EDUCATION", classOf("readiness.subscaleMastery") === "RESTRICTED_EDUCATION");
 
-console.log(`\n${fail ? "ONBOARDING RISK FAILED" : "ONBOARDING RISK PASSED"} — ${pass} passed, ${fail} failed`);
+console.log(`\n${fail ? "ONBOARDING RISK FAILED" : "ONBOARDING RISK PASSED"} - ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

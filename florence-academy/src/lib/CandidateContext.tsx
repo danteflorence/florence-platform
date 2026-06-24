@@ -1,7 +1,7 @@
 // Candidate session context: bootstraps from a stored token, exposes sign-in /
 // sign-up / sign-out and the learner's readiness snapshot. When no API is
 // configured (apiEnabled === false), it stays in "anonymous" and the app runs
-// exactly as the static build — persistence is purely additive.
+// exactly as the static build - persistence is purely additive.
 
 import {
   createContext,

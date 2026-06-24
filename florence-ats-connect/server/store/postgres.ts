@@ -3,7 +3,7 @@
 // directly. Runs on embedded PGlite (dev/verify) or a networked server
 // (DATABASE_URL) with identical SQL.
 import { createPgClient, type PgClient } from './pgClient'
-import type { Store } from './types'
+import type { DocumentAccessGrantRecord, RestrictedDocumentRecord, Store } from './types'
 import type {
   EmployerAccount, Facility, JobRequisition, FlorenceCandidate, EmployerShareConsent,
   ApplicationPacket, ATSApplication, ProductionLedgerEvent, SyncEvent, AuditEntry, AtsConnection,
@@ -15,6 +15,7 @@ import type {
   DemandReservation, JobBenefits,
   HiringSignal, ClaimedEmployerJob, NurseMarketInterest, ClaimToken,
 } from '../../shared/demand-types'
+import type { SubmissionLock } from '../../shared/vms-types'
 
 const DDL = `
 CREATE TABLE IF NOT EXISTS employers (id text PRIMARY KEY, created_at text, json jsonb NOT NULL);
@@ -24,14 +25,25 @@ CREATE TABLE IF NOT EXISTS candidates (id text PRIMARY KEY, readiness_band text,
 CREATE TABLE IF NOT EXISTS consents (id text PRIMARY KEY, candidate_id text, employer_id text, granted_at text, revoked_at text, json jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS packets (id text PRIMARY KEY, candidate_id text, requisition_id text, employer_id text, status text, created_at text, json jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS ats_applications (id text PRIMARY KEY, packet_id text, candidate_id text, requisition_id text, employer_id text, status text, created_at text, json jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS submission_locks (id text PRIMARY KEY, candidate_id text, employer_id text, requisition_id text, channel text, submission_id text, status text, locked_at text, expires_at text, json jsonb NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sublock_active_unique ON submission_locks(candidate_id, employer_id, channel) WHERE status = 'active';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sublock_active_candidate_employer ON submission_locks(candidate_id, employer_id) WHERE status = 'active';
 CREATE TABLE IF NOT EXISTS ledger_events (id text PRIMARY KEY, candidate_id text, employer_id text, requisition_id text, stage text, at text, json jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS sync_events (id text PRIMARY KEY, employer_id text, entity_type text, direction text, status text, at text, json jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS audit_log (id text PRIMARY KEY, at text, actor text, entity text, entity_id text, json jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS restricted_documents (id text PRIMARY KEY, candidate_id text, employer_id text, packet_id text, document_type text, status text, created_at text, json jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS document_access_grants (id text PRIMARY KEY, token_hash text UNIQUE, document_id text, candidate_id text, employer_id text, expires_at text, revoked_at text, created_at text, json jsonb NOT NULL);
+ALTER TABLE document_access_grants ADD COLUMN IF NOT EXISTS created_at text;
 CREATE TABLE IF NOT EXISTS idempotency_keys (key text PRIMARY KEY, status integer, body jsonb NOT NULL, created_at text);
 CREATE INDEX IF NOT EXISTS idx_req_employer ON requisitions(employer_id);
 CREATE INDEX IF NOT EXISTS idx_app_employer ON ats_applications(employer_id);
+CREATE INDEX IF NOT EXISTS idx_sublock_candidate_employer ON submission_locks(candidate_id, employer_id, status);
 CREATE INDEX IF NOT EXISTS idx_ledger_candidate ON ledger_events(candidate_id);
 CREATE INDEX IF NOT EXISTS idx_consent_pair ON consents(candidate_id, employer_id);
+CREATE INDEX IF NOT EXISTS idx_restricted_doc_packet ON restricted_documents(packet_id);
+CREATE INDEX IF NOT EXISTS idx_restricted_doc_employer ON restricted_documents(employer_id, status);
+CREATE INDEX IF NOT EXISTS idx_doc_grant_hash ON document_access_grants(token_hash);
+CREATE INDEX IF NOT EXISTS idx_doc_grant_doc ON document_access_grants(document_id);
 CREATE TABLE IF NOT EXISTS connections (id text PRIMARY KEY, employer_id text, provider text, status text, created_at text, json jsonb NOT NULL, secret text);
 CREATE INDEX IF NOT EXISTS idx_conn_employer ON connections(employer_id);
 CREATE TABLE IF NOT EXISTS demand_sources (id text PRIMARY KEY, source_type text, created_at text, json jsonb NOT NULL);
@@ -123,6 +135,15 @@ export async function createPostgresStore(): Promise<Store> {
       byEmployer: (eid) => rows<ATSApplication>('SELECT json FROM ats_applications WHERE employer_id = $1 ORDER BY created_at DESC', [eid]),
       all: () => rows<ATSApplication>('SELECT json FROM ats_applications ORDER BY created_at DESC'),
     },
+    submissionLocks: {
+      async insert(l: SubmissionLock) { await c.query('INSERT INTO submission_locks(id, candidate_id, employer_id, requisition_id, channel, submission_id, status, locked_at, expires_at, json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)', [l.id, l.candidateId, l.employerId, l.requisitionId ?? null, l.channel, l.submissionId ?? null, l.status, l.lockedAt, l.expiresAt ?? null, JSON.stringify(l)]) },
+      async update(l: SubmissionLock) { await c.query('UPDATE submission_locks SET status = $1, submission_id = $2, expires_at = $3, json = $4::jsonb WHERE id = $5', [l.status, l.submissionId ?? null, l.expiresAt ?? null, JSON.stringify(l), l.id]) },
+      get: (id) => one<SubmissionLock>('SELECT json FROM submission_locks WHERE id = $1', [id]),
+      active: (candidateId, employerId) => one<SubmissionLock>("SELECT json FROM submission_locks WHERE candidate_id = $1 AND employer_id = $2 AND status = 'active' AND (expires_at IS NULL OR expires_at > $3) ORDER BY locked_at DESC LIMIT 1", [candidateId, employerId, new Date().toISOString()]),
+      byCandidate: (candidateId) => rows<SubmissionLock>('SELECT json FROM submission_locks WHERE candidate_id = $1 ORDER BY locked_at DESC', [candidateId]),
+      bySubmission: (submissionId) => one<SubmissionLock>('SELECT json FROM submission_locks WHERE submission_id = $1 ORDER BY locked_at DESC LIMIT 1', [submissionId]),
+      all: () => rows<SubmissionLock>('SELECT json FROM submission_locks ORDER BY locked_at DESC'),
+    },
     ledger: {
       async insert(e: ProductionLedgerEvent) { await c.query('INSERT INTO ledger_events(id, candidate_id, employer_id, requisition_id, stage, at, json) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)', [e.id, e.candidateId, e.employerId ?? null, e.jobRequisitionId ?? null, e.stage, e.at, JSON.stringify(e)]) },
       byCandidate: (cid) => rows<ProductionLedgerEvent>('SELECT json FROM ledger_events WHERE candidate_id = $1 ORDER BY at', [cid]),
@@ -138,6 +159,28 @@ export async function createPostgresStore(): Promise<Store> {
     audit: {
       async log(e: AuditEntry) { await c.query('INSERT INTO audit_log(id, at, actor, entity, entity_id, json) VALUES($1,$2,$3,$4,$5,$6::jsonb)', [e.id, e.at, e.actor, e.entity, e.entityId, JSON.stringify(e)]) },
       recent: (limit = 150) => rows<AuditEntry>('SELECT json FROM audit_log ORDER BY at DESC LIMIT $1', [limit]),
+    },
+    restrictedDocuments: {
+      async insert(d: RestrictedDocumentRecord) {
+        await c.query('INSERT INTO restricted_documents(id, candidate_id, employer_id, packet_id, document_type, status, created_at, json) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb)', [d.id, d.candidateId, d.employerId, d.packetId ?? null, d.documentType, d.status, d.createdAt, JSON.stringify(d)])
+      },
+      async update(d: RestrictedDocumentRecord) {
+        await c.query('UPDATE restricted_documents SET status = $1, json = $2::jsonb WHERE id = $3', [d.status, JSON.stringify(d), d.id])
+      },
+      get: (id) => one<RestrictedDocumentRecord>('SELECT json FROM restricted_documents WHERE id = $1', [id]),
+      byPacket: (packetId) => rows<RestrictedDocumentRecord>('SELECT json FROM restricted_documents WHERE packet_id = $1 ORDER BY created_at DESC', [packetId]),
+      all: () => rows<RestrictedDocumentRecord>('SELECT json FROM restricted_documents ORDER BY created_at DESC'),
+    },
+    documentAccessGrants: {
+      async insert(g: DocumentAccessGrantRecord) {
+        await c.query('INSERT INTO document_access_grants(id, token_hash, document_id, candidate_id, employer_id, expires_at, revoked_at, created_at, json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)', [g.id, g.tokenHash, g.documentId, g.candidateId, g.employerId, g.expiresAt, g.revokedAt ?? null, g.createdAt, JSON.stringify(g)])
+      },
+      async update(g: DocumentAccessGrantRecord) {
+        await c.query('UPDATE document_access_grants SET revoked_at = $1, json = $2::jsonb WHERE id = $3', [g.revokedAt ?? null, JSON.stringify(g), g.id])
+      },
+      get: (id) => one<DocumentAccessGrantRecord>('SELECT json FROM document_access_grants WHERE id = $1', [id]),
+      byTokenHash: (tokenHash) => one<DocumentAccessGrantRecord>('SELECT json FROM document_access_grants WHERE token_hash = $1', [tokenHash]),
+      byDocument: (documentId) => rows<DocumentAccessGrantRecord>('SELECT json FROM document_access_grants WHERE document_id = $1 ORDER BY created_at DESC', [documentId]),
     },
     idempotency: {
       async get(key) { const r = await c.query('SELECT status, body FROM idempotency_keys WHERE key = $1', [key]); return r.rows[0] ? { status: r.rows[0].status as number, body: r.rows[0].body } : null },
@@ -276,7 +319,7 @@ export async function createPostgresStore(): Promise<Store> {
       all: () => rows<ClaimToken>('SELECT json FROM claim_tokens ORDER BY created_at DESC'),
     },
     async counts() {
-      const t = ['employers', 'facilities', 'requisitions', 'candidates', 'packets', 'ats_applications', 'ledger_events', 'raw_jobs', 'demand_jobs', 'job_benefits', 'tracking_clicks', 'job_interests', 'programs', 'program_slates', 'demand_reservations', 'hiring_signals', 'claimed_employer_jobs', 'nurse_market_interest', 'claim_tokens']
+      const t = ['employers', 'facilities', 'requisitions', 'candidates', 'packets', 'ats_applications', 'submission_locks', 'ledger_events', 'restricted_documents', 'document_access_grants', 'raw_jobs', 'demand_jobs', 'job_benefits', 'tracking_clicks', 'job_interests', 'programs', 'program_slates', 'demand_reservations', 'hiring_signals', 'claimed_employer_jobs', 'nurse_market_interest', 'claim_tokens']
       const out: Record<string, number> = {}
       for (const name of t) out[name] = Number((await c.query(`SELECT COUNT(*)::int AS n FROM ${name}`)).rows[0].n)
       return out

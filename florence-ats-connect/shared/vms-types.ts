@@ -90,6 +90,7 @@ export type VMSGateStatus =
   | 'visa_pending'
   | 'license_pending'
   | 'qa_pending'
+  | 'duplicate_submission'
   | 'ready_to_submit'
   | 'submitted'
 

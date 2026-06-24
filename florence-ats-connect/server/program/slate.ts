@@ -8,12 +8,16 @@
 // Each candidate is matched against the employer's REAL open requisitions; only when
 // the employer has none do we fall back to a synthetic, state-agnostic requisition.
 
-import { store, uid, now } from '../db'
+import { store, uid, now, audit } from '../db'
 import { matchCandidateToRequisition } from '../../shared/matching'
 import { buildPacket, ConsentRequiredError } from '../../shared/packet'
 import { recordLedger } from '../ledger'
-import { candidateApplicationReady } from '../../shared/applicationGate'
+import { applicationGate } from '../../shared/applicationGate'
+import { runApplicationGate } from '../applicationGateEnforce'
+import { requireEmployerShareConsent } from '../consentService'
+import { acquireSubmissionLock, releaseSubmissionLock } from '../submissionLock'
 import type { ApplicationPacket, FlorenceCandidate, JobRequisition, MatchResult, Program, ProgramSlate } from '../../shared/types'
+import type { SubmissionLock } from '../../shared/vms-types'
 
 export interface SlateCandidate {
   candidateId: string
@@ -77,8 +81,21 @@ export async function generateLicensedSlate(programId: string): Promise<Licensed
       // Matched ready, but the Application Gate adds the work-authorization (visa) clause
       // on top of matching — a visa-uncleared nurse is NOT employer-eligible (fail-closed).
       const req = reqById.get(m.requisitionId)
-      if (req && candidateApplicationReady(c, req)) eligible.push(row)
-      else gatePending.push({ ...row, gateReason: 'work authorization not cleared' })
+      const consent = req ? await requireEmployerShareConsent({ candidateId: c.id, employerId: program.employerId, jobRequisitionId: req.id, programId: program.id }) : null
+      const gate = req ? applicationGate({
+        candidate: c,
+        job: req,
+        opportunityState: program.channel === 'amn' ? 'amn_channel' : 'direct_partner',
+        opts: {
+          employerShareConsentGranted: !!consent,
+          packetQaApproved: true,
+          documentsComplete: true,
+          dataMinimizedPacketGenerated: true,
+          duplicateSubmissionLockClear: true,
+        },
+      }) : null
+      if (gate?.ok) eligible.push(row)
+      else gatePending.push({ ...row, gateReason: gate?.reasons[0] ?? 'application gate not cleared' })
     } else if (m.category === 'ready_after_milestone' && m.blockers.length === 1 && /consent/i.test(m.blockers[0]!)) {
       // Licensed + passed + state-feasible — the ONLY gap is employer-share consent.
       consentPending.push(row)
@@ -104,9 +121,10 @@ export async function buildSlatePackets(programId: string, candidateIds: string[
     if (!c) { skipped.push({ candidateId, reason: 'candidate not found' }); continue }
     const m = bestMatch(c, openReqs.length ? openReqs : [syntheticReq(program)])
     const requisition = openReqs.find((r) => r.id === m?.requisitionId) ?? syntheticReq(program)
-    const consent = await store.consents.live(c.id, program.employerId)
+    const consent = await requireEmployerShareConsent({ candidateId: c.id, employerId: program.employerId, jobRequisitionId: requisition.id, programId: program.id })
     try {
       const packet = buildPacket({ candidate: c, requisition, consent, newId: uid, nowIso: now })
+      packet.programId = program.id
       await store.packets.insert(packet)
       await recordLedger({ candidateId: c.id, stage: 'packet_created', sourceId: packet.id, employerId: program.employerId, notes: `Program ${program.name}` })
       packets.push(packet)
@@ -122,17 +140,42 @@ export async function buildSlatePackets(programId: string, candidateIds: string[
 export async function lockSlate(programId: string, waveId: string, candidateIds: string[]): Promise<ProgramSlate> {
   const program = await store.programs.get(programId)
   if (!program) throw new Error(`program not found: ${programId}`)
-  // Re-validate eligibility at lock time (gate must still hold).
-  const slate = await generateLicensedSlate(programId)
-  const eligibleIds = new Set(slate.eligible.map((e) => e.candidateId))
-  const invalid = candidateIds.filter((id) => !eligibleIds.has(id))
+  // Re-validate full packet-aware gate at lock time. A slate lock is a formal
+  // employer submission, so an approved packet and duplicate-lock clearance are required.
+  const approvals: { candidateId: string; requisitionId: string; packetId: string }[] = []
+  const invalid: string[] = []
+  for (const candidateId of candidateIds) {
+    audit('ops', 'program_slate_submission_attempted', 'program', program.id, `candidate=${candidateId};wave=${waveId}`)
+    const candidate = await store.candidates.get(candidateId)
+    const packets = (await store.packets.byCandidate(candidateId)).filter((p) => p.employerId === program.employerId && p.status === 'ready_to_submit')
+    let approved: { requisitionId: string; packetId: string } | null = null
+    for (const packet of packets) {
+      const requisition = await store.requisitions.get(packet.jobRequisitionId)
+      if (!candidate || !requisition) continue
+      const gate = await runApplicationGate({ candidate, requisition, packet, auditEntity: 'program', action: 'slate_lock', channel: program.channel === 'amn' ? 'amn' : 'direct', programId: program.id })
+      if (gate.allowed) { approved = { requisitionId: requisition.id, packetId: packet.id }; break }
+    }
+    if (approved) approvals.push({ candidateId, ...approved })
+    else invalid.push(candidateId)
+  }
   if (invalid.length) throw new Error(`not eligible to lock: ${invalid.join(', ')}`)
+  const locks: SubmissionLock[] = []
+  for (const a of approvals) {
+    const lock = await acquireSubmissionLock({ candidateId: a.candidateId, employerId: program.employerId, requisitionId: a.requisitionId, channel: program.channel === 'amn' ? 'amn' : 'direct' })
+    if (!lock.ok) {
+      for (const l of locks) await releaseSubmissionLock(l, 'slate_lock_failed')
+      throw new Error(`duplicate submission lock active: ${a.candidateId}`)
+    }
+    locks.push(lock.lock)
+  }
   const record: ProgramSlate = { id: uid(), programId, waveId, candidateIds: [...candidateIds], createdAt: now(), submittedAt: now() }
   await store.programSlates.insert(record)
   const wave = await store.programWaves.get(waveId)
   if (wave && wave.status === 'planned') { wave.status = 'active'; await store.programWaves.update(wave) }
-  for (const cid of candidateIds) {
-    await recordLedger({ candidateId: cid, stage: 'ats_application_submitted', sourceId: record.id, employerId: program.employerId, notes: `Locked into ${program.name} wave ${wave?.waveNumber ?? '?'}` })
+  for (const a of approvals) {
+    const lock = locks.find((l) => l.candidateId === a.candidateId)
+    if (lock) { lock.submissionId = record.id; await store.submissionLocks.update(lock) }
+    await recordLedger({ candidateId: a.candidateId, stage: 'ats_application_submitted', sourceId: record.id, employerId: program.employerId, jobRequisitionId: a.requisitionId, notes: `Locked into ${program.name} wave ${wave?.waveNumber ?? '?'}` })
   }
   return record
 }

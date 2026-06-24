@@ -22,6 +22,7 @@ import {
   assembleAdminMetrics, candidateSummaries,
 } from '../views'
 import { requireRole, principalFromRequest, isStaff as isStaffPrincipal } from '../coreAuth'
+import { i901ReceiptApproved } from '../consularPayments'
 
 export const api = Router()
 
@@ -154,11 +155,11 @@ api.post('/candidates/:id/documents', h((req, res) => {
   if (!c) return res.status(404).json({ error: 'not found' })
   const kind = String(req.body?.kind ?? 'derived') as PathwayDocument['kind']
   const filename = String(req.body?.filename ?? 'document')
-  // Extraction is vision-pluggable: with ANTHROPIC_API_KEY a vision model reads
-  // the upload; without a key the document is stored for manual confirmation.
+  // Extraction is ModelGateway-pluggable; without Core gateway configuration the
+  // document is stored for manual confirmation.
   const doc: PathwayDocument = { id: uid(), candidateId: c.id, kind, filename, uploadedAt: now(), extracted: false, extractionConfidence: 'unknown' }
   store.documents.insert(doc)
-  audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `${kind}: ${filename}`)
+  audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `kind=${kind};document=${doc.id}`)
   emitForCandidate(c.id, 'pathway.document_verified', { key: kind })
   res.json({ id: doc.id, extracted: doc.extracted })
 }))
@@ -529,6 +530,7 @@ api.post('/workflows/:id/appointment', h((req, res) => {
   const w = store.workflows.get(req.params.id)
   if (!w) return res.status(404).json({ error: 'not found' })
   if (w.type !== 'visa_appointment') return res.status(400).json({ error: 'appointment scheduling is for the visa appointment workflow' })
+  if (!i901ReceiptApproved(w.candidateId)) return res.status(409).json({ error: 'I-901 SEVIS receipt must be uploaded and QA-approved before the visa appointment is marked ready.' })
   const parsed = appointmentSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
   const { consulate, appointmentDate, location, mrvReceipt } = parsed.data

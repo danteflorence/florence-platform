@@ -14,7 +14,7 @@ import {
 /**
  * Content-lab gallery for the image / media item types. Renders each scaffold
  * through the real QuestionBody + grading path so the team can review behaviour
- * (and screen-reader labels) before any artwork exists — each item shows a
+ * (and screen-reader labels) before any artwork exists - each item shows a
  * "media pending" placeholder until a real asset is dropped into its `src`.
  */
 export default function MediaPreview() {
@@ -23,8 +23,8 @@ export default function MediaPreview() {
       <p className="fl-eyebrow">Content lab · scaffold</p>
       <h1 className="mt-1 text-3xl font-semibold">Image &amp; media item types</h1>
       <p className="mt-2 text-sm leading-relaxed text-florence-slate">
-        Three NCLEX image item types — graphic hot-spot, graphic answer options,
-        and a media exhibit — authored and fully gradable now. Each renders a
+        Three NCLEX image item types - graphic hot-spot, graphic answer options,
+        and a media exhibit - authored and fully gradable now. Each renders a
         “media&nbsp;pending” placeholder until artwork is supplied; drop a real
         image into the item’s <code className="rounded bg-florence-mist px-1">src</code> and it
         appears in place, no other change needed.

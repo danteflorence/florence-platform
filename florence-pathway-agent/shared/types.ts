@@ -29,6 +29,7 @@ export type EvidenceSourceType =
   | 'transcript'
   | 'license_doc'
   | 'i20'
+  | 'i901_receipt'
   | 'offer_letter'
   | 'prior_visa'
   | 'english_score'
@@ -512,6 +513,117 @@ export interface LedgerMilestone {
 }
 
 // ---------------------------------------------------------------------------
+// Consular Payments — V1 is I-901 SEVIS fee orchestration
+// ---------------------------------------------------------------------------
+
+export type ConsularPaymentType = 'i901_sevis' | 'mrv' | 'courier' | 'issuance_fee' | 'other'
+export type ConsularVisaType = 'F1' | 'F2' | 'M1' | 'M2' | 'J1' | 'J2' | 'other'
+export type ConsularPayerType = 'student' | 'florence' | 'sponsor' | 'loan_funded'
+export type ConsularPaymentPartner = 'sevismate' | 'official_fmjfee' | 'manual' | 'other'
+
+export type ConsularPaymentStatus =
+  | 'not_required'
+  | 'not_started'
+  | 'eligible_for_i901_payment'
+  | 'awaiting_student_attestation'
+  | 'ready_for_sevismate'
+  | 'payment_link_generated'
+  | 'student_opened_payment'
+  | 'payment_started'
+  | 'payment_failed'
+  | 'payment_confirmed_by_sevismate'
+  | 'submitted_to_fmjfee'
+  | 'receipt_pending'
+  | 'receipt_received'
+  | 'receipt_qa_approved'
+  | 'receipt_rejected_needs_correction'
+  | 'cancelled'
+  | 'refunded'
+  | 'case_escalated'
+
+export interface ConsularPaymentOrder {
+  id: string
+  candidateId: string
+  consularCaseId: string
+  paymentType: ConsularPaymentType
+  visaType: ConsularVisaType
+  required: boolean
+  status: ConsularPaymentStatus
+  officialFeeUsd?: number
+  serviceFeeUsd?: number
+  taxOrProcessingFeeUsd?: number
+  localCurrency?: string
+  localAmount?: number
+  payerType: ConsularPayerType
+  partner: ConsularPaymentPartner
+  createdAt: string
+  updatedAt: string
+  dueDate?: string
+  interviewDate?: string
+  ownerUserId?: string
+  candidateAttestationId?: string
+  statusReason?: string
+  serviceSpeed?: 'basic' | 'standard' | 'express'
+}
+
+export type SevismateIntegrationMode = 'deep_link' | 'csv' | 'sftp' | 'api' | 'manual'
+
+export interface SevismateHandoff {
+  id: string
+  paymentOrderId: string
+  candidateId: string
+  integrationMode: SevismateIntegrationMode
+  partnerReferenceId?: string
+  paymentLink?: string
+  fieldsSent: string[]
+  documentsSent: string[]
+  consentId: string
+  status: 'created' | 'sent' | 'accepted' | 'rejected' | 'needs_correction' | 'completed'
+  createdAt: string
+  sentAt?: string
+  completedAt?: string
+}
+
+export interface I901Receipt {
+  id: string
+  paymentOrderId: string
+  candidateId: string
+  documentId: string
+  sevisId: string
+  legalName?: string
+  schoolCode?: string
+  formType?: 'I-20' | 'DS-2019'
+  visaType?: ConsularVisaType
+  receiptDate?: string
+  amountUsd?: number
+  source: 'sevismate_dashboard' | 'student_upload' | 'ops_upload' | 'api'
+  extractionConfidence: Confidence
+  qaStatus: 'pending' | 'approved' | 'rejected'
+  qaReviewerId?: string
+  qaReviewedAt?: string
+  rejectionReason?: string
+}
+
+export interface ConsularPaymentEvent {
+  id: string
+  candidateId: string
+  paymentOrderId: string
+  eventType:
+    | 'i901_payment_order_created'
+    | 'i901_candidate_attested'
+    | 'i901_handoff_sent'
+    | 'i901_payment_started'
+    | 'i901_payment_confirmed'
+    | 'i901_receipt_received'
+    | 'i901_receipt_qa_approved'
+    | 'i901_payment_failed'
+    | 'i901_correction_required'
+    | 'i901_refund_requested'
+  occurredAt: string
+  metadata?: Record<string, unknown>
+}
+
+// ---------------------------------------------------------------------------
 // Jurisdiction rules (data-driven rules engine)
 // ---------------------------------------------------------------------------
 
@@ -577,4 +689,7 @@ export interface CandidateDossier {
   documents: PathwayDocument[]
   workflows: WorkflowInstance[]
   appointments: AppointmentEvent[]
+  consularPaymentOrders: ConsularPaymentOrder[]
+  sevismateHandoffs: SevismateHandoff[]
+  i901Receipts: I901Receipt[]
 }

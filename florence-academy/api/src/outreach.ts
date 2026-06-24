@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────────────────────
-// Outreach helpers — activation codes + Lob signature verification.
+// Outreach helpers - activation codes + Lob signature verification.
 //
 // Activation code: stable per (campaign × school_slug) so reruns and
 // cross-tool references (Florence labor-economics) produce the same code.
@@ -26,7 +26,7 @@ const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
  * low 5 bits produce IDENTICAL output codes. With long seeds (camp_… +
  * school slug) we hit this collision regime constantly.
  *
- * We use SHA-256 instead — first 25 bits of the digest, sliced into 5
+ * We use SHA-256 instead - first 25 bits of the digest, sliced into 5
  * five-bit groups, mapped through the alphabet. Full uniformity, no
  * collisions until ~2^12.5 = 5,800 inputs (birthday paradox on 32^5),
  * which is plenty for a campaign.
@@ -56,7 +56,7 @@ export function activationCode(seed: string): string {
  * Caller checks the timestamp is within tolerance (default 5min) and the
  * signature matches in constant time. Returns true on valid signature.
  *
- * If secret is empty, returns false — never accept unsigned webhooks in
+ * If secret is empty, returns false - never accept unsigned webhooks in
  * production (the API gate ensures secret is present before calling here).
  */
 export function verifyLobSignature(opts: {
@@ -89,7 +89,7 @@ export function verifyLobSignature(opts: {
 }
 
 /** Detect whether a Lob API key is a test key (renders preview PDF, no charge)
- *  or a live key (real mail, real money). Lob prefixes the two — `test_…` vs
+ *  or a live key (real mail, real money). Lob prefixes the two - `test_…` vs
  *  `live_…`. We default to assuming `test` if the prefix isn't recognized,
  *  so accidentally pasting a malformed key never accidentally sends real mail. */
 export function lobKeyMode(key: string): "test" | "live" {
@@ -109,7 +109,7 @@ export function lobIdempotencyKey(campaignId: string, targetId: string): string 
 /** Lob's address_country wants ISO-3166 alpha-2. Our schools/leads use a mix
  *  of country names and codes. Map the names we actually have in the directory;
  *  pass through anything that's already 2 chars. The full ISO list isn't shipped
- *  here — when we hit a country not in the map, return uppercase truncated to
+ *  here - when we hit a country not in the map, return uppercase truncated to
  *  2 chars so Lob can flag it on send. */
 const COUNTRY_TO_ISO2: Record<string, string> = {
   "united states": "US",

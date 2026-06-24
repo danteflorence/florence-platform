@@ -31,8 +31,8 @@ export function ApplicationGate({ candidateId, jobId, client, initialGate }: App
       {!ready && view.missing.length > 0 && (
         <ul className="frn-app-gate__missing">{view.missing.map((m) => <li key={m.key}>{m.label}</li>)}</ul>
       )}
-      {ready && view.subjectTo.length > 0 && (
-        <p className="frn-app-gate__subject">Subject to: {view.subjectTo.join(", ")}</p>
+      {ready && view.subjectToMessage && (
+        <p className="frn-app-gate__subject">{view.subjectToMessage}</p>
       )}
     </div>
   )

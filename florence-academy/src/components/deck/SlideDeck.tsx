@@ -240,14 +240,14 @@ export default function SlideDeck({
           tabIndex={-1}
           role="dialog"
           aria-modal="true"
-          aria-label={`${deck.title} — slide overview`}
+          aria-label={`${deck.title} - slide overview`}
           className="absolute inset-0 z-50 overflow-y-auto bg-florence-ink/95 p-6 outline-none backdrop-blur"
           onClick={() => setOverview(false)}
         >
           <div className="mx-auto max-w-6xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-serif text-xl font-semibold text-white">
-                {deck.title} — all slides
+                {deck.title} - all slides
               </h2>
               <button
                 onClick={() => setOverview(false)}

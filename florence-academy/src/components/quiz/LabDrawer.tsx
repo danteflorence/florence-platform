@@ -1,6 +1,6 @@
 import { LAB_GROUPS } from "../../data/labValues";
 
-/** Slide-over reference of normal lab ranges — the candidate's "Lab Values" tool. */
+/** Slide-over reference of normal lab ranges - the candidate's "Lab Values" tool. */
 export default function LabDrawer({
   open,
   onClose,
@@ -44,7 +44,7 @@ export default function LabDrawer({
                       <td className="py-1 pr-2 text-florence-ink">{v.name}</td>
                       <td className="whitespace-nowrap py-1 text-right font-mono text-florence-slate">
                         {v.display ??
-                          `${v.low}–${v.high}${v.unit ? ` ${v.unit}` : ""}`}
+                          `${v.low}-${v.high}${v.unit ? ` ${v.unit}` : ""}`}
                       </td>
                     </tr>
                   ))}
@@ -54,7 +54,7 @@ export default function LabDrawer({
           ))}
           <p className="text-[11px] leading-relaxed text-florence-slate/70">
             Reference ranges vary by laboratory and assay. Teaching reference
-            only — not a substitute for institutional values.
+            only - not a substitute for institutional values.
           </p>
         </div>
       </aside>

@@ -6,6 +6,7 @@ import {
 } from "../../lib/cat";
 import type { SessionItem } from "../../lib/useCatSession";
 import QuestionWalkthrough from "../QuestionWalkthrough";
+import QuestionTutorButton from "../QuestionTutorButton";
 import { optionTextsOf, chosenIndexOf } from "../../lib/walkthrough";
 import {
   isReportingEnabled,
@@ -22,7 +23,7 @@ const STOP_LABEL: Record<string, string> = {
   ci: "Reached a statistically confident result (95% confidence rule).",
   "max-length": "Reached the session length.",
   "pool-exhausted": "Answered every available item.",
-  time: "Time expired — the countdown ran out.",
+  time: "Time expired - the countdown ran out.",
   ended: "Session ended early.",
   running: "Session complete.",
 };
@@ -97,7 +98,7 @@ export default function Results({
   }));
   const cats = categoryBreakdown(responses);
 
-  // Average time per item within each Client Need — shows where pacing drags so
+  // Average time per item within each Client Need - shows where pacing drags so
   // a learner knows which content areas to drill *faster*, not just more.
   const paceByNeed = new Map<ClientNeed, { ms: number; n: number }>();
   for (const h of graded) {
@@ -116,7 +117,7 @@ export default function Results({
   const outcomeBanner =
     outcome === "pass"
       ? { text: "Projected: above the passing standard", cls: "border-vital-ok bg-emerald-50 text-emerald-900" }
-      : { text: "Projected: below the passing standard — keep practicing", cls: "border-vital-danger bg-red-50 text-red-900" };
+      : { text: "Projected: below the passing standard - keep practicing", cls: "border-vital-danger bg-red-50 text-red-900" };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -144,7 +145,7 @@ export default function Results({
         <Metric value={ability.theta.toFixed(2)} label="Ability est. (logits)" sub />
         <Metric value={`±${(1.96 * ability.se).toFixed(2)}`} label="95% CI half-width" sub />
         <Metric
-          value={answered ? `${Math.round(elapsedMs / 1000 / answered)}s` : "—"}
+          value={answered ? `${Math.round(elapsedMs / 1000 / answered)}s` : "-"}
           label="Avg / item (stamina)"
           sub
         />
@@ -215,6 +216,15 @@ export default function Results({
                 </span>
               </summary>
               <div className="border-t border-florence-line bg-florence-mist/40 p-4 text-sm">
+                <div className="mb-3 flex justify-end">
+                  <QuestionTutorButton
+                    question={h.question}
+                    answer={h.answer}
+                    revealed
+                    context={{ source: "Session review" }}
+                    compact
+                  />
+                </div>
                 <QuestionWalkthrough
                   questionId={h.question.id}
                   optionTexts={optionTextsOf(h.question)}
@@ -245,7 +255,7 @@ export default function Results({
 
       <p className="mt-6 text-[11px] leading-relaxed text-florence-slate/70">
         Pass probability is an estimate from a Rasch ability model on this
-        practice pool — a study signal, not a prediction of your actual NCLEX
+        practice pool - a study signal, not a prediction of your actual NCLEX
         result.
       </p>
     </div>
