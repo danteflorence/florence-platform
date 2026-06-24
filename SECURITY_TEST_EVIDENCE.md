@@ -26,7 +26,7 @@ These results were produced in the local Codex sandbox on 2026-06-24. Some check
 | --- | --- | --- |
 | `npm run typecheck` | Passed | Core, ATS Connect, Pathway, Academy API, and Academy web typechecks passed |
 | `npm run lint` | Passed | Workspace lint passed |
-| `npm run security:secrets` | Passed | Secret scan passed, 576 files checked |
+| `npm run security:secrets` | Passed | Secret scan passed, 638 files checked |
 | `npm run security:static` | Passed | Static analysis gate passed; CodeQL configured in GitHub Actions |
 | `npm --prefix florence-core run verify-logging-telemetry-audit` | Passed | 17 checks passed |
 | `npm --prefix florence-core run verify-model-gateway` | Passed | 34 checks passed |
