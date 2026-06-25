@@ -9,6 +9,7 @@ import {
 } from "../lib/academyAuth";
 import { SECTIONS, CLIENT_NEEDS } from "../data/blueprint";
 import manifest from "../data/bankManifest.json";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
 /**
  * Public landing page - the front door for nurses who don't have an account yet.
@@ -35,7 +36,7 @@ export default function LandingHome() {
       <WhatYouGet />
       <HowItWorks />
       <CohortsSection />
-      <DepositSection />
+      <SponsoredAccessSection />
       <SchoolQualifier />
       <Faq />
       <MarketingFooter />
@@ -92,7 +93,7 @@ function MarketingHeader() {
             to="/signup"
             className="ml-1 whitespace-nowrap rounded-lg bg-florence-indigo px-3 py-1.5 text-white transition-colors hover:bg-florence-indigo-dark"
           >
-            Reserve a seat
+            Start live access
           </Link>
         </nav>
       </div>
@@ -106,7 +107,7 @@ function Hero() {
     <section className="border-b border-florence-line/70">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.15fr_1fr] lg:py-24">
         <div>
-          <p className="fl-eyebrow">NCLEX-RN bootcamp · for internationally educated nurses</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">NCLEX-RN bootcamp for internationally educated nurses</p>
           <h1 className="mt-3 font-serif text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">
             A live cohort, an adaptive question bank, and a readiness band that
             tells you the truth.
@@ -123,7 +124,7 @@ function Hero() {
               to="/signup"
               className="rounded-xl bg-florence-indigo px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-indigo-dark"
             >
-              Reserve a seat →
+              Start Global Live access
             </Link>
             <a
               href="#cohorts"
@@ -132,10 +133,10 @@ function Hero() {
               See the schedule
             </a>
             <p className="text-xs text-florence-slate">
-              Deposit reserves your seat · $75 if your school is on the
-              eligible list, $100 otherwise · applied to tuition.
+              $200 value, $100 university sponsorship, $100 student price.
             </p>
           </div>
+          <ApplyProgramsCta placement="landing" compact className="mt-5 max-w-xl" />
         </div>
 
         {/* Real product preview, not a mockup. The curriculum grid is the */}
@@ -152,7 +153,7 @@ function CurriculumPreview() {
   return (
     <div className="self-start rounded-2xl border border-florence-line bg-florence-mist/40 p-5 shadow-sm">
       <div className="flex items-baseline justify-between">
-        <p className="fl-eyebrow text-florence-teal-dark">Curriculum Navigator</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal-dark">Curriculum Navigator</p>
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-florence-slate">
           20 sections · taught live
         </span>
@@ -236,7 +237,7 @@ function WhatYouGet() {
   return (
     <section className="border-b border-florence-line/70">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-20">
-        <p className="fl-eyebrow">What you get</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">What you get</p>
         <h2 className="mt-2 max-w-2xl font-serif text-3xl font-semibold sm:text-4xl">
           The whole product, not a sample chapter.
         </h2>
@@ -258,8 +259,8 @@ function HowItWorks() {
   const steps: { n: string; title: string; body: string }[] = [
     {
       n: "01",
-      title: "Reserve a seat",
-      body: "$75 if your school is on the eligible list, $100 otherwise. Applied to tuition when you enroll.",
+      title: "Start Global Live access",
+      body: "$200 value, $100 university sponsorship, $100 student price for 12 months of scheduled live online classes.",
     },
     {
       n: "02",
@@ -280,7 +281,7 @@ function HowItWorks() {
   return (
     <section className="border-b border-florence-line/70 bg-florence-mist/40">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-20">
-        <p className="fl-eyebrow">How it works</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">How it works</p>
         <h2 className="mt-2 max-w-2xl font-serif text-3xl font-semibold sm:text-4xl">
           Four steps. Nothing magical.
         </h2>
@@ -310,7 +311,7 @@ function CohortsSection() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="fl-eyebrow">Upcoming cohorts</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Upcoming cohorts</p>
             <h2 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
               Pick a city and a month.
             </h2>
@@ -365,7 +366,7 @@ function CohortCard({ cohort }: { cohort: PublicCohort }) {
   const startsLabel = cohort.starts_at ? formatCohortStart(cohort.starts_at) : null;
   return (
     <div className="flex h-full flex-col rounded-2xl border border-florence-line bg-white p-6">
-      <p className="fl-eyebrow text-florence-teal-dark">{cohort.code}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal-dark">{cohort.code}</p>
       <h3 className="mt-1.5 text-lg font-semibold text-florence-ink">{cohort.name}</h3>
       {startsLabel && (
         <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-florence-slate">
@@ -399,7 +400,7 @@ function CohortCard({ cohort }: { cohort: PublicCohort }) {
             to={`/signup?cohort=${encodeURIComponent(cohort.code)}`}
             className="inline-block rounded-lg bg-florence-indigo px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-florence-indigo-dark"
           >
-            Reserve this cohort →
+            Start with this cohort
           </Link>
         )}
       </div>
@@ -407,58 +408,59 @@ function CohortCard({ cohort }: { cohort: PublicCohort }) {
   );
 }
 
-// ── Deposit explainer ───────────────────────────────────────────────────────
-function DepositSection() {
+// Sponsored access explainer.
+function SponsoredAccessSection() {
   return (
     <section className="border-b border-florence-line/70 bg-florence-mist/40">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-8 sm:py-20 lg:grid-cols-[1fr_1fr]">
         <div>
-          <p className="fl-eyebrow">The deposit</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Sponsored access</p>
           <h2 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
-            One small number, transparently explained.
+            Global Live NCLEX Access for $100.
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-florence-slate">
-            The deposit reserves your seat in a cohort and is applied to
-            tuition when you enroll. We charge two tiers - not to be coy, but
-            because graduates of an established nursing program have already
-            cleared a real bar, and we want the math to reflect that.
+            Free Academy stays free. The paid product is 12 months of scheduled
+            live online NCLEX and clinical judgment classes, supported by a
+            $100 university sponsorship.
           </p>
           <p className="mt-4 max-w-md text-sm text-florence-slate">
-            Your card data never touches our servers - checkout runs through a
+            Your card data never touches our servers. Checkout runs through a
             hosted processor.
           </p>
+          <ApplyProgramsCta placement="sponsor_card" compact className="mt-5 max-w-md" />
         </div>
 
         <div className="grid gap-4">
           <div className="rounded-2xl border-2 border-florence-teal bg-white p-6">
             <div className="flex items-baseline justify-between">
-              <p className="fl-eyebrow text-florence-teal-dark">Preferred</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal-dark">Program value</p>
               <p className="font-serif text-3xl font-semibold text-florence-teal-dark">
-                $75
+                $200
               </p>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
-              If you graduated from (or are currently in) a school on the
-              eligible list. The list is maintained from public regulator
-              registries - Philippines (CHED), Kenya (NCK), UK (NMC-approved),
-              and more added per cohort.
+              Full access to scheduled live online NCLEX and clinical judgment
+              classes for 12 months.
             </p>
-            <a
-              href="#qualifier"
-              className="mt-4 inline-block text-sm font-semibold text-florence-teal-dark hover:text-florence-ink"
-            >
-              Check if your school qualifies →
-            </a>
           </div>
           <div className="rounded-2xl border border-florence-line bg-white p-6">
             <div className="flex items-baseline justify-between">
-              <p className="fl-eyebrow">Standard</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">University sponsorship</p>
               <p className="font-serif text-3xl font-semibold">$100</p>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
-              If your school isn&apos;t on the list yet. You still get the
-              full bootcamp. Self-attestation about your credentials is on the
-              honor system - and we audit.
+              Avila and Webster are active unlimited sponsors for this first
+              access slice.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-florence-line bg-white p-6">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Student price</p>
+              <p className="font-serif text-3xl font-semibold">$100</p>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
+              This is the amount paid at checkout for Global Live NCLEX Access.
+              In-person Academy Live remains capacity-limited and reserved separately.
             </p>
           </div>
         </div>
@@ -488,9 +490,9 @@ function SchoolQualifier() {
   return (
     <section id="qualifier" className="border-b border-florence-line/70">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-20">
-        <p className="fl-eyebrow">Eligible school check</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">School directory</p>
         <h2 className="mt-2 max-w-2xl font-serif text-3xl font-semibold sm:text-4xl">
-          Type your school. We&apos;ll tell you which tier you&apos;re in.
+          Type your school so we can personalize your Academy profile.
         </h2>
 
         <div className="mt-8 max-w-2xl">
@@ -516,8 +518,8 @@ function SchoolQualifier() {
             <ul className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-florence-line bg-white shadow-sm">
               {matches.length === 0 ? (
                 <li className="px-4 py-3 text-sm text-florence-slate">
-                  Not in our directory yet - you&apos;d enroll at the standard
-                  $100 tier. (We add new schools per cohort; let us know yours.)
+                  Not in our directory yet. You can still create an account and
+                  add your school later.
                 </li>
               ) : (
                 matches.map((s) => (
@@ -573,22 +575,11 @@ function formatCohortStart(iso: string): string {
 }
 
 function QualifierResult({ school, onClear }: { school: PublicSchool; onClear: () => void }) {
-  const preferred = school.tier === "eligible" || school.tier === "affiliate";
   return (
-    <div
-      className={`mt-3 rounded-xl border p-5 ${
-        preferred
-          ? "border-florence-teal bg-florence-teal-soft/30"
-          : "border-florence-line bg-white"
-      }`}
-    >
-      <p className="fl-eyebrow text-florence-teal-dark">{school.name}</p>
+    <div className="mt-3 rounded-xl border border-florence-line bg-white p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal-dark">{school.name}</p>
       <p className="mt-2 text-base font-semibold text-florence-ink">
-        {preferred ? (
-          <>You qualify for the $75 preferred deposit.</>
-        ) : (
-          <>Standard $100 tier.</>
-        )}
+        We found your school.
       </p>
       <p className="mt-1.5 text-sm text-florence-slate">
         {school.city ? `${school.city} · ` : ""}
@@ -600,7 +591,7 @@ function QualifierResult({ school, onClear }: { school: PublicSchool; onClear: (
           to={`/signup?school=${encodeURIComponent(school.slug)}`}
           className="rounded-lg bg-florence-indigo px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-florence-indigo-dark"
         >
-          Reserve at {preferred ? "$75" : "$100"} →
+          Create account
         </Link>
         <button
           type="button"
@@ -625,8 +616,8 @@ const FAQ: { q: string; a: string }[] = [
     a: "No. The bootcamp runs live online; you can attend from anywhere. You'll sit the NCLEX at a Pearson VUE test center in the country you're authorized to test in.",
   },
   {
-    q: "What does the deposit get me - what's the rest of tuition?",
-    a: "The deposit reserves your seat in a cohort and is credited toward tuition when you enroll. Full tuition is set per cohort and shared during enrollment. We don't quote it publicly because it varies with payment plan, sponsorship, and your country.",
+    q: "What does the $100 Global Live access include?",
+    a: "It includes 12 months of scheduled live online NCLEX and clinical judgment classes. The listed value is $200, university sponsorship covers $100, and the student price is $100.",
   },
   {
     q: "How is my school being on \"the eligible list\" decided?",
@@ -634,7 +625,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What if I attend and decide it isn't for me?",
-    a: "Reach out before your cohort starts and we'll discuss refund eligibility. After the cohort starts the deposit isn't refundable, but you can transfer to a later cohort at no cost.",
+    a: "Reach out before your first live class and we'll help you move to a later cohort or review refund eligibility.",
   },
   {
     q: "What time commitment is expected?",
@@ -654,7 +645,7 @@ function Faq() {
   return (
     <section id="faq" className="border-b border-florence-line/70 bg-florence-mist/40">
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-8 sm:py-20">
-        <p className="fl-eyebrow">Common questions</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Common questions</p>
         <h2 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
           The questions every applicant asks.
         </h2>

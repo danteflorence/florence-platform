@@ -6,26 +6,26 @@ import {
   attestAffiliation,
   fetchCohortsPublic,
   fetchSchoolsPublic,
-  startDepositCheckout,
+  startSponsoredAccessCheckout,
   type PublicCohort,
   type PublicSchool,
 } from "../lib/academyAuth";
 
 /**
  * Public signup conversion route - the path from the marketing landing to a
- * paid deposit, in one screen.
+ * sponsored Global Live access, in one screen.
  *
  * Query params, pre-selected by the landing CTAs:
  *   ?cohort=MNL-2026-07   - pre-select a cohort card
- *   ?school=FLR-PH-UST    - pre-select the user's school (drives $75 vs $100)
+ *   ?school=FLR-PH-UST    - pre-select the user's school
  *
  * Flow on submit:
  *   1. signup → returns a candidate-bound session token
  *   2. attestAffiliation(...) (only if a school was selected)
- *   3. startDepositCheckout() → redirects to hosted processor
+ *   3. startSponsoredAccessCheckout() redirects to hosted processor
  *
  * Each step has independent failure handling - auth succeeds even if the
- * deposit redirect fails, so the candidate can retry from their account page.
+ * checkout redirect fails, so the student can retry from their account page.
  */
 export default function Signup() {
   const { status, signup: doSignup } = useCandidate();
@@ -34,7 +34,7 @@ export default function Signup() {
   const schoolParam = search.get("school");
 
   // Already logged in? Skip the form, go to the account page (which is where
-  // any in-progress deposit / cohort selection happens once you're signed in).
+  // any in-progress checkout or cohort selection happens once you're signed in).
   if (status === "authenticated") return <Navigate to="/academy/account" replace />;
 
   return (
@@ -104,14 +104,11 @@ function SidebarBrief({
     fetchSchoolsPublic().then((all) => setSchool(all.find((s) => s.slug === schoolSlug) ?? null));
   }, [schoolSlug]);
 
-  const preferred = school?.tier === "eligible" || school?.tier === "affiliate";
-  const amount = preferred ? "$75" : "$100";
-
   return (
     <aside>
-      <p className="fl-eyebrow">Reserve your seat</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Sponsored live access</p>
       <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight sm:text-4xl">
-        One screen. Then your readiness band starts ticking.
+        Create your account, then start Global Live NCLEX Access.
       </h1>
 
       <div className="mt-8 space-y-4 rounded-2xl border border-florence-line bg-white p-6">
@@ -155,12 +152,10 @@ function SidebarBrief({
             </span>
           )}
         </Row>
-        <Row label="Deposit">
-          <span className="font-semibold text-florence-ink">{amount}</span>
+        <Row label="Access">
+          <span className="font-semibold text-florence-ink">$100</span>
           <span className="block text-xs text-florence-slate">
-            {preferred
-              ? "Preferred tier - eligible school confirmed."
-              : "Standard tier - applied to tuition when you enroll."}
+            $200 value with $100 university sponsorship.
           </span>
         </Row>
       </div>
@@ -176,7 +171,7 @@ function SidebarBrief({
         </li>
         <li className="flex gap-2">
           <span className="mt-0.5 text-florence-teal-dark">✓</span>
-          Card data never touches our servers - hosted processor checkout.
+          Card data never touches our servers. Checkout is hosted.
         </li>
       </ul>
     </aside>
@@ -236,9 +231,7 @@ function SignupForm({
         country: country.trim() || undefined,
       })) as { id: string };
 
-      // 2. Best-effort affiliation attestation. This drops the deposit tier
-      //    to $75. Don't block signup if it fails - the candidate can attest
-      //    later from /academy/account.
+      // 2. Best-effort affiliation attestation. Do not block signup if it fails.
       if (preselectedSchool) {
         try {
           await attestAffiliation(cand.id, preselectedSchool, "student");
@@ -247,11 +240,8 @@ function SignupForm({
         }
       }
 
-      // 3. Stash the desired cohort code so the ops team sees it on the
-      //    candidate after deposit clears (the Account page also surfaces it
-      //    back to the candidate as "you reserved the Manila cohort"). The
-      //    cohort enrollment itself happens server-side once the webhook
-      //    confirms deposit payment.
+      // 3. Stash the desired cohort code so the account page can join it after
+      //    checkout succeeds.
       if (preselectedCohort) {
         try {
           sessionStorage.setItem("florence:pending_cohort", preselectedCohort);
@@ -262,7 +252,7 @@ function SignupForm({
 
       // 4. Kick off hosted-processor checkout.
       setPhase("redirecting");
-      const checkout = await startDepositCheckout();
+      const checkout = await startSponsoredAccessCheckout();
       window.location.href = checkout.checkout_url;
     } catch (err) {
       setError(
@@ -278,15 +268,15 @@ function SignupForm({
   if (phase === "redirecting") {
     return (
       <div className="rounded-2xl border border-florence-line bg-white p-10 text-center">
-        <p className="fl-eyebrow">Hold on</p>
-        <h2 className="mt-2 text-xl font-semibold">Sending you to checkout…</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Hold on</p>
+        <h2 className="mt-2 text-xl font-semibold">Sending you to checkout...</h2>
         <p className="mt-2 text-sm text-florence-slate">
           You&apos;ll be redirected to our hosted payment processor. If nothing
           happens in a few seconds,{" "}
           <Link to="/academy/account" className="font-semibold text-florence-teal-dark">
             open your account
           </Link>{" "}
-          and click Pay deposit.
+          and start Global Live access.
         </p>
       </div>
     );
@@ -356,7 +346,7 @@ function SignupForm({
         disabled={!valid || busy}
         className="mt-6 w-full rounded-xl bg-florence-indigo px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-indigo-dark disabled:cursor-not-allowed disabled:bg-florence-slate/40"
       >
-        {busy ? "Creating account…" : "Create account & continue to deposit →"}
+        {busy ? "Creating account..." : "Create account and continue to checkout"}
       </button>
 
       <p className="mt-4 text-xs text-florence-slate">

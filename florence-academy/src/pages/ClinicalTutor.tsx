@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCandidate } from "../lib/CandidateContext";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
 type ModeKey =
   | "teach"
@@ -185,6 +186,7 @@ export default function ClinicalTutor() {
                 Open today's round
               </a>
             </div>
+            <ApplyProgramsCta placement="tutor" compact className="mt-5 max-w-2xl" />
           </div>
 
           <div className="rounded-2xl border border-florence-line bg-florence-mist p-4">

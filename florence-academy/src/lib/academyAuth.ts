@@ -285,13 +285,30 @@ export async function upsertProgress(
   });
 }
 
-// ── payments (the $100 seat deposit) ─────────────────────────────────────────
+// Sponsored Global Live access checkout.
+export interface SponsoredAccessQuote {
+  product_name: string;
+  list_value_usd: number;
+  sponsor_subsidy_usd: number;
+  student_price_usd: number;
+  sponsor_id: string | null;
+  sponsor_name: string | null;
+  sponsor_slug: string | null;
+  sponsorship_program_id: string | null;
+  budget_mode?: "unlimited" | "capped";
+  campaign_id: string;
+  apply_url: string;
+  sponsorship_available: boolean;
+}
+
 export interface CheckoutResponse {
   payment_id: string;
   checkout_url: string;
   provider: string;
   amount_cents: number;
   currency: string;
+  access_pass_id?: string;
+  quote?: SponsoredAccessQuote;
 }
 
 export interface PaymentRecord {
@@ -302,9 +319,26 @@ export interface PaymentRecord {
   status: string;
 }
 
-/** Start a hosted-checkout session for the signed-in candidate's deposit. */
-export async function startDepositCheckout(): Promise<CheckoutResponse> {
-  return call<CheckoutResponse>("/v1/payments/checkout", { method: "POST", body: {} });
+export interface AccessPass {
+  id: string;
+  candidate_id: string;
+  sponsor_id: string;
+  sponsorship_program_id: string;
+  payment_id?: string;
+  status: "pending" | "active" | "expired" | "cancelled";
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchSponsoredAccessQuote(): Promise<SponsoredAccessQuote> {
+  return call<SponsoredAccessQuote>("/v1/academy/pricing/quote", { method: "POST", body: {} });
+}
+
+/** Start a hosted-checkout session for the signed-in candidate's sponsored access. */
+export async function startSponsoredAccessCheckout(): Promise<CheckoutResponse> {
+  return call<CheckoutResponse>("/v1/academy/access-passes/checkout", { method: "POST", body: {} });
 }
 
 /** Complete a MOCK checkout (dev only; the server gates this to the mock provider). */
@@ -328,9 +362,21 @@ export async function fetchPayments(candidateId: string): Promise<PaymentRecord[
   return res.data ?? [];
 }
 
-export function hasPaidDeposit(payments: PaymentRecord[]): boolean {
-  return payments.some((p) => p.kind === "commitment_deposit" && p.status === "paid");
+export async function fetchMyAccessPasses(): Promise<AccessPass[]> {
+  const res = await call<{ data: AccessPass[] }>("/v1/academy/access-passes/me");
+  return res.data ?? [];
 }
+
+export function hasPaidSponsoredAccess(payments: PaymentRecord[]): boolean {
+  return payments.some(
+    (p) =>
+      (p.kind === "global_live_access" || p.kind === "commitment_deposit") &&
+      p.status === "paid",
+  );
+}
+
+export const hasPaidDeposit = hasPaidSponsoredAccess;
+export const startDepositCheckout = startSponsoredAccessCheckout;
 
 // ── email verification ───────────────────────────────────────────────────────
 export async function verifyEmail(token: string): Promise<boolean> {
@@ -390,9 +436,10 @@ export interface PublicCohort {
 // ── Public activation lookup (Lob outreach landing) ─────────────────────────
 export interface ActivationOffer {
   headline: string;
-  alumni_discount_pct: number;
-  preferred_deposit_usd: number;
-  standard_deposit_usd: number;
+  product_name: string;
+  list_value_usd: number;
+  university_sponsorship_usd: number;
+  student_price_usd: number;
   partner_dashboard: boolean;
   coming_next: string[];
 }
@@ -513,7 +560,7 @@ export async function fetchMyCohort(): Promise<MyCohort | null> {
 
 export type AffiliationRole = "student" | "alumni";
 
-/** Self-attest as a student or alumna of a listed school - drops the deposit. */
+/** Self-attest as a student or alumna of a listed school. */
 export async function attestAffiliation(
   candidateId: string,
   schoolSlug: string,

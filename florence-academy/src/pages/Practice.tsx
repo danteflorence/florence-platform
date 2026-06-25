@@ -14,6 +14,7 @@ import {
   type CatMode,
   type DifficultyLevel,
 } from "../lib/cat";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
 /** A session is either an adaptive item set (one of the CAT modes) or NGN cases. */
 type SessionKind = CatMode | "cases";
@@ -149,7 +150,7 @@ export default function Practice() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 sm:px-8">
-      <p className="fl-eyebrow">Adaptive practice</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Adaptive practice</p>
       <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">
         Practice the way the exam actually works.
       </h1>
@@ -159,6 +160,7 @@ export default function Practice() {
         uses. All item types are here, from single-answer to bow-tie and
         unfolding-case formats.
       </p>
+      <ApplyProgramsCta placement="practice" compact className="mt-5 max-w-2xl" />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {MODES.map((m) => (

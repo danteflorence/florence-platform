@@ -95,7 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_asr_candidate ON assessment_results (candidate_id
 CREATE TABLE IF NOT EXISTS payments (
   id            text PRIMARY KEY,            -- pay_…
   candidate_id  text NOT NULL REFERENCES candidates (id),
-  kind          text NOT NULL CHECK (kind IN ('commitment_deposit','tuition','other')),
+  kind          text NOT NULL CHECK (kind IN ('commitment_deposit','global_live_access','tuition','other')),
   amount_cents  integer NOT NULL,
   currency      text NOT NULL,
   status        text NOT NULL DEFAULT 'pending'
@@ -106,6 +106,151 @@ CREATE TABLE IF NOT EXISTS payments (
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_payments_candidate ON payments (candidate_id);
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_kind_check;
+ALTER TABLE payments ADD CONSTRAINT payments_kind_check
+  CHECK (kind IN ('commitment_deposit','global_live_access','tuition','other'));
+
+-- Sponsored Florence Academy Global Live NCLEX Access catalog and events.
+CREATE TABLE IF NOT EXISTS academy_sponsors (
+  id            text PRIMARY KEY,
+  slug          text NOT NULL UNIQUE,
+  name          text NOT NULL,
+  status        text NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active','paused','ended')),
+  brand_color   text,
+  logo_url      text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS academy_sponsorship_programs (
+  id                  text PRIMARY KEY,
+  sponsor_id          text NOT NULL REFERENCES academy_sponsors (id),
+  name                text NOT NULL,
+  program_type        text NOT NULL
+                      CHECK (program_type IN ('global_live_access','live_session',
+                                              'manila_residency','la_residency',
+                                              'application_flow')),
+  list_value_usd      integer NOT NULL,
+  sponsor_subsidy_usd integer NOT NULL,
+  student_price_usd   integer NOT NULL,
+  budget_mode         text NOT NULL CHECK (budget_mode IN ('unlimited','capped')),
+  budget_usd          integer,
+  used_budget_usd     integer,
+  status              text NOT NULL DEFAULT 'active'
+                      CHECK (status IN ('active','paused','ended')),
+  default_apply_url   text NOT NULL,
+  eligible_countries  text[],
+  eligible_programs   text[],
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_sponsorship_programs_sponsor ON academy_sponsorship_programs (sponsor_id);
+CREATE INDEX IF NOT EXISTS idx_sponsorship_programs_type_status ON academy_sponsorship_programs (program_type, status);
+
+CREATE TABLE IF NOT EXISTS academy_access_passes (
+  id                       text PRIMARY KEY,
+  candidate_id             text NOT NULL REFERENCES candidates (id),
+  sponsor_id               text NOT NULL REFERENCES academy_sponsors (id),
+  sponsorship_program_id   text NOT NULL REFERENCES academy_sponsorship_programs (id),
+  payment_id               text REFERENCES payments (id),
+  status                   text NOT NULL DEFAULT 'pending'
+                           CHECK (status IN ('pending','active','expired','cancelled')),
+  starts_at                timestamptz,
+  expires_at               timestamptz,
+  created_at               timestamptz NOT NULL DEFAULT now(),
+  updated_at               timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_access_passes_candidate ON academy_access_passes (candidate_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_access_passes_payment ON academy_access_passes (payment_id);
+CREATE INDEX IF NOT EXISTS idx_access_passes_sponsor ON academy_access_passes (sponsor_id);
+
+CREATE TABLE IF NOT EXISTS academy_apply_ctas (
+  id              text PRIMARY KEY,
+  placement       text NOT NULL,
+  label           text NOT NULL,
+  subtext         text NOT NULL,
+  destination_url text NOT NULL,
+  sponsor_id      text REFERENCES academy_sponsors (id),
+  campaign_id     text,
+  active          boolean NOT NULL DEFAULT true,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS academy_apply_attributions (
+  id              text PRIMARY KEY,
+  candidate_id    text REFERENCES candidates (id),
+  sponsor_id      text REFERENCES academy_sponsors (id),
+  campaign_id     text NOT NULL,
+  placement       text NOT NULL,
+  event_type      text NOT NULL CHECK (event_type IN ('viewed','clicked')),
+  safe_session_id text NOT NULL,
+  destination_url text,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_apply_attr_sponsor ON academy_apply_attributions (sponsor_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_apply_attr_session ON academy_apply_attributions (safe_session_id);
+
+CREATE TABLE IF NOT EXISTS academy_application_fee_coverages (
+  id                   text PRIMARY KEY,
+  candidate_id          text NOT NULL REFERENCES candidates (id),
+  university_id         text NOT NULL,
+  program_id            text,
+  application_id        text,
+  fee_amount_usd        integer NOT NULL,
+  coverage_type         text NOT NULL
+                        CHECK (coverage_type IN ('florence_paid','university_waived','sponsor_covered')),
+  status                text NOT NULL DEFAULT 'eligible'
+                        CHECK (status IN ('eligible','approved','paid','waived',
+                                          'rejected','refunded','cancelled')),
+  payment_reference_id  text,
+  approved_by           text,
+  approved_at           timestamptz,
+  paid_at               timestamptz,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  updated_at            timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_fee_coverages_university ON academy_application_fee_coverages (university_id, created_at);
+
+CREATE TABLE IF NOT EXISTS academy_events (
+  id            text PRIMARY KEY,
+  event_type    text NOT NULL,
+  candidate_id  text REFERENCES candidates (id),
+  sponsor_id    text REFERENCES academy_sponsors (id),
+  campaign_id   text,
+  payload       jsonb,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_academy_events_type ON academy_events (event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_academy_events_candidate ON academy_events (candidate_id, created_at);
+
+INSERT INTO academy_sponsors (id, slug, name, status, created_at, updated_at)
+VALUES
+  ('avila-university', 'avila', 'Avila University', 'active', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+  ('webster-university', 'webster', 'Webster University', 'active', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO academy_sponsorship_programs
+  (id, sponsor_id, name, program_type, list_value_usd, sponsor_subsidy_usd,
+   student_price_usd, budget_mode, status, default_apply_url, created_at, updated_at)
+VALUES
+  ('avila-global-live-access', 'avila-university', 'Avila University Sponsored Global Live Access',
+   'global_live_access', 200, 100, 100, 'unlimited', 'active',
+   'https://www.florenceedu.com/apply', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'),
+  ('webster-global-live-access', 'webster-university', 'Webster University Sponsored Global Live Access',
+   'global_live_access', 200, 100, 100, 'unlimited', 'active',
+   'https://www.florenceedu.com/apply', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO academy_apply_ctas
+  (id, placement, label, subtext, destination_url, campaign_id, active, created_at, updated_at)
+VALUES
+  ('academy-global-live-apply', 'academy_home', 'Apply to U.S. Partner Programs',
+   'Application fees are covered by Florence for eligible applicants.',
+   'https://www.florenceedu.com/apply', 'global-live-access', true,
+   '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+ON CONFLICT (id) DO NOTHING;
 
 -- ── Candidate credentials (end-user login; distinct from api_clients) ────────
 -- Authenticates a NURSE signing into the learner app. password_hash is

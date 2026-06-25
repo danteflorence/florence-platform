@@ -51,6 +51,20 @@ import {
 } from "./drip_copy.ts";
 import { buildInterviewPacket, computeUniversityOverview, isReadinessCleared } from "./partners.ts";
 import { cohortPassRates, publishedReport } from "./cohortStats.ts";
+import { emitCoreEvent } from "./coreEvents.ts";
+import {
+  ACADEMY_ACCESS_CAMPAIGN_ID,
+  ACADEMY_ACCESS_PRODUCT_NAME,
+  APPLY_BASE_URL,
+  APPLY_LABEL,
+  APPLY_SUBTEXT,
+  applyUrlHasOnlySafeParams,
+  buildApplyUrl,
+  normalizeApplyPlacement,
+  quoteForProgram,
+  redactSensitiveLogValue,
+  safeApplySessionId,
+} from "./sponsoredAccess.ts";
 import type {
   AffiliationRole,
   AffiliationVerification,
@@ -75,6 +89,8 @@ import type {
   School,
   SchoolTier,
   Scope,
+  SponsorStatus,
+  SponsorshipProgramType,
 } from "./types.ts";
 import { isScope } from "./types.ts";
 
@@ -131,7 +147,15 @@ const PAYMENT_STATUSES: readonly PaymentStatus[] = [
   "credited",
   "failed",
 ];
-const PAYMENT_KINDS = ["commitment_deposit", "tuition", "other"] as const;
+const PAYMENT_KINDS = ["commitment_deposit", "global_live_access", "tuition", "other"] as const;
+const SPONSOR_STATUSES: readonly SponsorStatus[] = ["active", "paused", "ended"];
+const SPONSORSHIP_PROGRAM_TYPES: readonly SponsorshipProgramType[] = [
+  "global_live_access",
+  "live_session",
+  "manila_residency",
+  "la_residency",
+  "application_flow",
+];
 const COHORT_STATUSES: readonly CohortStatus[] = [
   "scheduled",
   "active",
@@ -263,6 +287,66 @@ const SCHEMAS = {
   },
   checkout: {
     candidate_id: { type: "string", max: 64 },
+    sponsor_id: { type: "string", max: 80 },
+    sponsor: { type: "string", max: 80 },
+    session_id: { type: "string", max: 120 },
+  },
+  pricingQuote: {
+    sponsor_id: { type: "string", max: 80 },
+    sponsor: { type: "string", max: 80 },
+    session_id: { type: "string", max: 120 },
+  },
+  applyCtaEvent: {
+    placement: { type: "string", max: 80 },
+    sponsor_id: { type: "string", max: 80 },
+    sponsor: { type: "string", max: 80 },
+    campaign_id: { type: "string", max: 80 },
+    session_id: { type: "string", max: 120 },
+  },
+  sponsor: {
+    id: { type: "string", max: 80 },
+    slug: { type: "string", required: true, min: 1, max: 80 },
+    name: { type: "string", required: true, min: 1, max: 200 },
+    status: { type: "string", enum: SPONSOR_STATUSES },
+    brand_color: { type: "string", max: 40 },
+    logo_url: { type: "string", max: 500 },
+  },
+  sponsorPatch: {
+    slug: { type: "string", min: 1, max: 80 },
+    name: { type: "string", min: 1, max: 200 },
+    status: { type: "string", enum: SPONSOR_STATUSES },
+    brand_color: { type: "string", max: 40 },
+    logo_url: { type: "string", max: 500 },
+  },
+  sponsorshipProgram: {
+    id: { type: "string", max: 80 },
+    sponsor_id: { type: "string", required: true, min: 1, max: 80 },
+    name: { type: "string", required: true, min: 1, max: 200 },
+    program_type: { type: "string", required: true, enum: SPONSORSHIP_PROGRAM_TYPES },
+    list_value_usd: { type: "integer", required: true, min: 0 },
+    sponsor_subsidy_usd: { type: "integer", required: true, min: 0 },
+    student_price_usd: { type: "integer", required: true, min: 0 },
+    budget_mode: { type: "string", required: true, enum: ["unlimited", "capped"] as const },
+    budget_usd: { type: "integer", min: 0 },
+    used_budget_usd: { type: "integer", min: 0 },
+    status: { type: "string", enum: SPONSOR_STATUSES },
+    default_apply_url: { type: "string", required: true, min: 8, max: 500 },
+    eligible_countries: { type: "array", itemsType: "string" },
+    eligible_programs: { type: "array", itemsType: "string" },
+  },
+  sponsorshipProgramPatch: {
+    name: { type: "string", min: 1, max: 200 },
+    program_type: { type: "string", enum: SPONSORSHIP_PROGRAM_TYPES },
+    list_value_usd: { type: "integer", min: 0 },
+    sponsor_subsidy_usd: { type: "integer", min: 0 },
+    student_price_usd: { type: "integer", min: 0 },
+    budget_mode: { type: "string", enum: ["unlimited", "capped"] as const },
+    budget_usd: { type: "integer", min: 0 },
+    used_budget_usd: { type: "integer", min: 0 },
+    status: { type: "string", enum: SPONSOR_STATUSES },
+    default_apply_url: { type: "string", min: 8, max: 500 },
+    eligible_countries: { type: "array", itemsType: "string" },
+    eligible_programs: { type: "array", itemsType: "string" },
   },
   verifyEmail: {
     token: { type: "string", required: true, min: 8, max: 200 },
@@ -718,8 +802,8 @@ async function createEnrollment(ctx: ReqCtx, deps: Deps): Promise<void> {
   // Candidate-bound caller: self-service enrollment is allowed, but only
   // into a scheduled/active cohort, only if not already enrolled, and only
   // at a status the candidate has actually earned. A candidate proving
-  // they paid the deposit can self-set status=deposit_paid; anything else
-  // is registered or rejected.
+  // they activated Global Live access can self-set status=deposit_paid;
+  // anything else is registered or rejected.
   const isCandidateCaller = !!ctx.auth?.candidateId;
   const cohortDef = await deps.store.cohorts.getByCode(cohort);
   if (isCandidateCaller) {
@@ -733,11 +817,9 @@ async function createEnrollment(ctx: ReqCtx, deps: Deps): Promise<void> {
       return err(ctx, 403, "forbidden", "candidates can only self-enroll as registered or deposit_paid");
     if (statusRaw === "deposit_paid") {
       const page = await deps.store.payments.list(candidate_id, undefined, 200);
-      const paid = page.data.some(
-        (p) => p.kind === "commitment_deposit" && p.status === "paid",
-      );
+      const paid = hasPaidAcademyAccess(page.data);
       if (!paid)
-        return err(ctx, 402, "deposit_required", "deposit must be paid before self-promoting to deposit_paid");
+        return err(ctx, 402, "access_required", "Global Live access must be active before joining the paid cohort");
     }
   }
   // If a cohort with this code is defined and capped, enforce its capacity.
@@ -991,20 +1073,122 @@ async function createPayment(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 201, p);
 }
 
-// ── deposit checkout (hosted provider; card data never touches us) ──────────
-/** Mark a deposit paid: update payment, advance the funnel, emit an event. Idempotent. */
-async function markDepositPaid(deps: Deps, paymentId: string, providerRef?: string): Promise<boolean> {
+// ── sponsored access checkout (hosted provider; card data never touches us) ──
+async function resolveSponsoredAccess(
+  deps: Deps,
+  body: unknown,
+): Promise<{
+  sponsor: NonNullable<Awaited<ReturnType<Deps["store"]["sponsors"]["get"]>>>;
+  program: NonNullable<Awaited<ReturnType<Deps["store"]["sponsorshipPrograms"]["get"]>>>;
+  quote: ReturnType<typeof quoteForProgram>;
+} | null> {
+  const requested = str(body, "sponsor_id") ?? str(body, "sponsor");
+  let sponsor =
+    requested
+      ? (await deps.store.sponsors.get(requested)) ??
+        (await deps.store.sponsors.getBySlug(requested))
+      : undefined;
+  const program = await deps.store.sponsorshipPrograms.activeGlobalLive(sponsor?.id);
+  if (!program) return null;
+  sponsor = sponsor ?? (await deps.store.sponsors.get(program.sponsor_id));
+  if (!sponsor || sponsor.status !== "active") return null;
+  const sessionId = safeApplySessionId(str(body, "session_id"));
+  const quote = {
+    ...quoteForProgram(program, sponsor),
+    apply_url: buildApplyUrl({
+      source: "academy",
+      sponsorSlug: sponsor.slug,
+      campaignId: ACADEMY_ACCESS_CAMPAIGN_ID,
+      sessionId,
+    }),
+  };
+  return { sponsor, program, quote };
+}
+
+async function recordAcademyEvent(
+  deps: Deps,
+  input: {
+    eventType: string;
+    candidateId?: string;
+    sponsorId?: string;
+    campaignId?: string;
+    payload?: Record<string, unknown>;
+  },
+): Promise<void> {
+  await deps.store.academyEvents.create({
+    event_type: input.eventType,
+    candidate_id: input.candidateId,
+    sponsor_id: input.sponsorId,
+    campaign_id: input.campaignId,
+    payload: redactSensitiveLogValue(input.payload ?? {}) as Record<string, unknown>,
+  });
+  void emitCoreEvent(input).catch(() => undefined);
+}
+
+function accessPassDates(): { starts_at: string; expires_at: string } {
+  const starts = new Date();
+  const expires = new Date(starts);
+  expires.setUTCFullYear(expires.getUTCFullYear() + 1);
+  return { starts_at: starts.toISOString(), expires_at: expires.toISOString() };
+}
+
+function hasPaidAcademyAccess(payments: { kind: string; status: PaymentStatus }[]): boolean {
+  return payments.some(
+    (p) =>
+      (p.kind === "global_live_access" || p.kind === "commitment_deposit") &&
+      p.status === "paid",
+  );
+}
+
+/** Mark sponsored access paid: update payment, activate access, emit events. Idempotent. */
+async function markAccessPaymentPaid(deps: Deps, paymentId: string, providerRef?: string): Promise<boolean> {
   const p = await deps.store.payments.get(paymentId);
   if (!p) return false;
   if (p.status !== "paid") {
-    await deps.store.payments.update(paymentId, {
+    const paid = await deps.store.payments.update(paymentId, {
       status: "paid",
       ...(providerRef && { processor_ref: providerRef }),
     });
+    let pass = await deps.store.accessPasses.getByPayment(paymentId);
+    if (!pass) {
+      const sponsored = await resolveSponsoredAccess(deps, {});
+      if (sponsored) {
+        pass = await deps.store.accessPasses.create({
+          candidate_id: p.candidate_id,
+          sponsor_id: sponsored.sponsor.id,
+          sponsorship_program_id: sponsored.program.id,
+          payment_id: paymentId,
+          status: "pending",
+        });
+      }
+    }
+    if (pass) {
+      const dates = accessPassDates();
+      await deps.store.accessPasses.setStatus(pass.id, "active", dates);
+      await recordAcademyEvent(deps, {
+        eventType: "academy.global_live_access_activated",
+        candidateId: p.candidate_id,
+        sponsorId: pass.sponsor_id,
+        campaignId: ACADEMY_ACCESS_CAMPAIGN_ID,
+        payload: { access_pass_id: pass.id, payment_id: paymentId, starts_at: dates.starts_at, expires_at: dates.expires_at },
+      });
+    }
     const enrollments = await deps.store.enrollments.byCandidate(p.candidate_id);
     for (const e of enrollments) {
       if (e.status === "registered") await deps.store.enrollments.setStatus(e.id, "deposit_paid");
     }
+    await recordAcademyEvent(deps, {
+      eventType: "academy.student_payment_completed",
+      candidateId: p.candidate_id,
+      sponsorId: pass?.sponsor_id,
+      campaignId: ACADEMY_ACCESS_CAMPAIGN_ID,
+      payload: {
+        payment_id: paymentId,
+        kind: paid?.kind ?? p.kind,
+        amount_cents: paid?.amount_cents ?? p.amount_cents,
+        currency: paid?.currency ?? p.currency,
+      },
+    });
     deps.webhooks.emit("payment.completed", {
       id: paymentId,
       candidate_id: p.candidate_id,
@@ -1015,7 +1199,18 @@ async function markDepositPaid(deps: Deps, paymentId: string, providerRef?: stri
   return true;
 }
 
-async function postCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
+async function postPricingQuote(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const verr = validate(ctx.body, SCHEMAS.pricingQuote);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const sponsored = await resolveSponsoredAccess(deps, ctx.body);
+  if (!sponsored)
+    return err(ctx, 404, "sponsorship_not_found", "no active sponsored access program found");
+  ctx.resourceType = "sponsored_access_quote";
+  ctx.resourceId = sponsored.program.id;
+  send(ctx, 200, sponsored.quote);
+}
+
+async function postAccessCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!ctx.auth) return err(ctx, 401, "unauthorized", "authentication required");
   const verr = validate(ctx.body, SCHEMAS.checkout);
   if (!verr.ok) return validationError(ctx, verr.errors);
@@ -1029,34 +1224,55 @@ async function postCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   const cand = await deps.store.candidates.get(candidate_id);
   if (!cand) return err(ctx, 404, "not_found", "candidate not found");
   if (config.requireEmailVerification && !cand.email_verified)
-    return err(ctx, 403, "email_not_verified", "please verify your email before reserving a seat");
+    return err(ctx, 403, "email_not_verified", "please verify your email before starting checkout");
 
   const { currency } = config.payments;
-  // Tiered deposit: a candidate with any school affiliation pays the preferred
-  // access rate ($75). Otherwise the standard $100. Never marketed as a
-  // "discount" - it's preferred access for students/alumni of eligible schools.
-  const depositAmountCents = await depositAmountForCandidate(deps, candidate_id);
+  const sponsored = await resolveSponsoredAccess(deps, ctx.body);
+  if (!sponsored)
+    return err(ctx, 404, "sponsorship_not_found", "no active sponsored access program found");
+  const amountCents = sponsored.quote.student_price_usd * 100;
   const payment = await deps.store.payments.create({
     candidate_id,
-    kind: "commitment_deposit",
-    amount_cents: depositAmountCents,
+    kind: "global_live_access",
+    amount_cents: amountCents,
     currency,
     status: "pending",
     processor: deps.payments.name,
     processor_ref: "pending",
   });
+  const accessPass = await deps.store.accessPasses.create({
+    candidate_id,
+    sponsor_id: sponsored.sponsor.id,
+    sponsorship_program_id: sponsored.program.id,
+    payment_id: payment.id,
+    status: "pending",
+  });
+  await recordAcademyEvent(deps, {
+    eventType: "academy.sponsored_price_applied",
+    candidateId: candidate_id,
+    sponsorId: sponsored.sponsor.id,
+    campaignId: ACADEMY_ACCESS_CAMPAIGN_ID,
+    payload: {
+      product_name: ACADEMY_ACCESS_PRODUCT_NAME,
+      list_value_usd: sponsored.quote.list_value_usd,
+      sponsor_subsidy_usd: sponsored.quote.sponsor_subsidy_usd,
+      student_price_usd: sponsored.quote.student_price_usd,
+      sponsorship_program_id: sponsored.program.id,
+    },
+  });
 
-  const successUrl = `${config.publicAppUrl}/#/academy/account?deposit=success`;
-  const cancelUrl = `${config.publicAppUrl}/#/academy/account?deposit=cancelled`;
+  const successUrl = `${config.publicAppUrl}/#/academy/account?access=success`;
+  const cancelUrl = `${config.publicAppUrl}/#/academy/account?access=cancelled`;
   let checkout;
   try {
     checkout = await deps.payments.createCheckout({
       paymentId: payment.id,
       candidateId: candidate_id,
-      amountCents: depositAmountCents,
+      amountCents,
       currency,
       successUrl,
       cancelUrl,
+      productName: ACADEMY_ACCESS_PRODUCT_NAME,
     });
   } catch {
     await deps.store.payments.update(payment.id, { status: "failed" });
@@ -1069,18 +1285,20 @@ async function postCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
     payment_id: payment.id,
     checkout_url: checkout.url,
     provider: deps.payments.name,
-    amount_cents: depositAmountCents,
+    amount_cents: amountCents,
     currency,
+    access_pass_id: accessPass.id,
+    quote: sponsored.quote,
   });
 }
 
 // Stripe webhook (public; verified by signature). On checkout.session.completed
-// the deposit is marked paid and the funnel advances.
+// the sponsored access payment is marked paid and the pass is activated.
 async function postStripeWebhook(ctx: ReqCtx, deps: Deps): Promise<void> {
   const sig = typeof ctx.headers["stripe-signature"] === "string" ? ctx.headers["stripe-signature"] : undefined;
   const result = deps.payments.verifyWebhook(ctx.rawBody ?? "", sig);
   if (!result) return err(ctx, 400, "invalid_webhook", "signature verification failed or event ignored");
-  if (result.paid) await markDepositPaid(deps, result.paymentId, result.providerRef);
+  if (result.paid) await markAccessPaymentPaid(deps, result.paymentId, result.providerRef);
   ctx.resourceType = "payment";
   ctx.resourceId = result.paymentId;
   send(ctx, 200, { received: true });
@@ -1094,8 +1312,275 @@ async function postMockComplete(ctx: ReqCtx, deps: Deps): Promise<void> {
   ctx.resourceType = "payment";
   ctx.resourceId = id;
   if (!(await deps.store.payments.get(id))) return err(ctx, 404, "not_found", "payment not found");
-  await markDepositPaid(deps, id, `mock_paid_${id}`);
+  await markAccessPaymentPaid(deps, id, `mock_paid_${id}`);
   send(ctx, 200, { payment_id: id, status: "paid" });
+}
+
+async function getMyAccessPasses(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "access_pass";
+  ctx.resourceId = bound;
+  const passes = await deps.store.accessPasses.listByCandidate(bound);
+  send(ctx, 200, { data: passes });
+}
+
+async function getApplyCta(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const placement = normalizeApplyPlacement(ctx.query.get("placement") ?? undefined);
+  const sponsored = await resolveSponsoredAccess(deps, {
+    sponsor: ctx.query.get("sponsor") ?? undefined,
+    session_id: ctx.query.get("session_id") ?? undefined,
+  });
+  const ctas = await deps.store.applyCtas.list();
+  const cta =
+    ctas.find((x) => x.active && x.placement === placement) ??
+    ctas.find((x) => x.active) ??
+    {
+      id: "academy-global-live-apply",
+      placement,
+      label: APPLY_LABEL,
+      subtext: APPLY_SUBTEXT,
+      destination_url: APPLY_BASE_URL,
+      campaign_id: ACADEMY_ACCESS_CAMPAIGN_ID,
+      active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  const url = buildApplyUrl({
+    source: "academy",
+    sponsorSlug: sponsored?.sponsor.slug,
+    campaignId: cta.campaign_id ?? ACADEMY_ACCESS_CAMPAIGN_ID,
+    sessionId: ctx.query.get("session_id") ?? undefined,
+  });
+  if (!applyUrlHasOnlySafeParams(url))
+    return err(ctx, 500, "unsafe_apply_url", "Apply destination could not be built safely");
+  send(ctx, 200, {
+    id: cta.id,
+    placement,
+    label: cta.label,
+    subtext: cta.subtext,
+    destination_url: url,
+    campaign_id: cta.campaign_id ?? ACADEMY_ACCESS_CAMPAIGN_ID,
+    sponsor: sponsored
+      ? { id: sponsored.sponsor.id, slug: sponsored.sponsor.slug, name: sponsored.sponsor.name }
+      : null,
+  });
+}
+
+async function recordApplyCtaEvent(
+  ctx: ReqCtx,
+  deps: Deps,
+  eventType: "viewed" | "clicked",
+): Promise<void> {
+  const verr = validate(ctx.body, SCHEMAS.applyCtaEvent);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const placement = normalizeApplyPlacement(str(ctx.body, "placement"));
+  const sponsored = await resolveSponsoredAccess(deps, ctx.body);
+  const campaign_id = str(ctx.body, "campaign_id") ?? ACADEMY_ACCESS_CAMPAIGN_ID;
+  const safe_session_id = safeApplySessionId(str(ctx.body, "session_id"));
+  const destination_url =
+    eventType === "clicked"
+      ? buildApplyUrl({
+          source: "academy",
+          sponsorSlug: sponsored?.sponsor.slug,
+          campaignId: campaign_id,
+          sessionId: safe_session_id,
+        })
+      : undefined;
+  if (destination_url && !applyUrlHasOnlySafeParams(destination_url))
+    return err(ctx, 400, "unsafe_apply_url", "Apply destination could not be built safely");
+  const attribution = await deps.store.applyAttributions.create({
+    sponsor_id: sponsored?.sponsor.id,
+    campaign_id,
+    placement,
+    event_type: eventType,
+    safe_session_id,
+    destination_url,
+  });
+  await recordAcademyEvent(deps, {
+    eventType: eventType === "clicked" ? "academy.apply_cta_clicked" : "academy.apply_cta_viewed",
+    sponsorId: sponsored?.sponsor.id,
+    campaignId: campaign_id,
+    payload: {
+      placement,
+      safe_session_id,
+      ...(destination_url ? { destination_url } : {}),
+      attribution_id: attribution.id,
+    },
+  });
+  if (eventType === "clicked") {
+    await recordAcademyEvent(deps, {
+      eventType: "academy.sponsor_attribution_recorded",
+      sponsorId: sponsored?.sponsor.id,
+      campaignId: campaign_id,
+      payload: { placement, safe_session_id, attribution_id: attribution.id },
+    });
+  }
+  ctx.resourceType = "apply_attribution";
+  ctx.resourceId = attribution.id;
+  send(ctx, 201, {
+    id: attribution.id,
+    event_type: attribution.event_type,
+    placement: attribution.placement,
+    safe_session_id: attribution.safe_session_id,
+    destination_url: attribution.destination_url ?? null,
+  });
+}
+
+async function postApplyCtaView(ctx: ReqCtx, deps: Deps): Promise<void> {
+  await recordApplyCtaEvent(ctx, deps, "viewed");
+}
+
+async function postApplyCtaClick(ctx: ReqCtx, deps: Deps): Promise<void> {
+  await recordApplyCtaEvent(ctx, deps, "clicked");
+}
+
+async function listSponsors(ctx: ReqCtx, deps: Deps): Promise<void> {
+  send(ctx, 200, { data: await deps.store.sponsors.list() });
+}
+
+async function createSponsor(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const verr = validate(ctx.body, SCHEMAS.sponsor);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const slug = str(ctx.body, "slug");
+  const name = str(ctx.body, "name");
+  if (!slug || !name) return err(ctx, 400, "invalid_request", "slug and name are required");
+  if (await deps.store.sponsors.getBySlug(slug))
+    return err(ctx, 409, "conflict", "a sponsor with that slug already exists");
+  const sponsor = await deps.store.sponsors.create({
+    id: str(ctx.body, "id"),
+    slug,
+    name,
+    status: str(ctx.body, "status") as SponsorStatus | undefined,
+    brand_color: str(ctx.body, "brand_color"),
+    logo_url: str(ctx.body, "logo_url"),
+  });
+  ctx.resourceType = "sponsor";
+  ctx.resourceId = sponsor.id;
+  send(ctx, 201, sponsor);
+}
+
+async function patchSponsor(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["sponsorId"] ?? "";
+  const verr = validate(ctx.body, SCHEMAS.sponsorPatch);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const sponsor = await deps.store.sponsors.patch(id, {
+    slug: str(ctx.body, "slug"),
+    name: str(ctx.body, "name"),
+    status: str(ctx.body, "status") as SponsorStatus | undefined,
+    brand_color: str(ctx.body, "brand_color"),
+    logo_url: str(ctx.body, "logo_url"),
+  });
+  ctx.resourceType = "sponsor";
+  ctx.resourceId = id;
+  if (!sponsor) return err(ctx, 404, "not_found", "sponsor not found");
+  send(ctx, 200, sponsor);
+}
+
+async function listSponsorshipPrograms(ctx: ReqCtx, deps: Deps): Promise<void> {
+  send(ctx, 200, { data: await deps.store.sponsorshipPrograms.list() });
+}
+
+async function createSponsorshipProgram(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const verr = validate(ctx.body, SCHEMAS.sponsorshipProgram);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const sponsor_id = str(ctx.body, "sponsor_id");
+  const name = str(ctx.body, "name");
+  const program_type = str(ctx.body, "program_type") as SponsorshipProgramType | undefined;
+  const list_value_usd = num(ctx.body, "list_value_usd");
+  const sponsor_subsidy_usd = num(ctx.body, "sponsor_subsidy_usd");
+  const student_price_usd = num(ctx.body, "student_price_usd");
+  const budget_mode = str(ctx.body, "budget_mode") as "unlimited" | "capped" | undefined;
+  const default_apply_url = str(ctx.body, "default_apply_url");
+  if (!sponsor_id || !name || !program_type || list_value_usd === undefined || sponsor_subsidy_usd === undefined || student_price_usd === undefined || !budget_mode || !default_apply_url)
+    return err(ctx, 400, "invalid_request", "required sponsorship program fields are missing");
+  if (!(await deps.store.sponsors.get(sponsor_id)))
+    return err(ctx, 400, "invalid_request", "unknown sponsor_id");
+  const program = await deps.store.sponsorshipPrograms.create({
+    id: str(ctx.body, "id"),
+    sponsor_id,
+    name,
+    program_type,
+    list_value_usd,
+    sponsor_subsidy_usd,
+    student_price_usd,
+    budget_mode,
+    budget_usd: num(ctx.body, "budget_usd"),
+    used_budget_usd: num(ctx.body, "used_budget_usd"),
+    status: str(ctx.body, "status") as SponsorStatus | undefined,
+    default_apply_url,
+    eligible_countries: arr<string>(ctx.body, "eligible_countries"),
+    eligible_programs: arr<string>(ctx.body, "eligible_programs"),
+  });
+  ctx.resourceType = "sponsorship_program";
+  ctx.resourceId = program.id;
+  send(ctx, 201, program);
+}
+
+async function patchSponsorshipProgram(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["programId"] ?? "";
+  const verr = validate(ctx.body, SCHEMAS.sponsorshipProgramPatch);
+  if (!verr.ok) return validationError(ctx, verr.errors);
+  const program = await deps.store.sponsorshipPrograms.patch(id, {
+    name: str(ctx.body, "name"),
+    program_type: str(ctx.body, "program_type") as SponsorshipProgramType | undefined,
+    list_value_usd: num(ctx.body, "list_value_usd"),
+    sponsor_subsidy_usd: num(ctx.body, "sponsor_subsidy_usd"),
+    student_price_usd: num(ctx.body, "student_price_usd"),
+    budget_mode: str(ctx.body, "budget_mode") as "unlimited" | "capped" | undefined,
+    budget_usd: num(ctx.body, "budget_usd"),
+    used_budget_usd: num(ctx.body, "used_budget_usd"),
+    status: str(ctx.body, "status") as SponsorStatus | undefined,
+    default_apply_url: str(ctx.body, "default_apply_url"),
+    eligible_countries: arr<string>(ctx.body, "eligible_countries"),
+    eligible_programs: arr<string>(ctx.body, "eligible_programs"),
+  });
+  ctx.resourceType = "sponsorship_program";
+  ctx.resourceId = id;
+  if (!program) return err(ctx, 404, "not_found", "sponsorship program not found");
+  send(ctx, 200, program);
+}
+
+async function getSponsorAggregateReport(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const idOrSlug = ctx.params["sponsorId"] ?? "";
+  const sponsor =
+    (await deps.store.sponsors.get(idOrSlug)) ??
+    (await deps.store.sponsors.getBySlug(idOrSlug));
+  if (!sponsor) return err(ctx, 404, "not_found", "sponsor not found");
+  ctx.resourceType = "sponsor_aggregate_report";
+  ctx.resourceId = sponsor.id;
+
+  const attributions = (await deps.store.applyAttributions.list()).filter((a) => a.sponsor_id === sponsor.id);
+  const academyEvents = (await deps.store.academyEvents.list()).filter((e) => e.sponsor_id === sponsor.id);
+  const feeCoverages = (await deps.store.applicationFeeCoverages.list()).filter((f) => f.university_id === sponsor.id);
+  const attendance = await deps.store.attendance.rollup();
+  const assessments = await deps.store.assessmentResults.list(undefined, undefined, 500);
+  const readinessDistribution = { none: 0, red: 0, orange: 0, yellow: 0, green: 0 };
+  const seenCandidates = new Set(assessments.data.map((a) => a.candidate_id));
+  for (const candidateId of seenCandidates) {
+    const results = await allAssessments(deps, candidateId);
+    const progress = await deps.store.progress.listByCandidate(candidateId);
+    const snapshot = computeReadiness({ candidateId, results, progress });
+    readinessDistribution[snapshot.band] += 1;
+  }
+
+  send(ctx, 200, {
+    sponsor: { id: sponsor.id, slug: sponsor.slug, name: sponsor.name, status: sponsor.status },
+    aggregate_only: true,
+    sponsored_activations: academyEvents.filter((e) => e.event_type === "academy.global_live_access_activated").length,
+    class_attendance: {
+      attended: attendance.attended,
+      attendance_rate: attendance.attendance_rate,
+      live_lab_attendees: attendance.live_lab_attendees,
+    },
+    diagnostic_completions: assessments.data.filter((a) => a.kind === "diagnostic").length,
+    apply_cta_views: attributions.filter((a) => a.event_type === "viewed").length,
+    apply_cta_clicks: attributions.filter((a) => a.event_type === "clicked").length,
+    applications_started: 0,
+    applications_submitted: 0,
+    fee_coverage_count: feeCoverages.length,
+    readiness_distribution: readinessDistribution,
+  });
 }
 
 // ── production outcomes (append-only conversion telemetry) ──────────────────
@@ -1140,8 +1625,6 @@ async function getOutcomeFunnel(ctx: ReqCtx, deps: Deps): Promise<void> {
 // K-anonymity floor for per-school reports - server-side enforced. Below this,
 // the report carries participation counts only (no demographic breakdown).
 const K_ANON_FLOOR = 10;
-const ELIGIBLE_DEPOSIT_CENTS = 7_500;
-const STANDARD_DEPOSIT_CENTS = 10_000;
 
 function publicSchoolView(s: School) {
   // Public listing fields ONLY - no contact data, no internal outreach status,
@@ -1263,12 +1746,6 @@ async function listMyAffiliations(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { data: await deps.store.affiliations.listByCandidate(id) });
 }
 
-/** Pick the deposit amount for a candidate: $75 if any verified-tier affiliation, else $100. */
-async function depositAmountForCandidate(deps: Deps, candidateId: string): Promise<number> {
-  const affs = await deps.store.affiliations.listByCandidate(candidateId);
-  return affs.length > 0 ? ELIGIBLE_DEPOSIT_CENTS : STANDARD_DEPOSIT_CENTS;
-}
-
 // K-anonymized per-school report. ANY caller with schools:read sees it; the K
 // floor protects against re-identification of small cohorts.
 async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
@@ -1284,7 +1761,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
     await Promise.all(
       candidateIds.map(async (cid) => {
         const pays = await deps.store.payments.list(cid, undefined, 50);
-        return pays.data.some((p) => p.kind === "commitment_deposit" && p.status === "paid");
+        return hasPaidAcademyAccess(pays.data);
       }),
     )
   ).filter(Boolean).length;
@@ -1295,7 +1772,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
       school: publicSchoolView(school),
       k_floor: K_ANON_FLOOR,
       suppressed_for_privacy: true,
-      participation: { affiliated: candidateIds.length, verified, paid_deposits: paidDepositCount },
+      participation: { affiliated: candidateIds.length, verified, sponsored_access_activations: paidDepositCount },
     });
     return;
   }
@@ -1341,7 +1818,7 @@ async function getSchoolReport(ctx: ReqCtx, deps: Deps): Promise<void> {
     k_floor: K_ANON_FLOOR,
     suppressed_for_privacy: false,
     ranges_mode: useRanges,
-    participation: { affiliated: candidateIds.length, verified, paid_deposits: paidDepositCount },
+    participation: { affiliated: candidateIds.length, verified, sponsored_access_activations: paidDepositCount },
     band_distribution,
     top_gaps,
   });
@@ -1361,7 +1838,7 @@ async function listOutreachReady(ctx: ReqCtx, deps: Deps): Promise<void> {
     let sum = 0;
     for (const cid of ids) {
       const pays = await deps.store.payments.list(cid, undefined, 50);
-      if (pays.data.some((p) => p.kind === "commitment_deposit" && p.status === "paid")) paid++;
+      if (hasPaidAcademyAccess(pays.data)) paid++;
       const results = await allAssessments(deps, cid);
       const progress = await deps.store.progress.listByCandidate(cid);
       const snap = computeReadiness({ candidateId: cid, results, progress });
@@ -1374,7 +1851,7 @@ async function listOutreachReady(ctx: ReqCtx, deps: Deps): Promise<void> {
       out.push({
         slug: s.slug, name: s.name, country: s.country, tier: s.tier,
         outreach_status: s.outreach_status, affiliated: ids.length,
-        paid_deposits: paid, avg_readiness: avg != null ? Math.round(avg * 1000) / 1000 : null,
+        sponsored_access_activations: paid, avg_readiness: avg != null ? Math.round(avg * 1000) / 1000 : null,
       });
     }
   }
@@ -2711,10 +3188,10 @@ async function getActivation(ctx: ReqCtx, deps: Deps): Promise<void> {
     campaign_kind: campaign.kind,
     offer: {
       headline: "Florence Academy partner activation",
-      alumni_discount_pct: 25,
-      // The discount maps to our existing $75 preferred deposit tier.
-      preferred_deposit_usd: 75,
-      standard_deposit_usd: 100,
+      product_name: ACADEMY_ACCESS_PRODUCT_NAME,
+      list_value_usd: 200,
+      university_sponsorship_usd: 100,
+      student_price_usd: 100,
       partner_dashboard: true,
       coming_next: ["Branded computer lab", "VR patient-simulation platform"],
     },
@@ -2723,7 +3200,7 @@ async function getActivation(ctx: ReqCtx, deps: Deps): Promise<void> {
 }
 
 /** Operator confirms an activation: flip the school's tier to "affiliate"
- *  (= alumni qualify for $75 preferred deposit) and stamp the target. */
+ *  and stamp the target. */
 async function postActivationApprove(ctx: ReqCtx, deps: Deps): Promise<void> {
   const code = ctx.params["code"] ?? "";
   const target = await deps.store.outreach.targets.getByCode(code);
@@ -2834,9 +3311,22 @@ export const routes: Route[] = [
   // Outreach-ready list - internal (kept off /v1/schools/:slug to avoid the
   // routing collision; this is an ops query, not a school resource).
   compile("GET", "/v1/outreach/ready", "schools:read", true, listOutreachReady),
+  compile("POST", "/v1/academy/pricing/quote", null, false, postPricingQuote),
+  compile("POST", "/v1/academy/access-passes/checkout", null, true, postAccessCheckout),
+  compile("GET", "/v1/academy/access-passes/me", "candidates:read", true, getMyAccessPasses),
+  compile("GET", "/v1/academy/apply-cta", null, false, getApplyCta),
+  compile("POST", "/v1/academy/apply-cta/view", null, false, postApplyCtaView),
+  compile("POST", "/v1/academy/apply-cta/click", null, false, postApplyCtaClick),
+  compile("GET", "/v1/academy/sponsors/:sponsorId/aggregate-report", "academy:sponsors:read", true, getSponsorAggregateReport),
+  compile("POST", "/v1/academy/sponsors", "academy:sponsors:write", true, createSponsor),
+  compile("GET", "/v1/academy/sponsors", "academy:sponsors:read", true, listSponsors),
+  compile("PATCH", "/v1/academy/sponsors/:sponsorId", "academy:sponsors:write", true, patchSponsor),
+  compile("POST", "/v1/academy/sponsorship-programs", "academy:sponsors:write", true, createSponsorshipProgram),
+  compile("GET", "/v1/academy/sponsorship-programs", "academy:sponsors:read", true, listSponsorshipPrograms),
+  compile("PATCH", "/v1/academy/sponsorship-programs/:programId", "academy:sponsors:write", true, patchSponsorshipProgram),
   compile("GET", "/v1/payments", "payments:read", true, listPayments),
   compile("POST", "/v1/payments", "payments:write", true, createPayment),
-  compile("POST", "/v1/payments/checkout", null, true, postCheckout),
+  compile("POST", "/v1/payments/checkout", null, true, postAccessCheckout),
   compile("POST", "/v1/payments/webhook/stripe", null, false, postStripeWebhook),
   compile("POST", "/v1/payments/:id/mock-complete", null, false, postMockComplete),
   // Leads (Florence core mirror) - operator-only; never returned to candidates.

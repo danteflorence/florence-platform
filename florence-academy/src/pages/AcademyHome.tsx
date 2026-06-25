@@ -7,6 +7,7 @@ import {
   type CoverageState,
 } from "../data/blueprint";
 import { fetchMyCohort, type MyCohort } from "../lib/academyAuth";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
 const STATE_LABEL: Record<CoverageState, string> = {
   covered: "Covered live · revisit",
@@ -102,6 +103,7 @@ export default function AcademyHome() {
               Open FlorenceRN Tutor →
             </Link>
           </div>
+          <ApplyProgramsCta placement="academy_home" compact className="mt-5 max-w-2xl" />
         </div>
       </section>
 

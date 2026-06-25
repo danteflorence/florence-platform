@@ -15,6 +15,8 @@ export type Scope =
   | "university:read"
   | "schools:read"
   | "schools:write"
+  | "academy:sponsors:read"
+  | "academy:sponsors:write"
   | "pathway:write"
   | "webhooks:manage"
   | "clients:manage"
@@ -43,6 +45,8 @@ export const ALL_SCOPES: readonly Scope[] = [
   "university:read",
   "schools:read",
   "schools:write",
+  "academy:sponsors:read",
+  "academy:sponsors:write",
   "pathway:write",
   "webhooks:manage",
   "clients:manage",
@@ -223,7 +227,7 @@ export type PaymentStatus =
 export interface Payment {
   id: string;
   candidate_id: string;
-  kind: "commitment_deposit" | "tuition" | "other";
+  kind: "commitment_deposit" | "global_live_access" | "tuition" | "other";
   amount_cents: number;
   currency: string;
   status: PaymentStatus;
@@ -232,6 +236,146 @@ export interface Payment {
   processor_ref?: string;
   created_at: string;
   updated_at: string;
+}
+
+// ── Sponsored Global Live Access and Apply funnel ───────────────────────────
+export type SponsorStatus = "active" | "paused" | "ended";
+
+export interface Sponsor {
+  id: string;
+  slug: string;
+  name: string;
+  status: SponsorStatus;
+  brand_color?: string;
+  logo_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SponsorshipProgramType =
+  | "global_live_access"
+  | "live_session"
+  | "manila_residency"
+  | "la_residency"
+  | "application_flow";
+
+export interface SponsorshipProgram {
+  id: string;
+  sponsor_id: string;
+  name: string;
+  program_type: SponsorshipProgramType;
+  list_value_usd: number;
+  sponsor_subsidy_usd: number;
+  student_price_usd: number;
+  budget_mode: "unlimited" | "capped";
+  budget_usd?: number;
+  used_budget_usd?: number;
+  status: SponsorStatus;
+  default_apply_url: string;
+  eligible_countries?: string[];
+  eligible_programs?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SponsoredAccessQuote {
+  product_name: string;
+  list_value_usd: number;
+  sponsor_subsidy_usd: number;
+  student_price_usd: number;
+  sponsor_id: string | null;
+  sponsor_name: string | null;
+  sponsor_slug: string | null;
+  sponsorship_program_id: string | null;
+  budget_mode?: "unlimited" | "capped";
+  campaign_id: string;
+  apply_url: string;
+  sponsorship_available: boolean;
+}
+
+export type AccessPassStatus = "pending" | "active" | "expired" | "cancelled";
+
+export interface AccessPass {
+  id: string;
+  candidate_id: string;
+  sponsor_id: string;
+  sponsorship_program_id: string;
+  payment_id?: string;
+  status: AccessPassStatus;
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ApplyCTAPlacement =
+  | "academy_home"
+  | "checkout_success"
+  | "live_class"
+  | "class_completion"
+  | "diagnostic_result"
+  | "sponsor_card"
+  | "residency_page"
+  | "grant_center"
+  | "email"
+  | "whatsapp"
+  | "practice"
+  | "tutor"
+  | "account"
+  | "landing";
+
+export interface ApplyCTA {
+  id: string;
+  placement: ApplyCTAPlacement;
+  label: string;
+  subtext: string;
+  destination_url: string;
+  sponsor_id?: string;
+  campaign_id?: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ApplyAttributionEventType = "viewed" | "clicked";
+
+export interface ApplyAttribution {
+  id: string;
+  candidate_id?: string;
+  sponsor_id?: string;
+  campaign_id: string;
+  placement: ApplyCTAPlacement;
+  event_type: ApplyAttributionEventType;
+  safe_session_id: string;
+  destination_url?: string;
+  created_at: string;
+}
+
+export interface ApplicationFeeCoverage {
+  id: string;
+  candidate_id: string;
+  university_id: string;
+  program_id?: string;
+  application_id?: string;
+  fee_amount_usd: number;
+  coverage_type: "florence_paid" | "university_waived" | "sponsor_covered";
+  status: "eligible" | "approved" | "paid" | "waived" | "rejected" | "refunded" | "cancelled";
+  payment_reference_id?: string;
+  approved_by?: string;
+  approved_at?: string;
+  paid_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademyEvent {
+  id: string;
+  event_type: string;
+  candidate_id?: string;
+  sponsor_id?: string;
+  campaign_id?: string;
+  payload?: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface AuditEntry {

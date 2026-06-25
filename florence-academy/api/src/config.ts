@@ -40,6 +40,11 @@ export interface Config {
     stripeSecretKey?: string;
     stripeWebhookSecret?: string;
   };
+  /** Optional Core event bridge. Token is an environment secret. */
+  coreEvents?: {
+    url: string;
+    token: string;
+  };
   /**
    * Lob webhook signing secret. Per-webhook, from the Lob dashboard.
    * When unset, /v1/outreach/webhooks/lob responds 503 - never accept
@@ -109,6 +114,12 @@ export const config: Config = {
     ...(process.env.STRIPE_SECRET_KEY && { stripeSecretKey: process.env.STRIPE_SECRET_KEY }),
     ...(process.env.STRIPE_WEBHOOK_SECRET && { stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET }),
   },
+  ...(process.env.CORE_EVENTS_URL && process.env.CORE_EVENTS_TOKEN && {
+    coreEvents: {
+      url: process.env.CORE_EVENTS_URL.replace(/\/$/, ""),
+      token: process.env.CORE_EVENTS_TOKEN,
+    },
+  }),
   ...(process.env.LOB_WEBHOOK_SECRET && { lobWebhookSecret: process.env.LOB_WEBHOOK_SECRET }),
   drip: {
     ...(process.env.DRIP_TICK_SECRET && { tickSecret: process.env.DRIP_TICK_SECRET }),

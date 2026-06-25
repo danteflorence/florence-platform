@@ -22,7 +22,7 @@ export default function CheckoutMock() {
     setBusy(true);
     setError(null);
     const ok = await completeMockCheckout(pid);
-    if (ok) navigate("/academy/account?deposit=success");
+    if (ok) navigate("/academy/account?access=success");
     else {
       setError("Could not complete the test payment.");
       setBusy(false);
@@ -32,12 +32,12 @@ export default function CheckoutMock() {
   return (
     <div className="grid min-h-screen place-items-center bg-florence-ink px-5">
       <div className="w-full max-w-md rounded-2xl border border-florence-line bg-white p-6 shadow-card-lg">
-        <p className="fl-eyebrow">Test mode · no real charge</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Test mode, no real charge</p>
         <h1 className="mt-1 font-serif text-2xl font-semibold">Florence Academy</h1>
-        <p className="mt-0.5 text-sm text-florence-slate">Seat commitment deposit</p>
+        <p className="mt-0.5 text-sm text-florence-slate">Global Live NCLEX Access</p>
 
         <div className="mt-5 flex items-baseline justify-between border-y border-florence-line py-4">
-          <span className="font-medium text-florence-ink">Seat deposit</span>
+          <span className="font-medium text-florence-ink">Student price</span>
           <span className="text-2xl font-semibold tabular-nums text-florence-ink">{amountLabel}</span>
         </div>
 
@@ -57,10 +57,10 @@ export default function CheckoutMock() {
           disabled={!pid || busy}
           className="mt-5 w-full rounded-xl bg-florence-indigo px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-indigo-dark disabled:opacity-50"
         >
-          {busy ? "Processing…" : "Pay $100 (test)"}
+          {busy ? "Processing..." : `Pay ${amountLabel} (test)`}
         </button>
         <button
-          onClick={() => navigate("/academy/account?deposit=cancelled")}
+          onClick={() => navigate("/academy/account?access=cancelled")}
           className="mt-2 w-full rounded-xl border border-florence-line bg-white px-5 py-2.5 text-sm font-medium text-florence-slate hover:bg-florence-mist"
         >
           Cancel

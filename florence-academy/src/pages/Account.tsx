@@ -11,9 +11,9 @@ import {
   fetchProgress,
   fetchRemediations,
   fetchSchoolsPublic,
-  hasPaidDeposit,
+  hasPaidSponsoredAccess,
   resendVerification,
-  startDepositCheckout,
+  startSponsoredAccessCheckout,
   updateConsent,
   type AffiliationRole,
   type AuditEntry,
@@ -26,6 +26,7 @@ import {
   type ReadinessBand,
   type RemediationAssignment,
 } from "../lib/academyAuth";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import { SECTIONS, CLIENT_NEED_LABEL } from "../data/blueprint";
 import type { ClientNeed } from "../types/question";
 
@@ -247,7 +248,7 @@ export default function Account() {
 
       <RemediationCard candidateId={candidate.id} />
 
-      <DepositCard candidateId={candidate.id} />
+      <SponsoredAccessCard candidateId={candidate.id} />
 
       <ConsentCard />
 
@@ -305,25 +306,20 @@ function VerifyBanner({ email }: { email?: string }) {
   );
 }
 
-function DepositCard({ candidateId }: { candidateId: string }) {
+function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
   const [params, setParams] = useSearchParams();
-  const returned = params.get("deposit"); // "success" | "cancelled"
+  const returned = params.get("access") ?? params.get("deposit");
   const [paid, setPaid] = useState<boolean | null>(null);
-  const [preferred, setPreferred] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Auto-enrollment outcome message - surfaced only after a deposit-success
+  // Auto-enrollment outcome message, surfaced only after checkout success
   // return when there was a pending cohort code from the public landing.
   const [autoEnroll, setAutoEnroll] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [pays, affs] = await Promise.all([
-        fetchPayments(candidateId),
-        import("../lib/academyAuth").then((m) => m.fetchAffiliations(candidateId)).catch(() => []),
-      ]);
-      setPaid(hasPaidDeposit(pays));
-      setPreferred(affs.length > 0);
+      const pays = await fetchPayments(candidateId);
+      setPaid(hasPaidSponsoredAccess(pays));
     } catch {
       setPaid(false);
     }
@@ -334,7 +330,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
   }, [refresh]);
 
   // Re-check after returning from checkout. If the public landing stashed a
-  // pending cohort code on this candidate's tab, claim the seat now.
+  // pending cohort code on this candidate's tab, join the cohort now.
   useEffect(() => {
     if (returned !== "success") return;
     let alive = true;
@@ -369,6 +365,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
       }
     })();
     const t = setTimeout(() => {
+      params.delete("access");
       params.delete("deposit");
       setParams(params, { replace: true });
     }, 1500);
@@ -384,6 +381,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
     if (returned !== "cancelled") return;
     void refresh();
     const t = setTimeout(() => {
+      params.delete("access");
       params.delete("deposit");
       setParams(params, { replace: true });
     }, 1500);
@@ -396,7 +394,7 @@ function DepositCard({ candidateId }: { candidateId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await startDepositCheckout();
+      const res = await startSponsoredAccessCheckout();
       window.location.href = res.checkout_url;
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not start checkout.");
@@ -408,39 +406,37 @@ function DepositCard({ candidateId }: { candidateId: string }) {
 
   return (
     <div className="fl-card mt-6 p-6">
-      <h2 className="text-lg font-semibold">Seat deposit</h2>
+      <h2 className="text-lg font-semibold">Florence Academy Global Live NCLEX Access</h2>
       {returned === "cancelled" && !paid && (
         <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-          Checkout cancelled - your seat isn’t reserved yet.
+          Checkout cancelled. You can restart anytime.
         </p>
       )}
       {paid ? (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-florence-ink">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-vital-ok/15 text-vital-ok">✓</span>
-            Seat reserved - your commitment deposit is paid.
+            Global Live access is active for your account.
           </div>
           {autoEnroll && (
             <p className="rounded-lg border border-florence-teal-soft bg-florence-teal-soft/40 px-3 py-2 text-sm text-florence-teal-dark">
               {autoEnroll}
             </p>
           )}
+          <ApplyProgramsCta placement="checkout_success" compact />
         </div>
       ) : (
         <>
-          {preferred && (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-florence-teal-soft/60 px-2.5 py-1 text-xs font-semibold text-florence-teal-dark">
-              ★ Preferred access - student/alumna of an eligible school
-            </p>
-          )}
           <p className="mt-1 text-sm text-florence-slate">
-            Reserve your place in an upcoming cohort with a{" "}
-            <strong className="text-florence-ink">
-              {preferred ? "$75 preferred access" : "$100"}
-            </strong>{" "}
-            commitment deposit. Checkout happens on a secure hosted page - your card
-            details never touch this app. The self-guided Academy is always free.
+            Get 12 months of scheduled live online NCLEX and clinical judgment
+            classes. Free Academy stays free. Hosted checkout keeps card details
+            outside this app.
           </p>
+          <div className="mt-4 divide-y divide-florence-line rounded-lg border border-florence-line bg-white">
+            <PriceRow label="Program value" value="$200" />
+            <PriceRow label="University sponsorship" value="-$100" />
+            <PriceRow label="Student price" value="$100" strong />
+          </div>
           {error && (
             <p className="mt-3 rounded-lg bg-vital-danger/10 px-3 py-2 text-sm text-vital-danger">{error}</p>
           )}
@@ -450,10 +446,20 @@ function DepositCard({ candidateId }: { candidateId: string }) {
             disabled={busy}
             className="mt-4 rounded-xl bg-florence-indigo px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-indigo-dark disabled:opacity-50"
           >
-            {busy ? "Starting…" : preferred ? "Reserve your seat - $75" : "Reserve your seat - $100"}
+            {busy ? "Starting..." : "Start Global Live access - $100"}
           </button>
+          <ApplyProgramsCta placement="account" compact className="mt-4" />
         </>
       )}
+    </div>
+  );
+}
+
+function PriceRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-2 text-sm">
+      <span className="text-florence-slate">{label}</span>
+      <span className={strong ? "font-semibold text-florence-ink" : "font-medium text-florence-ink"}>{value}</span>
     </div>
   );
 }
@@ -822,8 +828,7 @@ function AuthForms() {
           full_name: fullName.trim(), email: email.trim(), password,
           country: country.trim() || undefined,
         });
-        // Attest the school affiliation right after signup, before any deposit -
-        // this is what unlocks the $75 preferred-access rate. Best-effort.
+        // Attest the school affiliation right after signup. Best effort.
         if (schoolSlug) await attestAffiliation(cand.id, schoolSlug, schoolRole);
       } else {
         await login(email.trim(), password);
@@ -893,7 +898,7 @@ function AuthForms() {
         {mode === "signup" && schools.length > 0 && (
           <Field
             label="Your nursing school"
-            hint="Optional - preferred access if your school is listed"
+            hint="Optional"
           >
             <select
               value={schoolSlug}
@@ -923,10 +928,8 @@ function AuthForms() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-florence-slate">
-                  Students and alumni of eligible schools get preferred access:
-                  the optional Live/Lab commitment deposit is{" "}
-                  <strong className="text-florence-ink">$75 instead of $100</strong>. The
-                  self-guided Academy is always free.
+                  Free Academy stays free. Sponsored Global Live access is $100
+                  for 12 months of scheduled online NCLEX and clinical judgment classes.
                 </p>
               </>
             )}

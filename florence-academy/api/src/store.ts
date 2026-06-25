@@ -12,6 +12,14 @@ import type {
   AttendanceRecord,
   AttendanceRollup,
   AttendanceStatus,
+  AccessPass,
+  AccessPassStatus,
+  AcademyEvent,
+  ApplicationFeeCoverage,
+  ApplyAttribution,
+  ApplyAttributionEventType,
+  ApplyCTA,
+  ApplyCTAPlacement,
   Candidate,
   CandidateCredential,
   CandidateSchoolAffiliation,
@@ -37,6 +45,10 @@ import type {
   PathwayTaskStatus,
   School,
   SchoolTier,
+  Sponsor,
+  SponsorStatus,
+  SponsorshipProgram,
+  SponsorshipProgramType,
   Lead,
   LeadEvent,
   LeadLifecycleStage,
@@ -54,6 +66,12 @@ import type {
 } from "./types.ts";
 import type { Walkthrough, WalkthroughStatus, WalkthroughUpsertInput } from "./walkthroughTypes.ts";
 import { emptyLinkedContent } from "./walkthroughTypes.ts";
+import {
+  DEFAULT_APPLY_CTAS,
+  DEFAULT_SPONSORS,
+  DEFAULT_SPONSORSHIP_PROGRAMS,
+  redactSensitiveLogValue,
+} from "./sponsoredAccess.ts";
 
 export interface Page<T> {
   data: T[];
@@ -156,6 +174,86 @@ export interface PaymentInput {
   status?: PaymentStatus;
   processor?: string;
   processor_ref?: string;
+}
+export interface SponsorInput {
+  id?: string;
+  slug: string;
+  name: string;
+  status?: SponsorStatus;
+  brand_color?: string;
+  logo_url?: string;
+}
+export interface SponsorPatch {
+  slug?: string;
+  name?: string;
+  status?: SponsorStatus;
+  brand_color?: string;
+  logo_url?: string;
+}
+export interface SponsorshipProgramInput {
+  id?: string;
+  sponsor_id: string;
+  name: string;
+  program_type: SponsorshipProgramType;
+  list_value_usd: number;
+  sponsor_subsidy_usd: number;
+  student_price_usd: number;
+  budget_mode: "unlimited" | "capped";
+  budget_usd?: number;
+  used_budget_usd?: number;
+  status?: SponsorStatus;
+  default_apply_url: string;
+  eligible_countries?: string[];
+  eligible_programs?: string[];
+}
+export interface SponsorshipProgramPatch {
+  name?: string;
+  program_type?: SponsorshipProgramType;
+  list_value_usd?: number;
+  sponsor_subsidy_usd?: number;
+  student_price_usd?: number;
+  budget_mode?: "unlimited" | "capped";
+  budget_usd?: number;
+  used_budget_usd?: number;
+  status?: SponsorStatus;
+  default_apply_url?: string;
+  eligible_countries?: string[];
+  eligible_programs?: string[];
+}
+export interface AccessPassInput {
+  candidate_id: string;
+  sponsor_id: string;
+  sponsorship_program_id: string;
+  payment_id?: string;
+  status?: AccessPassStatus;
+  starts_at?: string;
+  expires_at?: string;
+}
+export interface ApplyAttributionInput {
+  candidate_id?: string;
+  sponsor_id?: string;
+  campaign_id: string;
+  placement: ApplyCTAPlacement;
+  event_type: ApplyAttributionEventType;
+  safe_session_id: string;
+  destination_url?: string;
+}
+export interface ApplicationFeeCoverageInput {
+  candidate_id: string;
+  university_id: string;
+  program_id?: string;
+  application_id?: string;
+  fee_amount_usd: number;
+  coverage_type: ApplicationFeeCoverage["coverage_type"];
+  status?: ApplicationFeeCoverage["status"];
+  payment_reference_id?: string;
+}
+export interface AcademyEventInput {
+  event_type: string;
+  candidate_id?: string;
+  sponsor_id?: string;
+  campaign_id?: string;
+  payload?: Record<string, unknown>;
 }
 export interface CredentialInput {
   candidate_id: string;
@@ -313,6 +411,43 @@ export interface Store {
       cursor: string | undefined,
       limit: number,
     ): Promise<Page<Payment>>;
+  };
+  sponsors: {
+    create(input: SponsorInput): Promise<Sponsor>;
+    get(id: string): Promise<Sponsor | undefined>;
+    getBySlug(slug: string): Promise<Sponsor | undefined>;
+    patch(id: string, patch: SponsorPatch): Promise<Sponsor | undefined>;
+    list(): Promise<Sponsor[]>;
+  };
+  sponsorshipPrograms: {
+    create(input: SponsorshipProgramInput): Promise<SponsorshipProgram>;
+    get(id: string): Promise<SponsorshipProgram | undefined>;
+    patch(id: string, patch: SponsorshipProgramPatch): Promise<SponsorshipProgram | undefined>;
+    list(): Promise<SponsorshipProgram[]>;
+    activeGlobalLive(sponsorId?: string): Promise<SponsorshipProgram | undefined>;
+  };
+  accessPasses: {
+    create(input: AccessPassInput): Promise<AccessPass>;
+    get(id: string): Promise<AccessPass | undefined>;
+    getByPayment(paymentId: string): Promise<AccessPass | undefined>;
+    listByCandidate(candidateId: string): Promise<AccessPass[]>;
+    setStatus(id: string, status: AccessPassStatus, dates?: { starts_at?: string; expires_at?: string }): Promise<AccessPass | undefined>;
+  };
+  applyAttributions: {
+    create(input: ApplyAttributionInput): Promise<ApplyAttribution>;
+    list(): Promise<ApplyAttribution[]>;
+  };
+  applyCtas: {
+    create(input: Omit<ApplyCTA, "id" | "created_at" | "updated_at"> & { id?: string }): Promise<ApplyCTA>;
+    list(): Promise<ApplyCTA[]>;
+  };
+  applicationFeeCoverages: {
+    create(input: ApplicationFeeCoverageInput): Promise<ApplicationFeeCoverage>;
+    list(): Promise<ApplicationFeeCoverage[]>;
+  };
+  academyEvents: {
+    create(input: AcademyEventInput): Promise<AcademyEvent>;
+    list(): Promise<AcademyEvent[]>;
   };
   /** Candidate end-user login credentials (email → scrypt password hash). */
   credentials: {
@@ -804,6 +939,103 @@ export function computeAttendanceRollup(
   };
 }
 
+export function buildSponsor(input: SponsorInput): Sponsor {
+  const now = new Date().toISOString();
+  return {
+    id: input.id ?? newId("spn"),
+    slug: input.slug,
+    name: input.name,
+    status: input.status ?? "active",
+    created_at: now,
+    updated_at: now,
+    ...(input.brand_color !== undefined && { brand_color: input.brand_color }),
+    ...(input.logo_url !== undefined && { logo_url: input.logo_url }),
+  };
+}
+
+export function buildSponsorshipProgram(input: SponsorshipProgramInput): SponsorshipProgram {
+  const now = new Date().toISOString();
+  return {
+    id: input.id ?? newId("sprg"),
+    sponsor_id: input.sponsor_id,
+    name: input.name,
+    program_type: input.program_type,
+    list_value_usd: input.list_value_usd,
+    sponsor_subsidy_usd: input.sponsor_subsidy_usd,
+    student_price_usd: input.student_price_usd,
+    budget_mode: input.budget_mode,
+    status: input.status ?? "active",
+    default_apply_url: input.default_apply_url,
+    created_at: now,
+    updated_at: now,
+    ...(input.budget_usd !== undefined && { budget_usd: input.budget_usd }),
+    ...(input.used_budget_usd !== undefined && { used_budget_usd: input.used_budget_usd }),
+    ...(input.eligible_countries !== undefined && { eligible_countries: input.eligible_countries }),
+    ...(input.eligible_programs !== undefined && { eligible_programs: input.eligible_programs }),
+  };
+}
+
+export function buildAccessPass(input: AccessPassInput): AccessPass {
+  const now = new Date().toISOString();
+  return {
+    id: newId("apass"),
+    candidate_id: input.candidate_id,
+    sponsor_id: input.sponsor_id,
+    sponsorship_program_id: input.sponsorship_program_id,
+    status: input.status ?? "pending",
+    created_at: now,
+    updated_at: now,
+    ...(input.payment_id !== undefined && { payment_id: input.payment_id }),
+    ...(input.starts_at !== undefined && { starts_at: input.starts_at }),
+    ...(input.expires_at !== undefined && { expires_at: input.expires_at }),
+  };
+}
+
+export function buildApplyAttribution(input: ApplyAttributionInput): ApplyAttribution {
+  return {
+    id: newId("attr"),
+    campaign_id: input.campaign_id,
+    placement: input.placement,
+    event_type: input.event_type,
+    safe_session_id: input.safe_session_id,
+    created_at: new Date().toISOString(),
+    ...(input.candidate_id !== undefined && { candidate_id: input.candidate_id }),
+    ...(input.sponsor_id !== undefined && { sponsor_id: input.sponsor_id }),
+    ...(input.destination_url !== undefined && { destination_url: input.destination_url }),
+  };
+}
+
+export function buildApplicationFeeCoverage(input: ApplicationFeeCoverageInput): ApplicationFeeCoverage {
+  const now = new Date().toISOString();
+  return {
+    id: newId("fee"),
+    candidate_id: input.candidate_id,
+    university_id: input.university_id,
+    fee_amount_usd: input.fee_amount_usd,
+    coverage_type: input.coverage_type,
+    status: input.status ?? "eligible",
+    created_at: now,
+    updated_at: now,
+    ...(input.program_id !== undefined && { program_id: input.program_id }),
+    ...(input.application_id !== undefined && { application_id: input.application_id }),
+    ...(input.payment_reference_id !== undefined && { payment_reference_id: input.payment_reference_id }),
+  };
+}
+
+export function buildAcademyEvent(input: AcademyEventInput): AcademyEvent {
+  return {
+    id: newId("aev"),
+    event_type: input.event_type,
+    created_at: new Date().toISOString(),
+    ...(input.candidate_id !== undefined && { candidate_id: input.candidate_id }),
+    ...(input.sponsor_id !== undefined && { sponsor_id: input.sponsor_id }),
+    ...(input.campaign_id !== undefined && { campaign_id: input.campaign_id }),
+    ...(input.payload !== undefined && {
+      payload: redactSensitiveLogValue(input.payload) as Record<string, unknown>,
+    }),
+  };
+}
+
 export class MemoryStore implements Store {
   private _clients: ApiClient[] = [];
   private _candidates: Candidate[] = [];
@@ -822,6 +1054,13 @@ export class MemoryStore implements Store {
   private _schools: School[] = [];
   private _affiliations: CandidateSchoolAffiliation[] = [];
   private _pathwayTasks: PathwayTaskEvent[] = [];
+  private _sponsors: Sponsor[] = DEFAULT_SPONSORS.map((s) => ({ ...s }));
+  private _sponsorshipPrograms: SponsorshipProgram[] = DEFAULT_SPONSORSHIP_PROGRAMS.map((p) => ({ ...p }));
+  private _accessPasses: AccessPass[] = [];
+  private _applyAttributions: ApplyAttribution[] = [];
+  private _applyCtas: ApplyCTA[] = DEFAULT_APPLY_CTAS.map((c) => ({ ...c }));
+  private _applicationFeeCoverages: ApplicationFeeCoverage[] = [];
+  private _academyEvents: AcademyEvent[] = [];
 
   cohorts = {
     create: async (input: CohortInput): Promise<Cohort> => {
@@ -1001,6 +1240,146 @@ export class MemoryStore implements Store {
         cursor,
         limit,
       ),
+  };
+
+  sponsors = {
+    create: async (input: SponsorInput): Promise<Sponsor> => {
+      const sponsor = buildSponsor(input);
+      this._sponsors.push(sponsor);
+      return sponsor;
+    },
+    get: async (id: string): Promise<Sponsor | undefined> =>
+      this._sponsors.find((s) => s.id === id),
+    getBySlug: async (slug: string): Promise<Sponsor | undefined> =>
+      this._sponsors.find((s) => s.slug === slug),
+    patch: async (id: string, patch: SponsorPatch): Promise<Sponsor | undefined> => {
+      const sponsor = this._sponsors.find((s) => s.id === id);
+      if (!sponsor) return undefined;
+      if (patch.slug !== undefined) sponsor.slug = patch.slug;
+      if (patch.name !== undefined) sponsor.name = patch.name;
+      if (patch.status !== undefined) sponsor.status = patch.status;
+      if (patch.brand_color !== undefined) sponsor.brand_color = patch.brand_color;
+      if (patch.logo_url !== undefined) sponsor.logo_url = patch.logo_url;
+      sponsor.updated_at = new Date().toISOString();
+      return sponsor;
+    },
+    list: async (): Promise<Sponsor[]> => [...this._sponsors],
+  };
+
+  sponsorshipPrograms = {
+    create: async (input: SponsorshipProgramInput): Promise<SponsorshipProgram> => {
+      const program = buildSponsorshipProgram(input);
+      this._sponsorshipPrograms.push(program);
+      return program;
+    },
+    get: async (id: string): Promise<SponsorshipProgram | undefined> =>
+      this._sponsorshipPrograms.find((p) => p.id === id),
+    patch: async (id: string, patch: SponsorshipProgramPatch): Promise<SponsorshipProgram | undefined> => {
+      const program = this._sponsorshipPrograms.find((p) => p.id === id);
+      if (!program) return undefined;
+      if (patch.name !== undefined) program.name = patch.name;
+      if (patch.program_type !== undefined) program.program_type = patch.program_type;
+      if (patch.list_value_usd !== undefined) program.list_value_usd = patch.list_value_usd;
+      if (patch.sponsor_subsidy_usd !== undefined) program.sponsor_subsidy_usd = patch.sponsor_subsidy_usd;
+      if (patch.student_price_usd !== undefined) program.student_price_usd = patch.student_price_usd;
+      if (patch.budget_mode !== undefined) program.budget_mode = patch.budget_mode;
+      if (patch.budget_usd !== undefined) program.budget_usd = patch.budget_usd;
+      if (patch.used_budget_usd !== undefined) program.used_budget_usd = patch.used_budget_usd;
+      if (patch.status !== undefined) program.status = patch.status;
+      if (patch.default_apply_url !== undefined) program.default_apply_url = patch.default_apply_url;
+      if (patch.eligible_countries !== undefined) program.eligible_countries = patch.eligible_countries;
+      if (patch.eligible_programs !== undefined) program.eligible_programs = patch.eligible_programs;
+      program.updated_at = new Date().toISOString();
+      return program;
+    },
+    list: async (): Promise<SponsorshipProgram[]> => [...this._sponsorshipPrograms],
+    activeGlobalLive: async (sponsorId?: string): Promise<SponsorshipProgram | undefined> => {
+      const candidates = this._sponsorshipPrograms.filter(
+        (p) =>
+          p.program_type === "global_live_access" &&
+          p.status === "active" &&
+          (!sponsorId || p.sponsor_id === sponsorId),
+      );
+      return candidates.find((p) => {
+        const sponsor = this._sponsors.find((s) => s.id === p.sponsor_id);
+        return sponsor?.status === "active";
+      });
+    },
+  };
+
+  accessPasses = {
+    create: async (input: AccessPassInput): Promise<AccessPass> => {
+      const pass = buildAccessPass(input);
+      this._accessPasses.push(pass);
+      return pass;
+    },
+    get: async (id: string): Promise<AccessPass | undefined> =>
+      this._accessPasses.find((p) => p.id === id),
+    getByPayment: async (paymentId: string): Promise<AccessPass | undefined> =>
+      this._accessPasses.find((p) => p.payment_id === paymentId),
+    listByCandidate: async (candidateId: string): Promise<AccessPass[]> =>
+      this._accessPasses.filter((p) => p.candidate_id === candidateId),
+    setStatus: async (
+      id: string,
+      status: AccessPassStatus,
+      dates?: { starts_at?: string; expires_at?: string },
+    ): Promise<AccessPass | undefined> => {
+      const pass = this._accessPasses.find((p) => p.id === id);
+      if (!pass) return undefined;
+      pass.status = status;
+      if (dates?.starts_at !== undefined) pass.starts_at = dates.starts_at;
+      if (dates?.expires_at !== undefined) pass.expires_at = dates.expires_at;
+      pass.updated_at = new Date().toISOString();
+      return pass;
+    },
+  };
+
+  applyAttributions = {
+    create: async (input: ApplyAttributionInput): Promise<ApplyAttribution> => {
+      const attribution = buildApplyAttribution(input);
+      this._applyAttributions.push(attribution);
+      return attribution;
+    },
+    list: async (): Promise<ApplyAttribution[]> => [...this._applyAttributions],
+  };
+
+  applyCtas = {
+    create: async (input: Omit<ApplyCTA, "id" | "created_at" | "updated_at"> & { id?: string }): Promise<ApplyCTA> => {
+      const now = new Date().toISOString();
+      const cta: ApplyCTA = {
+        id: input.id ?? newId("cta"),
+        placement: input.placement,
+        label: input.label,
+        subtext: input.subtext,
+        destination_url: input.destination_url,
+        active: input.active,
+        created_at: now,
+        updated_at: now,
+        ...(input.sponsor_id !== undefined && { sponsor_id: input.sponsor_id }),
+        ...(input.campaign_id !== undefined && { campaign_id: input.campaign_id }),
+      };
+      this._applyCtas.push(cta);
+      return cta;
+    },
+    list: async (): Promise<ApplyCTA[]> => [...this._applyCtas],
+  };
+
+  applicationFeeCoverages = {
+    create: async (input: ApplicationFeeCoverageInput): Promise<ApplicationFeeCoverage> => {
+      const coverage = buildApplicationFeeCoverage(input);
+      this._applicationFeeCoverages.push(coverage);
+      return coverage;
+    },
+    list: async (): Promise<ApplicationFeeCoverage[]> => [...this._applicationFeeCoverages],
+  };
+
+  academyEvents = {
+    create: async (input: AcademyEventInput): Promise<AcademyEvent> => {
+      const event = buildAcademyEvent(input);
+      this._academyEvents.push(event);
+      return event;
+    },
+    list: async (): Promise<AcademyEvent[]> => [...this._academyEvents],
   };
 
   credentials = {

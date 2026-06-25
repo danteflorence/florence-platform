@@ -496,7 +496,7 @@ try {
   assert.equal((await tryLogin("supersecret1")).status, 429); // correct pw still locked
   ok("6 failed logins → account locked (429); correct password stays locked");
 
-  // 5h) Deposit checkout (mock provider) → mock-complete → paid + funnel advance
+  // 5h) Global Live access checkout (mock provider) -> mock-complete -> paid + funnel advance
   await fetch(`${base}/v1/cohorts`, {
     method: "POST",
     headers: { "content-type": "application/json", ...bearer(T) },
@@ -517,20 +517,20 @@ try {
   assert.equal(cj.provider, "mock");
   assert.equal(cj.amount_cents, 10000);
   assert.ok(String(cj.checkout_url).includes("/checkout/mock"));
-  ok("candidate starts a $100 deposit checkout (mock) → 201 with hosted URL");
+  ok("candidate starts a $100 Global Live access checkout (mock) -> 201 with hosted URL");
 
   const complete = await fetch(`${base}/v1/payments/${cj.payment_id}/mock-complete`, { method: "POST" });
   assert.equal(complete.status, 200);
-  ok("mock-complete marks the deposit paid");
+  ok("mock-complete marks Global Live access paid");
 
   const pays = (await (await fetch(`${base}/v1/payments?candidate_id=${meId}`, { headers: bearer(T) })).json()) as any;
-  assert.ok(pays.data.some((p: any) => p.status === "paid" && p.kind === "commitment_deposit"));
+  assert.ok(pays.data.some((p: any) => p.status === "paid" && p.kind === "global_live_access"));
   const enrsRes = await fetch(`${base}/v1/enrollments?limit=200`, { headers: bearer(T) });
   const enrs = (await enrsRes.json()) as any;
   if (!enrs.data) throw new Error(`enrollments list: ${enrsRes.status} ${JSON.stringify(enrs)}`);
   const mine = enrs.data.find((e: any) => e.candidate_id === meId && e.cohort === "PAY-COHORT");
   assert.equal(mine.status, "deposit_paid");
-  ok("deposit paid → payment recorded + enrollment advanced to deposit_paid");
+  ok("Global Live access paid -> payment recorded + enrollment advanced to deposit_paid");
 
   // 5h.5) The candidate can see their cohort + its coverage watermark.
   // PAY-COHORT was just created; bump it via the operator token.
@@ -836,7 +836,8 @@ try {
   assert.equal(demoA.outreach_status, undefined);
   ok("public schools listing redacts contact + email_domains + outreach status");
 
-  // Candidate self-attests an affiliation; deposit drops from $100 → $75.
+  // Candidate self-attests an affiliation; Global Live access remains $100 under
+  // the current sponsored-access model.
   const aff = await fetch(`${base}/v1/candidates/${meId}/affiliations`, {
     method: "POST", headers: { "content-type": "application/json", ...bearer(CS) },
     body: JSON.stringify({ school_slug: "FLR-DEMO-A", role: "student" }),
@@ -849,8 +850,8 @@ try {
   const co = (await (await fetch(`${base}/v1/payments/checkout`, {
     method: "POST", headers: { "content-type": "application/json", ...bearer(CS) }, body: "{}",
   })).json()) as any;
-  assert.equal(co.amount_cents, 7500);
-  ok("eligible-school candidate deposit → $75 preferred access");
+  assert.equal(co.amount_cents, 10000);
+  ok("eligible-school candidate Global Live checkout -> $100 sponsored access");
 
   // K-anonymity: with 1 affiliated candidate (< K=10), report is suppressed.
   const rep1 = (await (await fetch(`${base}/v1/schools/FLR-DEMO-A/report`, { headers: bearer(T) })).json()) as any;

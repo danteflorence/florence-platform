@@ -1,4 +1,4 @@
-// Payment provider abstraction for the $100 seat deposit.
+// Payment provider abstraction for sponsored Global Live access.
 //
 // SECURITY: card data NEVER touches this service - checkout always happens on the
 // provider's HOSTED page. We only create a session and record the result. The
@@ -15,6 +15,7 @@ export interface CheckoutRequest {
   currency: string;
   successUrl: string;
   cancelUrl: string;
+  productName?: string;
 }
 export interface CheckoutResult {
   /** Hosted checkout URL to redirect the browser to. */
@@ -79,7 +80,10 @@ export class StripePaymentProvider implements PaymentProvider {
     form.set("line_items[0][quantity]", "1");
     form.set("line_items[0][price_data][currency]", req.currency);
     form.set("line_items[0][price_data][unit_amount]", String(req.amountCents));
-    form.set("line_items[0][price_data][product_data][name]", "Florence Academy - seat deposit");
+    form.set(
+      "line_items[0][price_data][product_data][name]",
+      req.productName ?? "Florence Academy Global Live NCLEX Access",
+    );
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {

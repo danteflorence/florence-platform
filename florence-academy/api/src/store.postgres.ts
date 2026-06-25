@@ -8,7 +8,13 @@
 import { randomBytes } from "node:crypto";
 import type { FieldCrypto } from "./crypto.ts";
 import type {
+  AccessPass,
+  AccessPassStatus,
+  AcademyEvent,
   ApiClient,
+  ApplicationFeeCoverage,
+  ApplyAttribution,
+  ApplyCTA,
   AssessmentResult,
   AttendanceRecord,
   AttendanceStatus,
@@ -28,9 +34,16 @@ import type {
   ProgressRecord,
   School,
   SchoolTier,
+  Sponsor,
+  SponsorStatus,
+  SponsorshipProgram,
 } from "./types.ts";
 import type {
+  AccessPassInput,
   AffiliationInput,
+  AcademyEventInput,
+  ApplicationFeeCoverageInput,
+  ApplyAttributionInput,
   AssessmentInput,
   AttendanceInput,
   CandidateInput,
@@ -52,6 +65,10 @@ import type {
   ResponseInput,
   SchoolInput,
   SchoolPatch,
+  SponsorInput,
+  SponsorPatch,
+  SponsorshipProgramInput,
+  SponsorshipProgramPatch,
   Store,
 } from "./store.ts";
 import { walkthroughBodyHash, contentHash, rollupAnalytics } from "./store.ts";
@@ -68,8 +85,14 @@ import type { QuestionResponse, QuestionAnalytics } from "./types.ts";
 import {
   buildAssessment,
   buildAttendance,
+  buildAcademyEvent,
+  buildAccessPass,
+  buildApplicationFeeCoverage,
+  buildApplyAttribution,
   buildOutcome,
   buildPathwayTask,
+  buildSponsor,
+  buildSponsorshipProgram,
   clampPct,
   computeAttendanceRollup,
   computeOutcomeFunnel,
@@ -205,6 +228,94 @@ export class PostgresStore implements Store {
     ...(r["processor_ref_enc"] != null && {
       processor_ref: await this.fc.decrypt(String(r["processor_ref_enc"])),
     }),
+  });
+  private toSponsor = (r: Record<string, unknown>): Sponsor => ({
+    id: String(r["id"]),
+    slug: String(r["slug"]),
+    name: String(r["name"]),
+    status: String(r["status"]) as SponsorStatus,
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+    ...(r["brand_color"] != null && { brand_color: String(r["brand_color"]) }),
+    ...(r["logo_url"] != null && { logo_url: String(r["logo_url"]) }),
+  });
+  private toSponsorshipProgram = (r: Record<string, unknown>): SponsorshipProgram => ({
+    id: String(r["id"]),
+    sponsor_id: String(r["sponsor_id"]),
+    name: String(r["name"]),
+    program_type: String(r["program_type"]) as SponsorshipProgram["program_type"],
+    list_value_usd: Number(r["list_value_usd"]),
+    sponsor_subsidy_usd: Number(r["sponsor_subsidy_usd"]),
+    student_price_usd: Number(r["student_price_usd"]),
+    budget_mode: String(r["budget_mode"]) as SponsorshipProgram["budget_mode"],
+    status: String(r["status"]) as SponsorStatus,
+    default_apply_url: String(r["default_apply_url"]),
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+    ...(r["budget_usd"] != null && { budget_usd: Number(r["budget_usd"]) }),
+    ...(r["used_budget_usd"] != null && { used_budget_usd: Number(r["used_budget_usd"]) }),
+    ...(r["eligible_countries"] != null && { eligible_countries: r["eligible_countries"] as string[] }),
+    ...(r["eligible_programs"] != null && { eligible_programs: r["eligible_programs"] as string[] }),
+  });
+  private toAccessPass = (r: Record<string, unknown>): AccessPass => ({
+    id: String(r["id"]),
+    candidate_id: String(r["candidate_id"]),
+    sponsor_id: String(r["sponsor_id"]),
+    sponsorship_program_id: String(r["sponsorship_program_id"]),
+    status: String(r["status"]) as AccessPassStatus,
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+    ...(r["payment_id"] != null && { payment_id: String(r["payment_id"]) }),
+    ...(r["starts_at"] != null && { starts_at: iso(r["starts_at"]) }),
+    ...(r["expires_at"] != null && { expires_at: iso(r["expires_at"]) }),
+  });
+  private toApplyAttribution = (r: Record<string, unknown>): ApplyAttribution => ({
+    id: String(r["id"]),
+    campaign_id: String(r["campaign_id"]),
+    placement: String(r["placement"]) as ApplyAttribution["placement"],
+    event_type: String(r["event_type"]) as ApplyAttribution["event_type"],
+    safe_session_id: String(r["safe_session_id"]),
+    created_at: iso(r["created_at"]),
+    ...(r["candidate_id"] != null && { candidate_id: String(r["candidate_id"]) }),
+    ...(r["sponsor_id"] != null && { sponsor_id: String(r["sponsor_id"]) }),
+    ...(r["destination_url"] != null && { destination_url: String(r["destination_url"]) }),
+  });
+  private toApplyCta = (r: Record<string, unknown>): ApplyCTA => ({
+    id: String(r["id"]),
+    placement: String(r["placement"]) as ApplyCTA["placement"],
+    label: String(r["label"]),
+    subtext: String(r["subtext"]),
+    destination_url: String(r["destination_url"]),
+    active: Boolean(r["active"]),
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+    ...(r["sponsor_id"] != null && { sponsor_id: String(r["sponsor_id"]) }),
+    ...(r["campaign_id"] != null && { campaign_id: String(r["campaign_id"]) }),
+  });
+  private toApplicationFeeCoverage = (r: Record<string, unknown>): ApplicationFeeCoverage => ({
+    id: String(r["id"]),
+    candidate_id: String(r["candidate_id"]),
+    university_id: String(r["university_id"]),
+    fee_amount_usd: Number(r["fee_amount_usd"]),
+    coverage_type: String(r["coverage_type"]) as ApplicationFeeCoverage["coverage_type"],
+    status: String(r["status"]) as ApplicationFeeCoverage["status"],
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+    ...(r["program_id"] != null && { program_id: String(r["program_id"]) }),
+    ...(r["application_id"] != null && { application_id: String(r["application_id"]) }),
+    ...(r["payment_reference_id"] != null && { payment_reference_id: String(r["payment_reference_id"]) }),
+    ...(r["approved_by"] != null && { approved_by: String(r["approved_by"]) }),
+    ...(r["approved_at"] != null && { approved_at: iso(r["approved_at"]) }),
+    ...(r["paid_at"] != null && { paid_at: iso(r["paid_at"]) }),
+  });
+  private toAcademyEvent = (r: Record<string, unknown>): AcademyEvent => ({
+    id: String(r["id"]),
+    event_type: String(r["event_type"]),
+    created_at: iso(r["created_at"]),
+    ...(r["candidate_id"] != null && { candidate_id: String(r["candidate_id"]) }),
+    ...(r["sponsor_id"] != null && { sponsor_id: String(r["sponsor_id"]) }),
+    ...(r["campaign_id"] != null && { campaign_id: String(r["campaign_id"]) }),
+    ...(r["payload"] != null && { payload: r["payload"] as Record<string, unknown> }),
   });
   private toCohort = (r: Record<string, unknown>): Cohort => ({
     id: String(r["id"]),
@@ -618,6 +729,377 @@ export class PostgresStore implements Store {
     },
     list: (candidateId: string | undefined, cursor: string | undefined, limit: number) =>
       this.listTable("payments", this.toPayment, cursor, limit, candidateId),
+  };
+
+  sponsors = {
+    create: async (input: SponsorInput): Promise<Sponsor> => {
+      const sponsor = buildSponsor(input);
+      await this.sql.query(
+        `INSERT INTO academy_sponsors
+           (id, slug, name, status, brand_color, logo_url, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          sponsor.id,
+          sponsor.slug,
+          sponsor.name,
+          sponsor.status,
+          sponsor.brand_color ?? null,
+          sponsor.logo_url ?? null,
+          sponsor.created_at,
+          sponsor.updated_at,
+        ],
+      );
+      return sponsor;
+    },
+    get: async (id: string): Promise<Sponsor | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_sponsors WHERE id = $1`,
+        [id],
+      );
+      return rows[0] ? this.toSponsor(rows[0]) : undefined;
+    },
+    getBySlug: async (slug: string): Promise<Sponsor | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_sponsors WHERE slug = $1`,
+        [slug],
+      );
+      return rows[0] ? this.toSponsor(rows[0]) : undefined;
+    },
+    patch: async (id: string, patch: SponsorPatch): Promise<Sponsor | undefined> => {
+      const existing = await this.sponsors.get(id);
+      if (!existing) return undefined;
+      const next: Sponsor = {
+        ...existing,
+        ...(patch.slug !== undefined && { slug: patch.slug }),
+        ...(patch.name !== undefined && { name: patch.name }),
+        ...(patch.status !== undefined && { status: patch.status }),
+        ...(patch.brand_color !== undefined && { brand_color: patch.brand_color }),
+        ...(patch.logo_url !== undefined && { logo_url: patch.logo_url }),
+        updated_at: new Date().toISOString(),
+      };
+      await this.sql.query(
+        `UPDATE academy_sponsors
+           SET slug=$2, name=$3, status=$4, brand_color=$5, logo_url=$6, updated_at=$7
+         WHERE id=$1`,
+        [
+          id,
+          next.slug,
+          next.name,
+          next.status,
+          next.brand_color ?? null,
+          next.logo_url ?? null,
+          next.updated_at,
+        ],
+      );
+      return next;
+    },
+    list: async (): Promise<Sponsor[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_sponsors ORDER BY name`,
+      );
+      return rows.map(this.toSponsor);
+    },
+  };
+
+  sponsorshipPrograms = {
+    create: async (input: SponsorshipProgramInput): Promise<SponsorshipProgram> => {
+      const program = buildSponsorshipProgram(input);
+      await this.sql.query(
+        `INSERT INTO academy_sponsorship_programs
+           (id, sponsor_id, name, program_type, list_value_usd, sponsor_subsidy_usd,
+            student_price_usd, budget_mode, budget_usd, used_budget_usd, status,
+            default_apply_url, eligible_countries, eligible_programs, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+        [
+          program.id,
+          program.sponsor_id,
+          program.name,
+          program.program_type,
+          program.list_value_usd,
+          program.sponsor_subsidy_usd,
+          program.student_price_usd,
+          program.budget_mode,
+          program.budget_usd ?? null,
+          program.used_budget_usd ?? null,
+          program.status,
+          program.default_apply_url,
+          program.eligible_countries ?? null,
+          program.eligible_programs ?? null,
+          program.created_at,
+          program.updated_at,
+        ],
+      );
+      return program;
+    },
+    get: async (id: string): Promise<SponsorshipProgram | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_sponsorship_programs WHERE id = $1`,
+        [id],
+      );
+      return rows[0] ? this.toSponsorshipProgram(rows[0]) : undefined;
+    },
+    patch: async (id: string, patch: SponsorshipProgramPatch): Promise<SponsorshipProgram | undefined> => {
+      const existing = await this.sponsorshipPrograms.get(id);
+      if (!existing) return undefined;
+      const next: SponsorshipProgram = {
+        ...existing,
+        ...(patch.name !== undefined && { name: patch.name }),
+        ...(patch.program_type !== undefined && { program_type: patch.program_type }),
+        ...(patch.list_value_usd !== undefined && { list_value_usd: patch.list_value_usd }),
+        ...(patch.sponsor_subsidy_usd !== undefined && { sponsor_subsidy_usd: patch.sponsor_subsidy_usd }),
+        ...(patch.student_price_usd !== undefined && { student_price_usd: patch.student_price_usd }),
+        ...(patch.budget_mode !== undefined && { budget_mode: patch.budget_mode }),
+        ...(patch.budget_usd !== undefined && { budget_usd: patch.budget_usd }),
+        ...(patch.used_budget_usd !== undefined && { used_budget_usd: patch.used_budget_usd }),
+        ...(patch.status !== undefined && { status: patch.status }),
+        ...(patch.default_apply_url !== undefined && { default_apply_url: patch.default_apply_url }),
+        ...(patch.eligible_countries !== undefined && { eligible_countries: patch.eligible_countries }),
+        ...(patch.eligible_programs !== undefined && { eligible_programs: patch.eligible_programs }),
+        updated_at: new Date().toISOString(),
+      };
+      await this.sql.query(
+        `UPDATE academy_sponsorship_programs
+           SET name=$2, program_type=$3, list_value_usd=$4, sponsor_subsidy_usd=$5,
+               student_price_usd=$6, budget_mode=$7, budget_usd=$8, used_budget_usd=$9,
+               status=$10, default_apply_url=$11, eligible_countries=$12, eligible_programs=$13,
+               updated_at=$14
+         WHERE id=$1`,
+        [
+          id,
+          next.name,
+          next.program_type,
+          next.list_value_usd,
+          next.sponsor_subsidy_usd,
+          next.student_price_usd,
+          next.budget_mode,
+          next.budget_usd ?? null,
+          next.used_budget_usd ?? null,
+          next.status,
+          next.default_apply_url,
+          next.eligible_countries ?? null,
+          next.eligible_programs ?? null,
+          next.updated_at,
+        ],
+      );
+      return next;
+    },
+    list: async (): Promise<SponsorshipProgram[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_sponsorship_programs ORDER BY created_at, id`,
+      );
+      return rows.map(this.toSponsorshipProgram);
+    },
+    activeGlobalLive: async (sponsorId?: string): Promise<SponsorshipProgram | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT p.*
+           FROM academy_sponsorship_programs p
+           JOIN academy_sponsors s ON s.id = p.sponsor_id
+          WHERE p.program_type = 'global_live_access'
+            AND p.status = 'active'
+            AND s.status = 'active'
+            AND ($1::text IS NULL OR p.sponsor_id = $1)
+            AND (p.budget_mode = 'unlimited' OR COALESCE(p.used_budget_usd, 0) < COALESCE(p.budget_usd, 0))
+          ORDER BY p.created_at, p.id
+          LIMIT 1`,
+        [sponsorId ?? null],
+      );
+      return rows[0] ? this.toSponsorshipProgram(rows[0]) : undefined;
+    },
+  };
+
+  accessPasses = {
+    create: async (input: AccessPassInput): Promise<AccessPass> => {
+      const pass = buildAccessPass(input);
+      await this.sql.query(
+        `INSERT INTO academy_access_passes
+           (id, candidate_id, sponsor_id, sponsorship_program_id, payment_id, status,
+            starts_at, expires_at, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          pass.id,
+          pass.candidate_id,
+          pass.sponsor_id,
+          pass.sponsorship_program_id,
+          pass.payment_id ?? null,
+          pass.status,
+          pass.starts_at ?? null,
+          pass.expires_at ?? null,
+          pass.created_at,
+          pass.updated_at,
+        ],
+      );
+      return pass;
+    },
+    get: async (id: string): Promise<AccessPass | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_access_passes WHERE id = $1`,
+        [id],
+      );
+      return rows[0] ? this.toAccessPass(rows[0]) : undefined;
+    },
+    getByPayment: async (paymentId: string): Promise<AccessPass | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_access_passes WHERE payment_id = $1`,
+        [paymentId],
+      );
+      return rows[0] ? this.toAccessPass(rows[0]) : undefined;
+    },
+    listByCandidate: async (candidateId: string): Promise<AccessPass[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_access_passes WHERE candidate_id = $1 ORDER BY created_at`,
+        [candidateId],
+      );
+      return rows.map(this.toAccessPass);
+    },
+    setStatus: async (
+      id: string,
+      status: AccessPassStatus,
+      dates?: { starts_at?: string; expires_at?: string },
+    ): Promise<AccessPass | undefined> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `UPDATE academy_access_passes
+            SET status=$2,
+                starts_at=COALESCE($3, starts_at),
+                expires_at=COALESCE($4, expires_at),
+                updated_at=now()
+          WHERE id=$1
+          RETURNING *`,
+        [id, status, dates?.starts_at ?? null, dates?.expires_at ?? null],
+      );
+      return rows[0] ? this.toAccessPass(rows[0]) : undefined;
+    },
+  };
+
+  applyAttributions = {
+    create: async (input: ApplyAttributionInput): Promise<ApplyAttribution> => {
+      const attribution = buildApplyAttribution(input);
+      await this.sql.query(
+        `INSERT INTO academy_apply_attributions
+           (id, candidate_id, sponsor_id, campaign_id, placement, event_type,
+            safe_session_id, destination_url, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
+          attribution.id,
+          attribution.candidate_id ?? null,
+          attribution.sponsor_id ?? null,
+          attribution.campaign_id,
+          attribution.placement,
+          attribution.event_type,
+          attribution.safe_session_id,
+          attribution.destination_url ?? null,
+          attribution.created_at,
+        ],
+      );
+      return attribution;
+    },
+    list: async (): Promise<ApplyAttribution[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_apply_attributions ORDER BY created_at, id`,
+      );
+      return rows.map(this.toApplyAttribution);
+    },
+  };
+
+  applyCtas = {
+    create: async (input: Omit<ApplyCTA, "id" | "created_at" | "updated_at"> & { id?: string }): Promise<ApplyCTA> => {
+      const now = new Date().toISOString();
+      const cta: ApplyCTA = {
+        id: input.id ?? newId("cta"),
+        placement: input.placement,
+        label: input.label,
+        subtext: input.subtext,
+        destination_url: input.destination_url,
+        active: input.active,
+        created_at: now,
+        updated_at: now,
+        ...(input.sponsor_id !== undefined && { sponsor_id: input.sponsor_id }),
+        ...(input.campaign_id !== undefined && { campaign_id: input.campaign_id }),
+      };
+      await this.sql.query(
+        `INSERT INTO academy_apply_ctas
+           (id, placement, label, subtext, destination_url, sponsor_id, campaign_id,
+            active, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          cta.id,
+          cta.placement,
+          cta.label,
+          cta.subtext,
+          cta.destination_url,
+          cta.sponsor_id ?? null,
+          cta.campaign_id ?? null,
+          cta.active,
+          cta.created_at,
+          cta.updated_at,
+        ],
+      );
+      return cta;
+    },
+    list: async (): Promise<ApplyCTA[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_apply_ctas ORDER BY created_at, id`,
+      );
+      return rows.map(this.toApplyCta);
+    },
+  };
+
+  applicationFeeCoverages = {
+    create: async (input: ApplicationFeeCoverageInput): Promise<ApplicationFeeCoverage> => {
+      const coverage = buildApplicationFeeCoverage(input);
+      await this.sql.query(
+        `INSERT INTO academy_application_fee_coverages
+           (id, candidate_id, university_id, program_id, application_id, fee_amount_usd,
+            coverage_type, status, payment_reference_id, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          coverage.id,
+          coverage.candidate_id,
+          coverage.university_id,
+          coverage.program_id ?? null,
+          coverage.application_id ?? null,
+          coverage.fee_amount_usd,
+          coverage.coverage_type,
+          coverage.status,
+          coverage.payment_reference_id ?? null,
+          coverage.created_at,
+          coverage.updated_at,
+        ],
+      );
+      return coverage;
+    },
+    list: async (): Promise<ApplicationFeeCoverage[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_application_fee_coverages ORDER BY created_at, id`,
+      );
+      return rows.map(this.toApplicationFeeCoverage);
+    },
+  };
+
+  academyEvents = {
+    create: async (input: AcademyEventInput): Promise<AcademyEvent> => {
+      const event = buildAcademyEvent(input);
+      await this.sql.query(
+        `INSERT INTO academy_events
+           (id, event_type, candidate_id, sponsor_id, campaign_id, payload, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7)`,
+        [
+          event.id,
+          event.event_type,
+          event.candidate_id ?? null,
+          event.sponsor_id ?? null,
+          event.campaign_id ?? null,
+          event.payload ? JSON.stringify(event.payload) : null,
+          event.created_at,
+        ],
+      );
+      return event;
+    },
+    list: async (): Promise<AcademyEvent[]> => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT * FROM academy_events ORDER BY created_at, id`,
+      );
+      return rows.map(this.toAcademyEvent);
+    },
   };
 
   // ── candidate credentials (end-user login) ───────────────────────────────

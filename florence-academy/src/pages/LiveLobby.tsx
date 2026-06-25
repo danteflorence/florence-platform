@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { LiveRole } from "../lib/liveProtocol";
 import { randomRoomCode } from "../lib/liveProtocol";
 import { fetchReplays, fmtDuration, replayUrl, type Replay } from "../lib/replays";
+import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
 /**
  * Live-session lobby. Pick a role and a room code, then hand off to the synced
@@ -35,7 +36,7 @@ export default function LiveLobby() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
-      <p className="fl-eyebrow mb-2">Live class</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Live class</p>
       <h1 className="font-serif text-3xl font-semibold text-florence-ink sm:text-4xl">
         Teach - or join - a synced room.
       </h1>
@@ -43,6 +44,7 @@ export default function LiveLobby() {
         One instructor drives the deck; every student’s screen follows in real
         time. Open it on the projector, share the room code, and start.
       </p>
+      <ApplyProgramsCta placement="live_class" compact className="mt-5" />
 
       {/* Role */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -65,7 +67,7 @@ export default function LiveLobby() {
       {/* Room + name */}
       <div className="mt-6 fl-card p-5">
         <label className="block">
-          <span className="fl-eyebrow">Room code</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Room code</span>
           <div className="mt-2 flex items-center gap-2">
             <input
               value={room}
@@ -92,7 +94,7 @@ export default function LiveLobby() {
         </label>
 
         <label className="mt-4 block">
-          <span className="fl-eyebrow">Display name (optional)</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Display name (optional)</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -153,7 +155,7 @@ function RecentRecordings() {
 
   return (
     <div className="mt-10">
-      <p className="fl-eyebrow mb-2">Class replays</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Class replays</p>
       <h2 className="font-serif text-2xl font-semibold text-florence-ink">Catch up on a past class</h2>
       <p className="mt-2 text-sm text-florence-slate">
         Recorded sessions, playable on any device - handy across time zones and slow connections.

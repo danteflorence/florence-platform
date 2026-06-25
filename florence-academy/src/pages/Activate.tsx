@@ -153,13 +153,12 @@ function OfferPanel({ data }: { data: ActivationLookup }) {
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Block
-          eyebrow="For your alumni"
-          headline={`${data.offer.alumni_discount_pct} percent off the seat deposit`}
+          eyebrow="For your students and alumni"
+          headline={`${data.offer.product_name}`}
         >
-          Alumni of {data.org_name} pay ${data.offer.preferred_deposit_usd} instead of
-          ${data.offer.standard_deposit_usd} to reserve a seat in the live cohort. Same
-          bootcamp, same instructors, same outcomes track. Lower price, because we
-          trust your credential.
+          {data.org_name} sponsorship covers ${data.offer.university_sponsorship_usd},
+          so eligible learners pay ${data.offer.student_price_usd} for Global Live
+          NCLEX access. Same bootcamp, same instructors, same outcomes track.
         </Block>
         <Block eyebrow="For your nursing department" headline="Anonymized alumni dashboard">
           See how your alumni perform in our program. Readiness trend, NCLEX pass rate,
