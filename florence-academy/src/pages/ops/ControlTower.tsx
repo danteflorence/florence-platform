@@ -68,7 +68,7 @@ function usd(n: number): string {
   return `$${n.toLocaleString()}`;
 }
 
-function depositAmount(d: { amountCents?: number }): string {
+function accessAmount(d: { amountCents?: number }): string {
   return `$${Math.round((d.amountCents ?? 0) / 100)}`;
 }
 const DEPOSIT_DOT: Record<string, string> = {
@@ -247,7 +247,7 @@ function Dashboard({
       {/* Top metrics */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Metric label="Candidates" value={String(m.totalCandidates)} />
-        <Metric label="Paid deposits" value={String(m.depositsPaid)} sub={usd(m.depositsCollectedUsd)} />
+        <Metric label="Active access" value={String(m.accessPaid)} sub={usd(m.accessCollectedUsd)} />
         <Metric label="Readiness-cleared" value={String(m.readinessCleared)} sub={`of ${m.assessed} assessed`} />
         <Metric label="Attending now" value={String(m.byStage.attending)} />
         <Metric label="Expected starts" value={String(m.expectedStarts)} accent />
@@ -326,7 +326,7 @@ function Dashboard({
               <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/50">
                 <th className="py-2 pr-4 font-medium">Cohort</th>
                 <th className="py-2 pr-4 font-medium">Candidates</th>
-                <th className="py-2 pr-4 font-medium">Deposits</th>
+                <th className="py-2 pr-4 font-medium">Access</th>
                 <th className="py-2 pr-4 font-medium">Readiness-cleared</th>
                 <th className="py-2 pr-4 font-medium">Expected starts</th>
                 <th className="py-2 font-medium" />
@@ -344,7 +344,7 @@ function Dashboard({
                     <span className="ml-2 font-mono text-xs text-white/40">{c.code}</span>
                   </td>
                   <td className="py-2.5 pr-4 tabular-nums">{c.candidates}</td>
-                  <td className="py-2.5 pr-4 tabular-nums">{c.deposits}</td>
+                  <td className="py-2.5 pr-4 tabular-nums">{c.accessActivations}</td>
                   <td className="py-2.5 pr-4 tabular-nums">{c.readinessCleared}</td>
                   <td className="py-2.5 pr-4 tabular-nums font-semibold text-florence-teal">{c.expectedStarts}</td>
                   <td className="py-2.5 text-right">
@@ -372,7 +372,7 @@ function Dashboard({
 
       <p className="pb-10 text-xs leading-relaxed text-white/40">
         Forecast model (v0): expected starts weight each stage by historical start probability
-        (completed 0.9, attending 0.6, deposit paid 0.3, registered 0.1). Expected ARR ={" "}
+        (completed 0.9, attending 0.6, access active 0.3, registered 0.1). Expected ARR ={" "}
         expected starts × {usd(MONTHLY_SHARE_USD)}/mo Florence share × 12. Assumptions are operator-tunable
         and will be replaced by outcome-trained estimates as starts accrue. Internal figures - never shown to
         candidates, employers, or universities.
@@ -493,7 +493,7 @@ function OutreachReadyPanel({ outreach }: { outreach: OutreachReadyRow[] }) {
       <div className="mb-3">
         <h2 className="text-base font-semibold text-white">Schools ready for outreach</h2>
         <p className="text-xs text-white/50">
-          Eligible schools with ≥10 affiliated candidates, ≥3 paid deposits, ≥65% avg
+          Eligible schools with at least 10 affiliated candidates, at least 3 active access records, and at least 65% avg
           readiness · click for the K-anonymized report
         </p>
       </div>
@@ -509,7 +509,7 @@ function OutreachReadyPanel({ outreach }: { outreach: OutreachReadyRow[] }) {
                 <th className="py-2 pr-4 font-medium">School</th>
                 <th className="py-2 pr-4 font-medium">Country</th>
                 <th className="py-2 pr-4 font-medium">Affiliated</th>
-                <th className="py-2 pr-4 font-medium">Deposits</th>
+                <th className="py-2 pr-4 font-medium">Access</th>
                 <th className="py-2 pr-4 font-medium">Avg readiness</th>
                 <th className="py-2 font-medium">Outreach status</th>
               </tr>
@@ -527,7 +527,7 @@ function OutreachReadyPanel({ outreach }: { outreach: OutreachReadyRow[] }) {
                   </td>
                   <td className="py-2.5 pr-4 text-white/70">{s.country}</td>
                   <td className="py-2.5 pr-4 tabular-nums">{s.affiliated}</td>
-                  <td className="py-2.5 pr-4 tabular-nums">{s.paid_deposits}</td>
+                  <td className="py-2.5 pr-4 tabular-nums">{s.sponsored_access_activations}</td>
                   <td className="py-2.5 pr-4 tabular-nums">
                     {s.avg_readiness != null ? `${Math.round(s.avg_readiness * 100)}%` : "-"}
                   </td>
@@ -595,7 +595,7 @@ function SchoolReportDrawer({ slug, onClose }: { slug: string; onClose: () => vo
             <div className="grid grid-cols-3 gap-3">
               <DetailStat label="Affiliated" value={String(report.participation.affiliated)} />
               <DetailStat label="Verified" value={String(report.participation.verified)} />
-              <DetailStat label="Deposits paid" value={String(report.participation.paid_deposits)} />
+              <DetailStat label="Active access" value={String(report.participation.sponsored_access_activations)} />
             </div>
 
             {report.suppressed_for_privacy ? (
@@ -809,17 +809,17 @@ function Metric({ label, value, sub, accent }: { label: string; value: string; s
   );
 }
 
-type DepositFilter = "all" | "paid" | "unpaid" | "pending";
+type AccessFilter = "all" | "paid" | "unpaid" | "pending";
 
 function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<Stage | "all">("all");
   const [band, setBand] = useState<ReadinessBand | "all">("all");
-  const [deposit, setDeposit] = useState<DepositFilter>("all");
+  const [access, setAccess] = useState<AccessFilter>("all");
   const [followUp, setFollowUp] = useState(false);
   const [selected, setSelected] = useState<RosterRow | null>(null);
 
-  // Candidates worth a deposit nudge: enrolled-but-not-paid, excluding withdrawn.
+  // Candidates worth an access nudge: enrolled but not active, excluding withdrawn.
   const isFollowUp = (r: RosterRow) => r.deposit.status !== "paid" && r.stage !== "withdrawn";
   const followUpCount = useMemo(() => roster.filter(isFollowUp).length, [roster]);
 
@@ -829,13 +829,13 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
       if (followUp && !isFollowUp(r)) return false;
       if (stage !== "all" && r.stage !== stage) return false;
       if (band !== "all" && r.band !== band) return false;
-      if (deposit === "paid" && r.deposit.status !== "paid") return false;
-      if (deposit === "pending" && r.deposit.status !== "pending") return false;
-      if (deposit === "unpaid" && r.deposit.status === "paid") return false;
+      if (access === "paid" && r.deposit.status !== "paid") return false;
+      if (access === "pending" && r.deposit.status !== "pending") return false;
+      if (access === "unpaid" && r.deposit.status === "paid") return false;
       if (q && !`${r.name} ${r.country ?? ""} ${r.cohort ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [roster, query, stage, band, deposit, followUp]);
+  }, [roster, query, stage, band, access, followUp]);
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -855,9 +855,9 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
                   ? "bg-amber-500 text-florence-ink"
                   : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
               }`}
-              title="Enrolled candidates without a paid deposit (excludes withdrawn)"
+              title="Enrolled candidates without active access (excludes withdrawn)"
             >
-              ⚑ {followUpCount} need a deposit follow-up{followUp ? " · on" : ""}
+              ⚑ {followUpCount} need access follow-up{followUp ? " · on" : ""}
             </button>
           )}
         </div>
@@ -880,11 +880,11 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
               <option key={b} value={b}>{BAND_LABEL[b]}</option>
             ))}
           </select>
-          <select value={deposit} onChange={(e) => setDeposit(e.target.value as DepositFilter)} className="ops-input w-auto">
-            <option value="all">All deposits</option>
-            <option value="paid">Deposit paid</option>
-            <option value="unpaid">Deposit unpaid</option>
-            <option value="pending">Deposit pending</option>
+          <select value={access} onChange={(e) => setAccess(e.target.value as AccessFilter)} className="ops-input w-auto">
+            <option value="all">All access</option>
+            <option value="paid">Access active</option>
+            <option value="unpaid">Access inactive</option>
+            <option value="pending">Access pending</option>
           </select>
         </div>
       </div>
@@ -897,7 +897,7 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
               <th className="py-2 pr-4 font-medium">Cohort</th>
               <th className="py-2 pr-4 font-medium">Stage</th>
               <th className="py-2 pr-4 font-medium">Readiness</th>
-              <th className="py-2 pr-4 font-medium">Deposit</th>
+              <th className="py-2 pr-4 font-medium">Access</th>
               <th className="py-2 font-medium">Next best action</th>
             </tr>
           </thead>
@@ -924,7 +924,7 @@ function CandidatesPanel({ roster }: { roster: RosterRow[] }) {
                 </td>
                 <td className="py-2.5 pr-4">
                   {r.deposit.status === "paid" ? (
-                    <span className="font-medium text-vital-ok">{depositAmount(r.deposit)}</span>
+                    <span className="font-medium text-vital-ok">{accessAmount(r.deposit)}</span>
                   ) : r.deposit.status === "pending" ? (
                     <span className="text-amber-400">Pending</span>
                   ) : r.deposit.status === "failed" ? (
@@ -988,10 +988,10 @@ function CandidateDetail({ row, onClose }: { row: RosterRow; onClose: () => void
           <DetailStat label="Projected pass" value={row.readiness != null ? `${Math.round(row.readiness * 100)}%` : "-"} />
           <DetailStat label="Assessments" value={String(row.assessmentsCount)} />
           <DetailStat
-            label="Seat deposit"
+            label="Global Live access"
             value={
               row.deposit.status === "paid"
-                ? `${depositAmount(row.deposit)} paid`
+                ? `${accessAmount(row.deposit)} active`
                 : row.deposit.status === "pending"
                   ? "Pending"
                   : row.deposit.status === "failed"

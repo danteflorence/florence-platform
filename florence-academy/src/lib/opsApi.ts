@@ -261,7 +261,7 @@ export interface OutreachReadyRow {
   tier: "eligible" | "affiliate" | "lab_partner";
   outreach_status: string;
   affiliated: number;
-  paid_deposits: number;
+  sponsored_access_activations: number;
   avg_readiness: number | null;
 }
 
@@ -281,7 +281,7 @@ export interface SchoolReportSuppressed {
   school: { slug: string; name: string; country: string; tier: string };
   k_floor: number;
   suppressed_for_privacy: true;
-  participation: { affiliated: number; verified: number; paid_deposits: number };
+  participation: { affiliated: number; verified: number; sponsored_access_activations: number };
 }
 
 export interface SchoolReportFull {
@@ -289,7 +289,7 @@ export interface SchoolReportFull {
   k_floor: number;
   suppressed_for_privacy: false;
   ranges_mode: boolean;
-  participation: { affiliated: number; verified: number; paid_deposits: number };
+  participation: { affiliated: number; verified: number; sponsored_access_activations: number };
   band_distribution: Record<string, number | string>;
   top_gaps: { client_need: string; mean_score: number }[];
 }
@@ -355,7 +355,7 @@ export function buildProductionReview(
   const arr = Math.round(cohort.expectedStarts * MONTHLY_SHARE_USD * 12);
   const rows: ReviewRow[] = [
     { label: "Cohort size", value: String(copilot.candidates), roles: ALL },
-    { label: "Paid deposits", value: String(cohort.deposits), roles: MGMT_INV },
+    { label: "Active access", value: String(cohort.accessActivations), roles: MGMT_INV },
     { label: "Readiness (G/Y/O/R)", value: `${bc.green} / ${bc.yellow} / ${bc.orange} / ${bc.red}`, roles: ALL },
     { label: "Avg readiness", value: copilot.avg_readiness != null ? `${Math.round(copilot.avg_readiness * 100)}%` : "-", roles: ALL },
     { label: "Readiness-cleared", value: String(cohort.readinessCleared), roles: ALL },
@@ -404,7 +404,7 @@ export interface CohortRow {
   code: string;
   name: string;
   candidates: number;
-  deposits: number;
+  accessActivations: number;
   readinessCleared: number;
   expectedStarts: number;
 }
@@ -412,8 +412,8 @@ export interface CohortRow {
 export interface OpsMetrics {
   totalCandidates: number;
   byStage: Record<Stage, number>;
-  depositsPaid: number;
-  depositsCollectedUsd: number;
+  accessPaid: number;
+  accessCollectedUsd: number;
   assessed: number;
   readinessCleared: number;
   bandCounts: Record<ReadinessBand, number>;
@@ -458,8 +458,10 @@ export function computeMetrics(data: OpsData): OpsMetrics {
     byStage[stage] += 1;
   }
 
-  const paidDeposits = payments.filter((p) => p.kind === "commitment_deposit" && p.status === "paid");
-  const depositsCollectedUsd = paidDeposits.reduce((s, p) => s + p.amount_cents, 0) / 100;
+  const paidAccess = payments.filter(
+    (p) => (p.kind === "global_live_access" || p.kind === "commitment_deposit") && p.status === "paid",
+  );
+  const accessCollectedUsd = paidAccess.reduce((s, p) => s + p.amount_cents, 0) / 100;
 
   const bandCounts: Record<ReadinessBand, number> = { none: 0, red: 0, orange: 0, yellow: 0, green: 0 };
   let readinessSum = 0;
@@ -481,7 +483,7 @@ export function computeMetrics(data: OpsData): OpsMetrics {
   const cohortAgg = new Map<string, CohortRow>();
   for (const ch of cohorts) {
     cohortAgg.set(ch.code, {
-      code: ch.code, name: ch.name, candidates: 0, deposits: 0, readinessCleared: 0, expectedStarts: 0,
+      code: ch.code, name: ch.name, candidates: 0, accessActivations: 0, readinessCleared: 0, expectedStarts: 0,
     });
   }
   let expectedStarts = 0;
@@ -500,7 +502,7 @@ export function computeMetrics(data: OpsData): OpsMetrics {
         row.expectedStarts += contrib;
         if (bandFromReadiness(latestAsr.get(c.id)?.readiness) === "green" ||
             bandFromReadiness(latestAsr.get(c.id)?.readiness) === "yellow") row.readinessCleared += 1;
-        if (stage === "deposit_paid" || stage === "attending" || stage === "completed") row.deposits += 1;
+        if (stage === "deposit_paid" || stage === "attending" || stage === "completed") row.accessActivations += 1;
       }
     }
   }
@@ -519,8 +521,8 @@ export function computeMetrics(data: OpsData): OpsMetrics {
   return {
     totalCandidates: candidates.length,
     byStage,
-    depositsPaid: paidDeposits.length,
-    depositsCollectedUsd,
+    accessPaid: paidAccess.length,
+    accessCollectedUsd,
     assessed,
     readinessCleared,
     bandCounts,
@@ -626,7 +628,7 @@ export function nextBestAction(
   if (band === "none") return "Assign a baseline diagnostic";
   if (band === "red" || band === "orange")
     return topFocusLabel ? `Remediation - ${topFocusLabel}` : "Assign remediation";
-  if (stage === "registered" && !depositPaid) return "Follow up on the $100 deposit";
+  if (stage === "registered" && !depositPaid) return "Follow up on Global Live access";
   if (band === "green" && (stage === "attending" || stage === "completed"))
     return "Route to employer interview";
   if (band === "yellow")
@@ -648,11 +650,11 @@ export function buildRoster(data: OpsData): RosterRow[] {
     arr.push(a);
     asrByCand.set(a.candidate_id, arr);
   }
-  // Best deposit per candidate (paid > pending > failed), with amount/currency.
+  // Best access payment per candidate (paid > pending > failed), with amount/currency.
   const depositByCand = new Map<string, DepositInfo>();
   const rank = (s: DepositStatus) => (s === "paid" ? 3 : s === "pending" ? 2 : s === "failed" ? 1 : 0);
   for (const p of payments) {
-    if (p.kind !== "commitment_deposit") continue;
+    if (p.kind !== "global_live_access" && p.kind !== "commitment_deposit") continue;
     const status: DepositStatus =
       p.status === "paid" ? "paid" : p.status === "pending" ? "pending" : p.status === "failed" ? "failed" : "none";
     const cur = depositByCand.get(p.candidate_id);

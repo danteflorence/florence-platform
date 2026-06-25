@@ -25,7 +25,7 @@ import { SECTIONS } from "../../data/blueprint";
  *
  * Day-one walkthrough:
  *   1. Sign in (operator API client + secret)
- *   2. Land on today's cohort - roster, deposit-paid count, next live section
+ *   2. Land on today's cohort: roster, active-access count, next live section
  *   3. Run the pre-class checklist
  *   4. Hit "Start live session" → routes into the slide presenter
  *   5. Mark attendance during/after class
@@ -416,7 +416,7 @@ function CohortConsole({
     () => (roster ?? []).filter((r) => r.enrollment_status === "withdrawn"),
     [roster],
   );
-  const depositPaid = useMemo(
+  const activeAccess = useMemo(
     () =>
       activeRoster.filter((r) =>
         ["deposit_paid", "attending", "completed"].includes(r.enrollment_status),
@@ -486,7 +486,7 @@ function CohortConsole({
           onChange={updateChecklist}
           nextSection={nextSection}
           rosterSize={activeRoster.length}
-          depositPaid={depositPaid}
+          activeAccess={activeAccess}
         />
 
         <StartSessionPane cohort={cohort} nextSection={nextSection} />
@@ -612,7 +612,7 @@ const CHECKLIST_ITEMS: { key: string; title: string; body: string }[] = [
   {
     key: "roll",
     title: "Roster matched to room",
-    body: "Students checked-in match expected deposit-paid count. Flag missing students.",
+    body: "Students checked in match expected active-access count. Flag missing students.",
   },
   {
     key: "polling",
@@ -631,13 +631,13 @@ function PreClassChecklist({
   onChange,
   nextSection,
   rosterSize,
-  depositPaid,
+  activeAccess,
 }: {
   checklist: Record<string, boolean>;
   onChange: (key: string, on: boolean) => void;
   nextSection: { n: number; title: string } | null;
   rosterSize: number;
-  depositPaid: number;
+  activeAccess: number;
 }) {
   const done = CHECKLIST_ITEMS.filter((i) => checklist[i.key]).length;
   return (
@@ -652,8 +652,8 @@ function PreClassChecklist({
         {nextSection ? `Before opening Section ${nextSection.n} · ${nextSection.title}` : "Cohort review"}
       </h2>
       <p className="mt-1 text-xs text-florence-slate">
-        Roster: <span className="font-semibold text-florence-ink">{rosterSize}</span> enrolled ·{" "}
-        <span className="font-semibold text-florence-ink">{depositPaid}</span> paid deposit
+        Roster: <span className="font-semibold text-florence-ink">{rosterSize}</span> enrolled,{" "}
+        <span className="font-semibold text-florence-ink">{activeAccess}</span> active access
       </p>
       <ul className="mt-4 space-y-2">
         {CHECKLIST_ITEMS.map((item) => {
@@ -761,8 +761,7 @@ function RosterPane({
       <div className="rounded-2xl border border-florence-line bg-white p-6">
         <p className="fl-eyebrow">Roster</p>
         <p className="mt-2 text-sm text-florence-slate">
-          No one enrolled yet. Ops sees them in Control Tower once they pay
-          the deposit.
+          No one enrolled yet. Ops sees them in Control Tower once Global Live access is active.
         </p>
       </div>
     );
@@ -1119,4 +1118,3 @@ function FormerStudents({ members }: { members: RosterMember[] }) {
     </details>
   );
 }
-

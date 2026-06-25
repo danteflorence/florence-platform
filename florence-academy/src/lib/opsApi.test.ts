@@ -55,9 +55,9 @@ describe("computeMetrics", () => {
     expect(m.byStage.attending).toBe(0);
   });
 
-  it("counts + sums only PAID commitment deposits", () => {
-    expect(m.depositsPaid).toBe(2);
-    expect(m.depositsCollectedUsd).toBe(200); // tuition payment excluded
+  it("counts + sums only paid Academy access payments", () => {
+    expect(m.accessPaid).toBe(2);
+    expect(m.accessCollectedUsd).toBe(200); // tuition payment excluded
   });
 
   it("bands by the LATEST assessment per candidate", () => {
@@ -84,7 +84,7 @@ describe("computeMetrics", () => {
   it("aggregates per cohort", () => {
     const mnl = m.cohorts.find((c) => c.code === "MNL-2026-07");
     expect(mnl?.candidates).toBe(2);
-    expect(mnl?.deposits).toBe(2); // completed + deposit_paid
+    expect(mnl?.accessActivations).toBe(2); // completed + deposit_paid
     expect(mnl?.readinessCleared).toBe(1); // c1 green
   });
 });
@@ -143,10 +143,10 @@ describe("buildRoster", () => {
 });
 
 describe("nextBestAction", () => {
-  it("routes by stage + band + deposit", () => {
+  it("routes by stage + band + active access", () => {
     expect(nextBestAction("withdrawn", "green", true, undefined)).toMatch(/Withdrawn/);
     expect(nextBestAction("registered", "none", false, undefined)).toMatch(/baseline diagnostic/);
-    expect(nextBestAction("registered", "yellow", false, undefined)).toMatch(/deposit/);
+    expect(nextBestAction("registered", "yellow", false, undefined)).toMatch(/Global Live access/);
     expect(nextBestAction("attending", "green", true, undefined)).toMatch(/employer interview/);
     expect(nextBestAction("attending", "orange", true, "Pharmacology")).toBe("Remediation - Pharmacology");
   });

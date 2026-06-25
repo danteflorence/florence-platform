@@ -227,7 +227,7 @@ export default function ClinicalTutor() {
       <section id="round" className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="fl-eyebrow">Today's Clinical Judgment Round</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Today's Clinical Judgment Round</p>
             <h2 className="mt-1 text-2xl font-semibold">{roundLabel}</h2>
           </div>
           <p className="text-sm text-florence-slate">15-20 minutes, generated from prior misses.</p>
@@ -252,7 +252,7 @@ export default function ClinicalTutor() {
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-4 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-2xl border border-florence-line bg-white p-4 shadow-card">
-          <p className="fl-eyebrow">Mode selector</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Mode selector</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {TUTOR_MODES.map((m) => (
               <button
@@ -275,7 +275,7 @@ export default function ClinicalTutor() {
         <div className="rounded-2xl border border-florence-line bg-white p-5 shadow-card">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="fl-eyebrow">{activeMode.label} mode</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">{activeMode.label} mode</p>
               <h2 className="mt-1 text-2xl font-semibold">{activeMode.purpose}</h2>
             </div>
             <button
@@ -303,7 +303,7 @@ export default function ClinicalTutor() {
         <div className="rounded-2xl border border-florence-line bg-white p-5 shadow-card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="fl-eyebrow">Rationale Tutor</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Rationale Tutor</p>
               <h2 className="mt-1 text-2xl font-semibold">Why B is tempting, and why it is unsafe first.</h2>
             </div>
             <span className="w-fit rounded-full bg-vital-danger/10 px-3 py-1 text-xs font-semibold text-vital-danger">
@@ -373,7 +373,7 @@ export default function ClinicalTutor() {
         </div>
 
         <div className="rounded-2xl border border-florence-line bg-white p-5 shadow-card">
-          <p className="fl-eyebrow">Simulation lab</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Simulation lab</p>
           <h2 className="mt-1 text-2xl font-semibold">First 10 cases</h2>
           <label className="mt-4 block text-sm font-semibold text-florence-ink" htmlFor="scenario">
             Scenario
@@ -416,7 +416,7 @@ export default function ClinicalTutor() {
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-12 sm:px-8 lg:grid-cols-2">
         <div className="rounded-2xl border border-florence-line bg-white p-5 shadow-card">
-          <p className="fl-eyebrow">Practice insights</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Practice insights</p>
           <h2 className="mt-1 text-2xl font-semibold">Your next step gets clearer as you practice.</h2>
           <div className="mt-4 divide-y divide-florence-line">
             {PRACTICE_INSIGHTS.map(([skill, detail]) => (
@@ -429,7 +429,7 @@ export default function ClinicalTutor() {
         </div>
 
         <div className="rounded-2xl border border-florence-line bg-white p-5 shadow-card">
-          <p className="fl-eyebrow">Voice practice</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">Voice practice</p>
           <h2 className="mt-1 text-2xl font-semibold">Audio coaching for questions and scenarios.</h2>
           <div className="mt-4 space-y-3">
             {AUDIO_QUEUE.map(([label, detail], index) => (

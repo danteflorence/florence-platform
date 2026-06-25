@@ -72,21 +72,21 @@ const STAGES: StageSpec[] = [
       `See the schedule and what a week looks like: ${c.learnUrl}`,
     ],
   },
-  // ── Step 2 - Offer ($75 partner rate when the school qualifies) ──
+  // ── Step 2 - Sponsored Global Live access offer ──
   {
     subject: (c) =>
       c.isPartnerSchool
-        ? "Your school qualifies you for a $75 start"
-        : "Reserve your seat in the next cohort",
+        ? "Your school helps unlock sponsored live access"
+        : "Start Global Live NCLEX Access",
     paragraphs: (c) =>
       c.isPartnerSchool
         ? [
-            `Good news. Because you trained at ${c.schoolName ?? "your school"}, you qualify for 25 percent off the bootcamp and a reduced $75 deposit to hold your seat. The standard deposit is $100.`,
-            `Reserve your seat: ${c.signupUrl}`,
+            `Good news. Because you trained at ${c.schoolName ?? "your school"}, we can personalize your Florence Academy profile and show the sponsored Global Live access offer.`,
+            `Start Global Live access: ${c.signupUrl}`,
           ]
         : [
-            "You can hold your seat in the live bootcamp with a $100 deposit, applied to tuition when you enroll.",
-            `Reserve your seat: ${c.signupUrl}`,
+            "Florence Academy Global Live NCLEX Access has a $200 value, a $100 university sponsorship, and a $100 student price.",
+            `Start Global Live access: ${c.signupUrl}`,
           ],
   },
   // ── Step 3 - Cohort-aware nudge ──
@@ -97,14 +97,14 @@ const STAGES: StageSpec[] = [
       c.cohortLabel
         ? `${capitalize(c.cohortLabel)} begins soon and seats are limited. If you have been meaning to start, this is the one.`
         : "The next live cohort begins soon and seats are limited. If you have been meaning to start, this is the one.",
-      `Reserve your seat: ${c.signupUrl}`,
+      `Start Global Live access: ${c.signupUrl}`,
     ],
   },
   // ── Step 4 - Reminder ──
   {
     subject: () => "Still planning to take the NCLEX-RN?",
     paragraphs: (c) => [
-      "A quick nudge. Your seat in the live bootcamp is still open and we would love to have you in the next cohort.",
+      "A quick nudge. Global Live access is still open and we would love to have you in the next cohort.",
       `Here is everything in one place: ${c.signupUrl}`,
     ],
   },

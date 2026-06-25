@@ -24,15 +24,15 @@
     "front": {
       "eyebrow": "Florence Academy",
       "head_quote": "Your alumni already train other nurses. Help them get their U.S. RN faster.",
-      "sub_quote": "Florence Academy is the live NCLEX-RN bootcamp for internationally educated nurses. Alumni of {school} get 25 percent off the seat deposit.",
+      "sub_quote": "Florence Academy is the live NCLEX-RN bootcamp for internationally educated nurses. Alumni of {school} can receive sponsored Global Live access.",
       "head_market": "Your nursing alumni deserve a bootcamp built for them.",
-      "sub_market": "Florence Academy runs the live NCLEX-RN program for internationally educated nurses globally online and in Los Angeles. Alumni of {school} qualify for our preferred 25 percent partner rate."
+      "sub_market": "Florence Academy runs the live NCLEX-RN program for internationally educated nurses globally online and in Los Angeles. Alumni of {school} can receive sponsored Global Live access."
     },
     "back": {
       "headline": "Two things, in plain English.",
       "for_alumni": {
         "label": "For your alumni",
-        "body": "25 percent off the seat deposit for the live cohort. Same bootcamp, same instructors, same outcomes track. Lower price, because we trust your credential."
+        "body": "$200 Global Live NCLEX Access with $100 university sponsorship and a $100 student price. Same bootcamp, same instructors, same outcomes track."
       },
       "for_school": {
         "label": "For your nursing department",
@@ -53,12 +53,12 @@
     "head_market": "Your nursing alumni deserve a bootcamp built for them.",
     "paragraphs_quote": [
       "Florence Academy is the live NCLEX-RN bootcamp for internationally educated nurses. We teach twenty live sections in order, between sessions students train on a content-balanced bank built to the 2026 NCSBN test plan, and our readiness model tells them when they are ready, not before.",
-      "We are inviting {school} to join our partner network. The ask is small. Alumni of {school} get 25 percent off the seat deposit for the live cohort. Same bootcamp, same instructors, same outcomes track. Lower price, because we trust your credential.",
+      "We are inviting {school} to join our partner network. The ask is small. Alumni of {school} can receive sponsored Global Live NCLEX Access. Same bootcamp, same instructors, same outcomes track.",
       "Your nursing department receives access to an anonymized dashboard of how your alumni perform in our program. Readiness trend, NCLEX pass rate, peer comparison to other schools in our partner network. The dashboard is K-anonymized to protect any single student."
     ],
     "paragraphs_market": [
       "Florence Academy runs the live NCLEX-RN program for internationally educated nurses globally online and in Los Angeles. We teach twenty live sections in order, students train every night on a content-balanced bank built to the 2026 NCSBN test plan, and our readiness model tells them when they are ready to sit the exam.",
-      "We are inviting {school} to join our partner network. The ask is small. Alumni of {school} qualify for our preferred 25 percent partner rate on the seat deposit for the live cohort. Same bootcamp, same instructors, same outcomes track. Lower price, because we trust your credential.",
+      "We are inviting {school} to join our partner network. The ask is small. Alumni of {school} can receive sponsored Global Live NCLEX Access. Same bootcamp, same instructors, same outcomes track.",
       "Your nursing department receives access to an anonymized dashboard of how your alumni perform in our program. Readiness trend, NCLEX pass rate, peer comparison to other schools in our partner network. The dashboard is K-anonymized to protect any single student."
     ],
     "closing_paragraphs": [
