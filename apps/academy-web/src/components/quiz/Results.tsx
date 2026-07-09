@@ -16,6 +16,7 @@ import {
   summaryFromSession,
 } from "../../lib/academyApi";
 import { useCandidate } from "../../lib/CandidateContext";
+import ReadinessCard from "../ReadinessCard";
 import { CLIENT_NEED_LABEL } from "../../data/blueprint";
 import { QUESTION_TYPE_LABELS, type ClientNeed } from "../../types/question";
 import { ApplyProgramsCta } from "../ApplyProgramsCta";
@@ -63,7 +64,7 @@ export default function Results({
   onRestart: () => void;
   onExit: () => void;
 }) {
-  const { refreshReadiness } = useCandidate();
+  const { readiness, refreshReadiness } = useCandidate();
   // Report this finished session to the Data API using the signed-in candidate's
   // live session token (falls back to env, else a no-op). Fires once on mount,
   // then refreshes the learner's readiness band from the new result.
@@ -153,6 +154,14 @@ export default function Results({
         />
         <Metric value={String(markedCount)} label="Flagged for review" sub />
       </div>
+
+      {/* Overall readiness (signed-in learners): band + the engine's next study
+          action, refreshed from this session's just-reported result. */}
+      {readiness && (
+        <div className="mt-5">
+          <ReadinessCard snapshot={readiness} heading="Where you stand overall" />
+        </div>
+      )}
 
       {/* Category breakdown */}
       <h2 className="mt-9 text-lg font-semibold">By Client Need category</h2>

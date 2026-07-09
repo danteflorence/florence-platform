@@ -7,7 +7,9 @@ import {
   type CoverageState,
 } from "../data/blueprint";
 import { fetchMyCohort, type MyCohort } from "../lib/academyAuth";
+import { useCandidate } from "../lib/CandidateContext";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
+import ReadinessCard from "../components/ReadinessCard";
 import {
   Badge as FlorenceBadge,
   Card as FlorenceCard,
@@ -47,6 +49,9 @@ const STATE_TONE: Record<CoverageState, FlorenceTone> = {
 };
 
 export default function AcademyHome() {
+  // Signed-in learners see their readiness band + next study action up top -
+  // the same snapshot the API already computes for remediation dispatch.
+  const { status, readiness } = useCandidate();
   // Per-cohort coverage watermark. Falls back to the build-time env var when
   // the student isn't enrolled / isn't signed in / no API. Once /v1/me/cohort
   // resolves, the grid + hero CTA reflect the live cohort's actual progress.
@@ -132,6 +137,14 @@ export default function AcademyHome() {
           <ApplyProgramsCta placement="academy_home" compact className="mt-5 max-w-2xl" />
         </div>
       </section>
+
+      {status === "authenticated" && readiness && (
+        <section className="border-b border-florence-line bg-florence-mist/60">
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+            <ReadinessCard snapshot={readiness} />
+          </div>
+        </section>
+      )}
 
       <section className="border-b border-florence-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 sm:px-8 lg:grid-cols-[0.95fr_1.05fr]">

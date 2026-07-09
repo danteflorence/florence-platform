@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  // relative: true resolves the globs against THIS file, not process.cwd(),
+  // so dev servers launched from the monorepo root still see the sources.
+  content: { files: ["./index.html", "./src/**/*.{ts,tsx}"], relative: true },
   theme: {
     extend: {
       colors: {
