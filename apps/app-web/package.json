@@ -1,0 +1,32 @@
+{
+  "name": "@florence/app-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Florence OS unified application shell for Academy, Pathway, Employer Connect, Grants, Profile, Documents, Ops, and Admin.",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck",
+    "lint": "npm run typecheck",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs ."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^5.6.2",
+    "vite": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

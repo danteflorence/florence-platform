@@ -8,9 +8,9 @@ product; Cloud Run (GCP) runs it; Core (RS256/JWKS + M2M) is the auth boundary; 
 - [ ] Partners test in **sandbox** only (seeded fake data) — never production.
 
 ## Domain + transport
-- [ ] `florencern.com` DNS on Cloud DNS/registrar; Cloud Run domain mappings for `id. api. ats. pathway.
+- [ ] `florenceedu.com` DNS on Cloud DNS/registrar; Cloud Run domain mappings for `id. api. ats. pathway.
       api.academy. developers. partners.` resolve + serve managed TLS.
-- [ ] Cookie domain `.florencern.com`; issuer `https://id.florencern.com`; CORS allowlist set per env.
+- [ ] Cookie domain `.florenceedu.com`; issuer `https://auth.florenceedu.com`; CORS allowlist set per env.
 
 ## Data + secrets
 - [ ] Cloud SQL Postgres per env; **automated backups + PITR** on; production = REGIONAL HA.

@@ -2,11 +2,11 @@
 # FlorenceRN platform smoke check: proves the SSO loop end-to-end.
 #   smoke_check.sh <core_url> <email> <password> [pathway_url] [ats_url] [academy_api_url]
 # Local example:
-#   scripts/smoke_check.sh http://id.lvh.me:8080 dev@florenceeducation.com florence-dev \
+#   scripts/smoke_check.sh http://id.lvh.me:8080 dev@florenceedu.com florence-dev \
 #       http://pathway.lvh.me:8786 http://ats.lvh.me:8788 http://academy.lvh.me:8088
 # Prod example:
-#   scripts/smoke_check.sh https://id.florenceeducation.com you@florenceeducation.com '' \
-#       https://pathway.florenceeducation.com https://ats.florenceeducation.com https://api.academy.florenceeducation.com
+#   scripts/smoke_check.sh https://auth.florenceedu.com you@florenceedu.com '' \
+#       https://app.florenceedu.com https://partners.florenceedu.com https://api.florenceedu.com
 set -u
 CORE="${1:?core url}"; EMAIL="${2:?email}"; PASS="${3:-}"
 PATHWAY="${4:-http://pathway.lvh.me:8786}"; ATS="${5:-http://ats.lvh.me:8788}"; ACADEMY="${6:-http://academy.lvh.me:8088}"

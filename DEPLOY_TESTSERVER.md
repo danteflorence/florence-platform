@@ -1,4 +1,4 @@
-# FlorenceRN — single-VPS test server (Docker Compose)
+# Florence Education — single-VPS test server (Docker Compose)
 
 The whole platform on one box behind Caddy (auto-HTTPS), with shared-cookie SSO
 across `*.${BASE_DOMAIN}`. ~20 min once DNS resolves.
@@ -10,9 +10,9 @@ across `*.${BASE_DOMAIN}`. ~20 min once DNS resolves.
 ## 1. DNS
 Point these at the server's public IP (a **wildcard is easiest**):
 ```
-*.test.example.com    A    <SERVER_IP>      # covers id / academy / api.academy / live.academy / pathway / ats / pricing
+*.test.example.com    A    <SERVER_IP>      # covers auth / app / api / partners / developers and local-only extras
 ```
-(or add those seven `A` records individually). Wait until `dig id.test.example.com` returns the IP.
+(or add those `A` records individually). Wait until `dig auth.test.example.com` returns the IP.
 
 ## 2. Get the code on the box
 ```bash
@@ -37,21 +37,21 @@ docker compose ps                 # all services "running"; Caddy fetches TLS ce
 ## 5. Create the first admin (no Google needed)
 ```bash
 docker compose exec \
-  -e CORE_BOOTSTRAP_ADMIN_EMAIL=admin@florenceeducation.com \
+  -e CORE_BOOTSTRAP_ADMIN_EMAIL=admin@florenceedu.com \
   -e CORE_BOOTSTRAP_ADMIN_PASSWORD='a-strong-password' \
   core node scripts/seed-admin.ts
 ```
-Then open **https://id.test.example.com/login**, sign in with that email/password → you land on the **admin console** (grant roles, create employer/university orgs). The first account is auto **super-admin**.
+Then open **https://auth.test.example.com/login**, sign in with that email/password → you land on the **admin console** (grant roles, create employer/university orgs). The first account is auto **super-admin**.
 
 ## 6. Verify SSO
-Browse `https://pathway.test.example.com`, `https://ats.test.example.com`, `https://academy.test.example.com`, `https://pricing.test.example.com` — all honor the one login. Or script it:
+Browse `https://app.test.example.com`, `https://partners.test.example.com`, `https://developers.test.example.com` — all honor the one login. Or script it:
 ```bash
-bash scripts/smoke_check.sh https://id.test.example.com admin@florenceeducation.com 'a-strong-password' \
-  https://pathway.test.example.com https://ats.test.example.com https://api.academy.test.example.com
+bash scripts/smoke_check.sh https://auth.test.example.com admin@florenceedu.com 'a-strong-password' \
+  https://app.test.example.com https://partners.test.example.com https://api.test.example.com
 ```
 
 ## Add Google sign-in later (optional)
-Create a Google OAuth client (see `DEPLOY_PLATFORM.md` §2) with redirect `https://id.test.example.com/auth/google/callback`, put `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `.env`, then `docker compose up -d core`.
+Create a Google OAuth client (see `DEPLOY_PLATFORM.md` §2) with redirect `https://auth.test.example.com/auth/google/callback`, put `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `.env`, then `docker compose up -d core`.
 
 ## Operate
 ```bash
@@ -66,7 +66,7 @@ docker compose exec core node scripts/rotate-key.ts   # rotate signing keys
 - **Data** persists in named volumes (`core-pg-data`, `academy-pg-data`, `pathway-data`, `ats-data`, `economist-data`). `down` keeps them; `down -v` deletes them.
 - **TLS**: Caddy needs 80+443 reachable and DNS pointing at the box; first request per host provisions the cert (a few seconds).
 - **`FIELD_ENC_PASSPHRASE` must stay stable** — changing it orphans Core's signing keys (every session invalidated).
-- **Pricing API** (`pricing-api`, FastAPI) is included at `https://pricing-api.${BASE_DOMAIN}` (`/docs`, `/price`) — stateless quote engine, CORS-allowed for the pricing UI.
+- **Pricing API** (`pricing-api`, FastAPI) is a local-only `pricing` profile until Workforce Economist is folded under the Florence OS app surface.
 - **ATS** runs on **embedded PGlite** (`ATS_DB=postgres`), stored at `/app/data/ats-connect-pg` on the `ats-data` volume (no separate Postgres container needed).
 - **Live classroom A/V** (Academy live page): set `AGORA_APP_ID` + `AGORA_APP_CERTIFICATE` (from console.agora.io) to turn on the instructor camera/mic broadcast (draggable picture-in-picture over the reader) + live Q&A. Blank → the live page runs slides-only. Uses Agora's host/audience "live" model (scales to large, global cohorts); only Core instructors/ops get a publish token. The browser fetches the App ID from the API at runtime — no rebuild needed to flip it on.
 - **Recording/replay** (optional): also set `AGORA_CUSTOMER_ID` + `AGORA_CUSTOMER_SECRET` (Agora RESTful key) and a storage bucket (`AGORA_REC_BUCKET` / `AGORA_REC_ACCESS_KEY` / `AGORA_REC_SECRET_KEY`, `AGORA_REC_VENDOR` 1=S3, `AGORA_REC_REGION`). The instructor then gets a **Record** button; a composite mp4 lands in your bucket for replay. Only instructors/ops can start/stop; the whole room sees the **REC** badge. Set `AGORA_REC_PUBLIC_BASE` (a CDN/CloudFront URL in front of the bucket) so the **Class replays** library in the Live hub can play recordings back globally. (Recording metadata persists to Postgres in prod via a `live_recordings` table; in-memory in local dev.)

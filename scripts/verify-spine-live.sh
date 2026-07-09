@@ -18,7 +18,7 @@ rm -f "$SF"
 
 # 1) Core + admin + demo client
 cd "$ROOT/florence-core"
-CORE_STATE_FILE=$SF FIELD_ENC_PASSPHRASE=$KEK CORE_BOOTSTRAP_ADMIN_EMAIL=dev@florenceeducation.com CORE_BOOTSTRAP_ADMIN_PASSWORD=florence-dev $NODE scripts/seed-admin.ts >/dev/null 2>&1
+CORE_STATE_FILE=$SF FIELD_ENC_PASSPHRASE=$KEK CORE_BOOTSTRAP_ADMIN_EMAIL=dev@florenceedu.com CORE_BOOTSTRAP_ADMIN_PASSWORD=florence-dev $NODE scripts/seed-admin.ts >/dev/null 2>&1
 PORT=8090 PUBLIC_CORE_URL=http://127.0.0.1:8090 FIELD_ENC_PASSPHRASE=$KEK DEMO_CLIENT_ID=florence-core-demo DEMO_CLIENT_SECRET=devsecret CORE_STATE_FILE=$SF $NODE src/index.ts >/tmp/core-live.log 2>&1 &
 for i in $(seq 1 40); do curl -s -o /dev/null http://127.0.0.1:8090/health && break; sleep 0.3; done
 
@@ -31,7 +31,7 @@ env $PASSENV PORT=8786 $NODE --experimental-sqlite --import tsx server/index.ts 
 for i in $(seq 1 50); do curl -s -o /dev/null http://127.0.0.1:8088/health && curl -s -o /dev/null http://127.0.0.1:8786/api/health && break; sleep 0.3; done
 
 # 3) Core admin token (super_admin → all academy scopes; staff bypass in Pathway)
-ADMIN=$(curl -s -H 'accept: application/json' -X POST http://127.0.0.1:8090/auth/password -H 'content-type: application/json' -d '{"email":"dev@florenceeducation.com","password":"florence-dev"}' | jget '.token')
+ADMIN=$(curl -s -H 'accept: application/json' -X POST http://127.0.0.1:8090/auth/password -H 'content-type: application/json' -d '{"email":"dev@florenceedu.com","password":"florence-dev"}' | jget '.token')
 echo "admin token: ${ADMIN:0:12}…"
 
 # 4) PATHWAY — create candidate (EMAIL) + licensure + consent + document

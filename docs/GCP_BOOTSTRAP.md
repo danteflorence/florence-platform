@@ -13,18 +13,18 @@ and creates real infra), so it isn't run by the agent.
 agent never enters card details).
 
 1. **Sign in to the Cloud console** at <https://console.cloud.google.com> with a
-   `@florenceeducation.com` **admin** account. Because you run Google Workspace on that domain,
+   `@florenceedu.com` **admin** account. Because you run Google Workspace on that domain,
    a Cloud **Organization** already exists for it (that's your `ORG_ID`). Accept the terms on
    first visit.
 2. **Create a Billing Account + add a payment method:** <https://console.cloud.google.com/billing>
    → *Create account* → add a card. New accounts get **$300 free credit for 90 days** — staging
    runs well within that.
-3. **Buy/point the domain:** make sure you control **`florencern.com`** DNS (any registrar). You
+3. **Buy/point the domain:** make sure you control **`florenceedu.com`** DNS (any registrar). You
    only need it at the DNS step after the first deploy, but line it up now.
 4. **Install the gcloud CLI (macOS)** and authenticate:
    ```bash
    brew install --cask google-cloud-sdk        # or https://cloud.google.com/sdk/docs/install
-   gcloud auth login                            # browser → your @florenceeducation.com admin
+   gcloud auth login                            # browser → your @florenceedu.com admin
    gcloud auth application-default login         # lets Terraform use your credentials
    ```
 5. **Grab the two IDs the bootstrap needs:**
@@ -110,8 +110,8 @@ echo "  GCP_PROJECT_STAGING = $PROJECT"
 3. **Deploy:** push to `main`. CI builds the 6 images, `terraform apply -var-file=envs/staging.tfvars`,
    then runs the migrate Cloud Run Jobs.
 4. **DNS + TLS:** `cd infra && terraform output domain_mapping_records` → create those records at
-   your `florencern.com` DNS; Google-managed TLS provisions automatically once they resolve.
-5. **Open it:** `https://academy-staging.florencern.com` → sign up / sign in as a learner.
+   your `florenceedu.com` DNS; Google-managed TLS provisions automatically once they resolve.
+5. **Open it:** `https://staging.app.florenceedu.com` → sign up / sign in as a learner.
    Seed a staff admin with `florence-core npm run seed-admin` (or the seed Cloud Run Job).
 
 ## Production

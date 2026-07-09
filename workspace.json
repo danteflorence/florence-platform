@@ -1,0 +1,26 @@
+{
+  "packageManager": "npm",
+  "note": "Npm remains active until the existing package-lock, npm ci deploy paths, and Docker contexts are migrated intentionally.",
+  "apps": {
+    "core-api": "apps/core-api",
+    "academy-web": "apps/academy-web",
+    "academy-api": "apps/academy-api",
+    "academy-live": "apps/academy-live",
+    "pathway-api": "apps/pathway-api",
+    "employer-connect-api": "apps/employer-connect-api",
+    "economist-app": "apps/economist-app"
+  },
+  "packages": [
+    "packages/agent-system",
+    "packages/api",
+    "packages/core-sdk",
+    "packages/event-sdk",
+    "packages/auth-sdk",
+    "packages/config",
+    "packages/logger",
+    "packages/db",
+    "packages/design-system",
+    "packages/economist-api",
+    "packages/test-fixtures"
+  ]
+}

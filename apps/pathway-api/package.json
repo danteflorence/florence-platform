@@ -1,0 +1,56 @@
+{
+  "name": "florence-pathway-agent",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+    "description": "AI-assisted administrative automation for the Florence Education nurse pathway: visa, NCLEX/ATT, licensure, endorsement, EB-3/Schedule A, CGFNS/VisaScreen. AI prepares and validates, human QA reviews, candidate signs.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "api": "node --import tsx server/index.ts",
+    "api:local": "PATHWAY_DB=sqlite ALLOW_SQLITE_LOCAL_DEV=1 node --experimental-sqlite --watch --import tsx server/index.ts",
+    "web": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run pathway-v1-smoke && npm run consular-payments-smoke && npm run english-requirements-smoke && npm run ssn-application-smoke && npm run audit-redaction-smoke && npm run no-pii-error-smoke",
+    "lint": "npm run typecheck",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs .",
+    "migrate": "node db/migrate.mjs",
+    "seed": "node --import tsx scripts/seed.ts",
+    "seed:local": "PATHWAY_DB=sqlite ALLOW_SQLITE_LOCAL_DEV=1 node --experimental-sqlite --import tsx scripts/seed.ts",
+    "pathway-v1-smoke": "node --import tsx scripts/pathway-v1-smoke.ts",
+    "consular-payments-smoke": "node --import tsx scripts/consular-payments-smoke.ts",
+    "english-requirements-smoke": "node --import tsx scripts/english-requirements-smoke.ts",
+    "ssn-application-smoke": "node --import tsx scripts/ssn-application-smoke.ts",
+    "audit-redaction-smoke": "node --import tsx scripts/audit-redaction-smoke.ts",
+    "no-pii-error-smoke": "node --import tsx scripts/no-pii-error-smoke.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "express": "^4.19.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "recharts": "^2.12.7",
+    "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

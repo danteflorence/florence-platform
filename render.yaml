@@ -1,9 +1,9 @@
 # ════════════════════════════════════════════════════════════════════════════
-# FlorenceRN platform — Render Blueprint (one repo, one Apply).
+# Florence Education platform — Render Blueprint (one repo, one Apply).
 #
 # Each app lives in a subdirectory (rootDir). Identity flows through florence-core
 # (RS256 token verified by every service via JWKS); the fl_session cookie is set on
-# .florenceeducation.com so one login works on every subdomain.
+# .florenceedu.com so one login works on every subdomain.
 #
 # Plan/region match the existing labor-economics setup (oregon / starter). Verify
 # the exact plan slugs in the Render dashboard — tiers/prices change. Secrets are
@@ -31,18 +31,18 @@ envVarGroups:
       - key: TOKEN_AUD
         value: florence
       - key: CORE_ISSUER_URL
-        value: https://id.florenceeducation.com
+        value: https://auth.florenceedu.com
       - key: CORE_JWKS_URL
-        value: https://id.florenceeducation.com/.well-known/jwks.json
+        value: https://auth.florenceedu.com/.well-known/jwks.json
       - key: COOKIE_DOMAIN
-        value: .florenceeducation.com
+        value: .florenceedu.com
       - key: COOKIE_SECURE
         value: "1"
       - key: GOOGLE_CLIENT_ID    # not secret, but per-deploy — set in dashboard
         sync: false
 
 services:
-  # ── FlorenceRN Core — the identity / SSO service ──────────────────────────
+  # ── Florence Education Core — the identity / SSO service ──────────────────
   - type: web
     name: florence-core
     runtime: docker
@@ -57,11 +57,11 @@ services:
       - key: PORT
         value: "8080"
       - key: PUBLIC_CORE_URL
-        value: https://id.florenceeducation.com
+        value: https://auth.florenceedu.com
       - key: FLORENCE_ALLOWED_DOMAIN
-        value: florenceeducation.com
+        value: florenceedu.com
       - key: FLORENCE_REDIRECT_HOSTS
-        value: .florenceeducation.com
+        value: .florenceedu.com
       - key: DATABASE_URL
         fromDatabase:
           name: florence-core-pg
@@ -86,11 +86,11 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_CORE_URL
-        value: https://id.florenceeducation.com
+        value: https://auth.florenceedu.com
       - key: VITE_API_URL
-        value: https://api.academy.florenceeducation.com
+        value: https://api.florenceedu.com
       - key: VITE_LIVE_URL
-        value: https://live.academy.florenceeducation.com
+        value: https://app.florenceedu.com
 
   - type: web
     name: florence-academy-api
@@ -110,9 +110,9 @@ services:
       - key: API_JWT_AUDIENCE
         value: florence
       - key: CORS_ALLOWED_ORIGINS
-        value: https://academy.florenceeducation.com,https://id.florenceeducation.com
+        value: https://app.florenceedu.com,https://auth.florenceedu.com
       - key: PUBLIC_APP_URL
-        value: https://academy.florenceeducation.com
+        value: https://app.florenceedu.com
       - key: DATABASE_URL
         fromDatabase:
           name: florence-academy-pg
@@ -202,7 +202,7 @@ services:
       - key: ATS_DB
         value: postgres          # embedded PGlite on the persistent disk (/app/data)
       - key: ATS_CONNECT_BASE_URL
-        value: https://ats.florenceeducation.com
+        value: https://partners.florenceedu.com
       - key: ATS_CONNECT_VAULT_KEY    # encrypts connector credentials at rest (vault.ts)
         sync: false
       - key: ANTHROPIC_API_KEY

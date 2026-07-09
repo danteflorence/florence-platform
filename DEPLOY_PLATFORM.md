@@ -1,6 +1,6 @@
-# FlorenceRN Platform — Deployment Runbook (Render + Cloudflare)
+# Florence Education Platform — Deployment Runbook (Render + Cloudflare)
 
-One SSO login across all four apps, on `florenceeducation.com`. This is the
+One SSO login across all four apps, on `florenceedu.com`. This is the
 click-ops only a human can do; everything in code (Dockerfiles, `render.yaml`,
 entrypoints, the Core service + SDK) is already in the repo.
 
@@ -8,16 +8,16 @@ entrypoints, the Core service + SDK) is already in the repo.
 
 | Subdomain | Render service | Notes |
 |---|---|---|
-| `id.florenceeducation.com` | `florence-core` (docker) | the IdP; Postgres `florence-core-pg` |
-| `academy.florenceeducation.com` | `florence-academy-web` (static) | React SPA |
-| `api.academy.florenceeducation.com` | `florence-academy-api` (docker) | Postgres `florence-academy-pg` |
-| `live.academy.florenceeducation.com` | `florence-academy-live` (docker) | Socket.IO |
-| `pathway.florenceeducation.com` | `florence-pathway` (docker) | node:sqlite, 1 GB disk |
-| `ats.florenceeducation.com` | `florence-ats` (docker) | node:sqlite, 1 GB disk |
-| `pricing.florenceeducation.com` | `florence-economist` (docker) | Streamlit, 1 GB disk |
+| `auth.florenceedu.com` | `florence-core` (docker) | the IdP; Postgres `florence-core-pg` |
+| `app.florenceedu.com` | `florence-academy-web` (static) | React SPA |
+| `api.florenceedu.com` | `florence-academy-api` (docker) | Postgres `florence-academy-pg` |
+| `app.florenceedu.com` | `florence-academy-live` (docker) | Socket.IO |
+| `app.florenceedu.com` | `florence-pathway` (docker) | node:sqlite, 1 GB disk |
+| `partners.florenceedu.com` | `florence-ats` (docker) | node:sqlite, 1 GB disk |
+| `app.florenceedu.com` | `florence-economist` (docker) | Streamlit, 1 GB disk |
 | (internal) | `florence-pricing-api` (python) | stateless quote API |
 
-SSO mechanism: Core sets `fl_session=<RS256 JWT>; Domain=.florenceeducation.com; HttpOnly; Secure; SameSite=Lax`.
+SSO mechanism: Core sets `fl_session=<RS256 JWT>; Domain=.florenceedu.com; HttpOnly; Secure; SameSite=Lax`.
 Every subdomain receives it; each service verifies it via Core's JWKS. Cloudflare does **DNS/TLS/CDN/WAF only** — Core owns auth (no Cloudflare Access on the user apps → no double login).
 
 ---
@@ -35,11 +35,11 @@ florence-platform/
 
 ### 2. Google Cloud — OAuth client (for staff sign-in)
 1. console.cloud.google.com → **New Project** `florence-sso`.
-2. **APIs & Services → OAuth consent screen** → User type **Internal** (requires `florenceeducation.com` Google Workspace; if it isn't Workspace, choose **External + Testing** and add staff as test users). App name `FlorenceRN`, support email an `@florenceeducation.com` address, **Authorized domain `florenceeducation.com`**.
+2. **APIs & Services → OAuth consent screen** → User type **Internal** (requires `florenceedu.com` Google Workspace; if it isn't Workspace, choose **External + Testing** and add staff as test users). App name `Florence Education`, support email an `@florenceedu.com` address, **Authorized domain `florenceedu.com`**.
 3. **Scopes:** `openid`, `email`, `profile` (nothing sensitive → no verification).
 4. **Credentials → Create credentials → OAuth client ID → Web application** `florence-core-web`.
 5. **Authorized redirect URIs:**
-   - `https://id.florenceeducation.com/auth/google/callback`
+   - `https://auth.florenceedu.com/auth/google/callback`
    - `http://id.lvh.me:8080/auth/google/callback` (local testing)
 6. Copy the **Client ID** and **Client secret**.
 
@@ -52,7 +52,7 @@ florence-platform/
 3. **Custom domains:** in each service's **Settings → Custom Domains**, add its subdomain (table above). Render shows a CNAME target per domain.
 
 ### 4. Cloudflare — DNS + TLS
-1. Ensure `florenceeducation.com` is on Cloudflare (nameservers).
+1. Ensure `florenceedu.com` is on Cloudflare (nameservers).
 2. Add **proxied (orange-cloud) CNAME** records to the Render targets:
    ```
    id            → <florence-core target>.onrender.com
@@ -68,13 +68,13 @@ florence-platform/
 4. Do **not** enable a "Cache Everything" rule on these hosts (don't cache `Set-Cookie`/authed HTML).
 
 ### 5. First sign-in
-Visit `https://pricing.florenceeducation.com` (or any app) → you're redirected to `id.florenceeducation.com` → sign in with Google. **The first `@florenceeducation.com` user becomes `super_admin`.** Then open `https://id.florenceeducation.com/admin` to grant roles (ops/qa/instructor/rep) and create employer/university orgs + users.
+Visit `https://app.florenceedu.com` (or any app) → you're redirected to `auth.florenceedu.com` → sign in with Google. **The first `@florenceedu.com` user becomes `super_admin`.** Then open `https://auth.florenceedu.com/admin` to grant roles (ops/qa/instructor/rep) and create employer/university orgs + users.
 
 ---
 
 ## Secrets & env (summary)
 
-**Env group `florence-shared`** (non-secret, all services): `TOKEN_ISS=florence-auth`, `TOKEN_AUD=florence`, `CORE_ISSUER_URL`, `CORE_JWKS_URL`, `COOKIE_DOMAIN=.florenceeducation.com`, `COOKIE_SECURE=1`, `GOOGLE_CLIENT_ID`.
+**Env group `florence-shared`** (non-secret, all services): `TOKEN_ISS=florence-auth`, `TOKEN_AUD=florence`, `CORE_ISSUER_URL`, `CORE_JWKS_URL`, `COOKIE_DOMAIN=.florenceedu.com`, `COOKIE_SECURE=1`, `GOOGLE_CLIENT_ID`.
 
 **Per-service `sync:false` secrets:** see step 3.2. `DATABASE_URL` is injected automatically from the Postgres instances. Schema is applied by each service's `preDeployCommand: node db/migrate.mjs` (Core + Academy).
 
@@ -85,10 +85,10 @@ Visit `https://pricing.florenceeducation.com` (or any app) → you're redirected
 ```bash
 # health of every public service
 for h in id academy api.academy pathway ats pricing; do
-  echo -n "$h: "; curl -s -o /dev/null -w "%{http_code}\n" "https://$h.florenceeducation.com/health" 2>/dev/null \
-    || curl -s -o /dev/null -w "%{http_code}\n" "https://$h.florenceeducation.com/api/health"
+  echo -n "$h: "; curl -s -o /dev/null -w "%{http_code}\n" "https://$h.florenceedu.com/health" 2>/dev/null \
+    || curl -s -o /dev/null -w "%{http_code}\n" "https://$h.florenceedu.com/api/health"
 done
-# SSO round-trip + role checks: scripts/smoke_check.sh https://id.florenceeducation.com <email> <password>
+# SSO round-trip + role checks: scripts/smoke_check.sh https://auth.florenceedu.com <email> <password>
 ```
 The included `scripts/smoke_check.sh` logs into Core, then confirms the cookie authorizes pathway + ats and that no-auth is rejected.
 
@@ -115,7 +115,7 @@ cd ~/florence-work/florence-academy/api && PORT=8088 CORE_ISSUER_URL=http://id.l
 # Pricing (Streamlit) — optional; needs the Python deps installed
 cd ~/florence-work/labor-economics-agent && FLORENCE_INTERNAL_AUTH=1 CORE_ISSUER_URL=http://id.lvh.me:8080 streamlit run app.py --server.port 8501 &
 ```
-Then `bash ~/florence-work/scripts/smoke_check.sh http://id.lvh.me:8080 dev@florenceeducation.com florence-dev`.
+Then `bash ~/florence-work/scripts/smoke_check.sh http://id.lvh.me:8080 dev@florenceedu.com florence-dev`.
 
 ---
 

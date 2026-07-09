@@ -1,0 +1,19 @@
+{
+  "name": "@florence/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Placeholder for shared configuration contracts.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "node ../../scripts/ci/check-placeholder-package.mjs",
+    "typecheck": "node ../../scripts/ci/check-placeholder-package.mjs",
+    "test": "node ../../scripts/ci/check-placeholder-package.mjs",
+    "lint": "node ../../scripts/ci/check-placeholder-package.mjs",
+    "build": "node ../../scripts/ci/check-placeholder-package.mjs",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs ."
+  }
+}

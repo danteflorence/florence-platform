@@ -3,16 +3,31 @@
 **/dist/
 **/build/
 **/.vite/
+**/.cache/
+**/.cache
+**/.turbo/
+**/.parcel-cache/
+**/.next/
+**/.next
+**/out/
 coverage/
 
 # ── local data + sqlite (never commit databases) ─────────────────────────────
 **/data/
+# …but src/data/ is SOURCE CODE (question banks, caseBank, blueprint, lesson
+# files in academy-web), not local data. Without this negation, the apps/
+# restructure would silently drop the entire bank from the repo.
+!**/src/data/
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.wal
+*.shm
 
 # ── secrets / local env - commit ONLY *.example templates ────────────────────
 **/.env
@@ -38,6 +53,41 @@ coverage/
 *-key.json
 service-account*.json
 **/secrets/
+
+# ── local archives / generated bundles ──────────────────────────────────────
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.dmg
+
+# ── temp / caches ───────────────────────────────────────────────────────────
+.cache/
+tmp/
+temp/
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── generated media ─────────────────────────────────────────────────────────
+**/generated-media/
+**/generated_media/
+**/generated-audio/
+**/generated_audio/
+**/recordings/
+**/replays/
+**/data/audio/
+**/public/audio/generated/
+**/media/generated/
+*.generated.mp3
+*.generated.wav
+*.generated.m4a
+*.generated.mp4
+*.generated.webm
 
 # ── excluded trees ───────────────────────────────────────────────────────────
 # Local Node 24 toolchain (194M, machine-local), the orphaned extracted/ platforms

@@ -1,0 +1,23 @@
+{
+  "name": "@florence/economist-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Florence OS Workforce Economist API for facility-level quotes, proposals, and Core ledger events.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "typecheck": "node ../../apps/app-web/node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/smoke.ts",
+    "lint": "npm run typecheck",
+    "build": "npm run typecheck",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs ."
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

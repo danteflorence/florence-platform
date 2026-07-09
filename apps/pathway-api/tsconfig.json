@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "types": ["node"],
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "react": [
+        "node_modules/@types/react/index.d.ts"
+      ],
+      "react/jsx-runtime": [
+        "node_modules/@types/react/jsx-runtime.d.ts"
+      ],
+      "@shared/*": ["shared/*"],
+      "@florence/design-system": [
+        "../../packages/design-system/src/index.tsx",
+        "../packages/design-system/src/index.tsx"
+      ],
+      "@florence/design-system/preview": [
+        "../../packages/design-system/src/preview.tsx",
+        "../packages/design-system/src/preview.tsx"
+      ],
+      "@florence/design-system/tokens.css": [
+        "../../packages/design-system/src/tokens.css",
+        "../packages/design-system/src/tokens.css"
+      ]
+    }
+  },
+  "include": ["src", "server", "shared", "scripts"]
+}

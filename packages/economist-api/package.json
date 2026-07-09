@@ -1,0 +1,26 @@
+{
+  "name": "@florence/economist-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic Workforce Economist quote and proposal model for Florence OS.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "data:nashp:freshness": "node scripts/check-nashp-source.mjs",
+    "data:nashp:update": "node scripts/update-nashp-hct.mjs",
+    "data:nashp:validate": "node scripts/validate-nashp-hct.mjs",
+    "dev": "npm run typecheck",
+    "typecheck": "node ../../apps/app-web/node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/smoke.ts",
+    "lint": "npm run typecheck",
+    "build": "npm run typecheck",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs ."
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

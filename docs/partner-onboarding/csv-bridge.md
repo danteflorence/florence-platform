@@ -4,7 +4,7 @@ For partners on Workday / Taleo / iCIMS / UKG / SuccessFactors who can't integra
 the SFTP/GCS transport is operator-provisioned (a per-partner bucket/drop), the parse/format is in
 `florence-ats-connect/server/csvBridge.ts` (idempotent; no PII in exports).
 
-## Jobs in (partner → FlorenceRN), idempotent by `external_req_id`
+## Jobs in (partner → Florence Education), idempotent by `external_req_id`
 CSV header:
 ```
 external_req_id,title,city,state,required_license_state,setting,pay_min,pay_max
@@ -14,7 +14,7 @@ REQ-1,Registered Nurse,Reno,NV,NV,hospital,42,55
 - Re-uploading the same `external_req_id` **updates** the requisition (no duplicates).
 - Invalid rows are reported per-row; valid rows still import.
 
-## Status out (FlorenceRN → partner), NO candidate PII
+## Status out (Florence Education → partner), NO candidate PII
 CSV header:
 ```
 external_req_id,application_id,stage,status,updated_at

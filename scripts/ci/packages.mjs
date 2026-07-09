@@ -1,7 +1,7 @@
 export const packageJobs = [
   {
     name: "core",
-    dir: "florence-core",
+    dir: "apps/core-api",
     install: true,
     typecheck: ["typecheck"],
     test: [
@@ -21,7 +21,7 @@ export const packageJobs = [
   },
   {
     name: "ats-connect",
-    dir: "florence-ats-connect",
+    dir: "apps/employer-connect-api",
     install: true,
     typecheck: ["typecheck"],
     test: [
@@ -35,21 +35,48 @@ export const packageJobs = [
       "reservations-smoke",
       "onboarding-risk-smoke",
       "component-sdk-smoke",
-      "pii-url-smoke"
+      "pii-url-smoke",
+      "audit-redaction-smoke",
+      "webhook-signature-smoke",
+      "no-pii-error-smoke"
     ],
     build: ["build"]
   },
   {
     name: "pathway-agent",
-    dir: "florence-pathway-agent",
+    dir: "apps/pathway-api",
     install: true,
     typecheck: ["typecheck"],
-    test: ["pathway-v1-smoke"],
+    test: ["pathway-v1-smoke", "audit-redaction-smoke", "no-pii-error-smoke"],
+    build: ["build"]
+  },
+  {
+    name: "economist-api",
+    dir: "packages/economist-api",
+    install: false,
+    typecheck: ["typecheck"],
+    test: ["test", "data:nashp:validate"],
+    build: ["build"]
+  },
+  {
+    name: "economist-app",
+    dir: "apps/economist-app",
+    install: false,
+    typecheck: ["typecheck"],
+    test: ["test"],
+    build: ["build"]
+  },
+  {
+    name: "app-web",
+    dir: "apps/app-web",
+    install: true,
+    typecheck: ["typecheck"],
+    test: ["test"],
     build: ["build"]
   },
   {
     name: "academy-api",
-    dir: "florence-academy/api",
+    dir: "apps/academy-web/api",
     install: true,
     typecheck: ["typecheck"],
     test: ["test"],
@@ -57,7 +84,7 @@ export const packageJobs = [
   },
   {
     name: "academy-web",
-    dir: "florence-academy",
+    dir: "apps/academy-web",
     install: true,
     typecheck: ["typecheck"],
     test: ["test"],

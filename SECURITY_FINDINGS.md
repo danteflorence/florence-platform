@@ -7,6 +7,24 @@ Severity definitions:
 - Medium: Weakens defense in depth, increases likelihood of leakage, or creates unsafe production configuration risk.
 - Low: Inventory, hardening, or monitoring gap with limited direct exposure.
 
+## 2026-06-25 Disposition Tracker
+
+This tracker satisfies the current requirement that every critical/high scan finding is either fixed or documented with an owner and deadline. Deadlines are engineering target dates, not compliance attestations.
+
+| ID | Current disposition | Owner | Deadline |
+| --- | --- | --- | --- |
+| C01 | Open, release-blocking. Pathway non-public routes still require mandatory Core auth and candidate/staff binding tests. | Platform Security Lead + Pathway Engineering | 2026-07-03 |
+| C02 | Open, release-blocking until Core candidate self Passport reads prove token-bound candidate id matches the resolved nurse id across id/email/ref selectors. | Core Identity Lead | 2026-06-28 |
+| C03 | Open, release-blocking until Employer Connect `/api/ops` and ledger routes are deny-by-default for employers and re-opened only through tenant-scoped handlers. | Employer Connect Lead | 2026-07-01 |
+| C04 | Open, release-blocking until partner Passport reads require named recipient org consent plus explicit candidate-to-partner relationship. | Core Privacy Lead | 2026-07-01 |
+| C05 | Open, release-blocking until legacy public resume tokens are removed or bridged to restricted document signed URLs with recipient binding and revocation. | Employer Connect Lead | 2026-06-30 |
+| C06 | Open, release-blocking until lender credit-decision reads/writes require lender-specific consent and tenant relationship. | Core Lender Lead | 2026-07-02 |
+| H01 | Partially fixed in this pass for Pathway audit detail storage, Employer Connect audit redaction, and generic unexpected-error handling. Remaining support-export coverage stays open. | Platform Security Lead + Pathway Engineering | 2026-06-28 |
+| H02 | Open. Route live and mock AI workflows through central data-class/high-stakes controls before restricted provider use. | AI Safety Lead | 2026-07-05 |
+| H03 | Open. Academy employer partner views need tenant-specific consent and relationship checks. | Academy Engineering Lead | 2026-07-03 |
+| H04 | Partially fixed in this pass for Employer Connect ATS inbound webhooks with timestamped HMAC and replay protection. Remaining provider-specific rollout evidence stays open. | Integrations Lead | 2026-06-29 |
+| H05 | Open. Consular payment dashboards, reads, exports, and handoffs need complete audit/minimization coverage. | Pathway Engineering Lead | 2026-07-05 |
+
 ## Critical Findings
 
 ### C01: Pathway internal API allows unauthenticated access to restricted immigration and licensure workflows
@@ -186,6 +204,14 @@ Required fix:
 - Store restricted values in canonical records only, not in audit detail text.
 - Return generic client errors with internal correlation ids.
 
+2026-06-25 update:
+
+- Pathway audit detail values in Postgres now store `[REDACTED]` rather than restricted values.
+- `apps/pathway-api/scripts/audit-redaction-smoke.ts` proves DS-160 confirmation values, candidate names, and appointment free text do not survive into audit rows.
+- Employer Connect and Pathway unexpected-error handlers now return generic `internal_server_error` bodies with opaque event ids and log only safe error type metadata.
+- `apps/employer-connect-api/scripts/no-pii-error-smoke.ts` and `apps/pathway-api/scripts/no-pii-error-smoke.ts` prove synthetic restricted values do not appear in generic error logs or response bodies.
+- Remaining work: support/export redaction review.
+
 ### H02: AI and model workflows are not consistently governed by a central PII and high-stakes control plane
 
 Evidence:
@@ -238,6 +264,13 @@ Required fix:
 - Require provider-specific HMAC signatures with timestamp and replay protection.
 - Remove development fallback in production.
 - Add idempotency, rate limits, and audit for accepted and rejected webhook attempts.
+
+2026-06-25 update:
+
+- Employer Connect ATS inbound webhooks now require `x-florence-signature` or `x-webhook-signature` formatted as `t=<timestamp>,v1=<hmac_sha256>`, computed over `timestamp.rawBody`.
+- Missing secrets, missing signatures, mismatched signatures, stale signatures, and legacy shared-secret-only headers fail closed.
+- `apps/employer-connect-api/scripts/webhook-signature-smoke.ts` covers valid, mismatched, stale, missing, unconfigured, and legacy-header cases.
+- Remaining work: provider-specific idempotency/rate-limit evidence and rollout to any remaining inbound webhook surfaces.
 
 ### H05: Consular Payments sensitive reads and exports need audit and minimization
 

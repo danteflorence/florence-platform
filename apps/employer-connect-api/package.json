@@ -1,0 +1,68 @@
+{
+  "name": "florence-employer-connect",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Florence Education Employer Connect — import employer RN requisitions, match Florence internationally educated nurses, build consent-gated employer-ready packets, submit into employer workflows, and sync interview/offer/start/retention into the Production Ledger.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "api": "node --watch --import tsx server/index.ts",
+    "start": "node --import tsx server/index.ts",
+    "web": "node node_modules/vite/bin/vite.js --host",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "migrate": "node --import tsx scripts/migrate.ts",
+    "seed": "node --import tsx scripts/seed.ts",
+    "seed:targets": "node --import tsx scripts/seed-targets.ts",
+    "sync": "node --import tsx scripts/sync.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run document-vault-smoke && npm run platform-api-smoke && npm run application-gate-smoke && npm run demand-smoke && npm run opportunity-smoke && npm run longtail-smoke && npm run program-smoke && npm run employer-connect-production-smoke && npm run core-required-smoke && npm run reservations-smoke && npm run onboarding-risk-smoke && npm run component-sdk-smoke && npm run pii-url-smoke && npm run audit-redaction-smoke && npm run webhook-signature-smoke && npm run no-pii-error-smoke",
+    "lint": "npm run typecheck",
+    "clean": "node ../../scripts/ci/clean-artifacts.mjs .",
+    "smoke": "node --import tsx scripts/smoke.ts",
+    "demand-smoke": "node --import tsx scripts/demand-smoke.ts",
+    "opportunity-smoke": "node --import tsx scripts/opportunity-smoke.ts",
+    "longtail-smoke": "node --import tsx scripts/longtail-smoke.ts",
+    "document-vault-smoke": "node --import tsx scripts/document-vault-smoke.ts",
+    "application-gate-smoke": "node --import tsx scripts/application-gate-smoke.ts",
+    "platform-api-smoke": "node --import tsx scripts/platform-api-smoke.ts",
+    "component-sdk-smoke": "tsx --tsconfig tsconfig.runtime.json scripts/component-sdk-smoke.ts",
+    "pii-url-smoke": "node --import tsx scripts/pii-url-smoke.ts",
+    "audit-redaction-smoke": "node --import tsx scripts/audit-redaction-smoke.ts",
+    "webhook-signature-smoke": "node --import tsx scripts/webhook-signature-smoke.ts",
+    "no-pii-error-smoke": "node --import tsx scripts/no-pii-error-smoke.ts",
+    "csv-bridge-smoke": "node --import tsx scripts/csv-bridge-smoke.ts",
+    "program-smoke": "node --import tsx scripts/program-smoke.ts",
+    "employer-connect-production-smoke": "node --import tsx scripts/employer-connect-production-smoke.ts",
+    "core-required-smoke": "node --import tsx scripts/core-required-smoke.ts",
+    "onboarding-risk-smoke": "node --import tsx scripts/onboarding-risk-smoke.ts",
+    "reservations-smoke": "node --import tsx scripts/reservations-smoke.ts",
+    "vms-smoke": "node --import tsx scripts/vms-smoke.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "express": "^4.19.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

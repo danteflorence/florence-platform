@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "react": ["../../apps/academy-web/node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["../../apps/academy-web/node_modules/@types/react/jsx-runtime.d.ts"]
+    }
+  },
+  "include": ["src"]
+}

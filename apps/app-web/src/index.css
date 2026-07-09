@@ -1,0 +1,289 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--florence-mist);
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.fos-shell {
+  min-height: 100vh;
+}
+
+.fos-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.fos-footer {
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 0 24px 24px;
+}
+
+.fos-role-select {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 190px;
+}
+
+.fos-role-select span {
+  color: var(--florence-slate);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fos-role-select select {
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid var(--florence-line);
+  border-radius: var(--florence-radius-sm);
+  color: var(--florence-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 7px 28px 7px 10px;
+}
+
+.fos-page-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.fos-page-header h1 {
+  color: var(--florence-ink);
+  font-family: var(--florence-font-display);
+  font-size: 34px;
+  line-height: 1.1;
+  margin: 4px 0 0;
+}
+
+.fos-page-header p,
+.fos-body-copy {
+  color: var(--florence-slate);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  max-width: 760px;
+}
+
+.fos-eyebrow {
+  color: var(--florence-tiffany-dark);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fos-metric-grid,
+.fos-card-grid,
+.fos-passport-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.fos-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fos-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fos-passport-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.fos-two-column {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.fos-card-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.fos-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fos-field {
+  display: grid;
+  gap: 6px;
+}
+
+.fos-field span {
+  color: var(--florence-slate);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fos-field input,
+.fos-field select {
+  background: #ffffff;
+  border: 1px solid var(--florence-line);
+  border-radius: var(--florence-radius-sm);
+  color: var(--florence-ink);
+  font: inherit;
+  min-height: 38px;
+  min-width: 0;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.fos-document-list {
+  display: grid;
+  gap: 12px;
+}
+
+.fos-tabs {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--florence-line);
+  border-radius: var(--florence-radius-sm);
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.fos-tabs__item {
+  background: transparent;
+  border: 0;
+  border-radius: var(--florence-radius-sm);
+  color: var(--florence-slate);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 8px 12px;
+}
+
+.fos-tabs__item:hover,
+.fos-tabs__item--active {
+  background: rgba(10, 186, 181, 0.1);
+  color: var(--florence-tiffany-dark);
+}
+
+.fos-document-list .fds-document-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.fos-trend-controls {
+  align-items: end;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(240px, 1.2fr) minmax(240px, 1.4fr);
+  margin-bottom: 16px;
+}
+
+.fos-trend-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.fos-trend-chart {
+  background: linear-gradient(180deg, rgba(10, 186, 181, 0.06), rgba(115, 64, 196, 0.05));
+  border: 1px solid var(--florence-line);
+  border-radius: var(--florence-radius-sm);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.fos-trend-chart svg {
+  display: block;
+  height: auto;
+  min-height: 220px;
+  width: 100%;
+}
+
+.fos-trend-chart line {
+  stroke: rgba(71, 84, 103, 0.32);
+  stroke-width: 1;
+}
+
+.fos-trend-chart polyline {
+  fill: none;
+  stroke: var(--florence-purple);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.fos-trend-chart circle {
+  fill: var(--florence-tiffany);
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.fos-trend-chart text {
+  fill: var(--florence-slate);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fds-top-nav__actions {
+  flex-wrap: wrap;
+}
+
+.fds-sidebar {
+  min-height: 100vh;
+}
+
+.fds-sidebar__item span:first-of-type {
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .fos-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .fos-page-header,
+  .fos-two-column,
+  .fos-document-list .fds-document-card {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .fos-page-header h1 {
+    font-size: 28px;
+  }
+
+  .fos-card-grid,
+  .fos-form-grid,
+  .fos-metric-grid,
+  .fos-passport-grid,
+  .fos-trend-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .fos-role-select {
+    width: 100%;
+  }
+
+  .fos-role-select select {
+    min-width: 0;
+    width: 100%;
+  }
+}

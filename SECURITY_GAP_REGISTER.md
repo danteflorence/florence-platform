@@ -2,7 +2,7 @@
 
 Status: SOC 2 ready controls in progress. This is not a formal SOC 2 audit report.
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Purpose
 
@@ -12,7 +12,8 @@ This register lists current known security gaps for enterprise diligence. It sep
 
 | Severity | Gap | Impact | Required evidence to close |
 | --- | --- | --- | --- |
-| Critical | No current critical production exception is approved in this package | Any critical control bypass could expose restricted data, bypass auth or tenant isolation, bypass Application Gate, leak secrets, or allow unauthorized document access | Keep release gates fail-closed; open a critical incident if a critical gap is found |
+| Critical | Open release-blocking code findings C01-C06 in `SECURITY_FINDINGS.md` | Critical control bypasses could expose restricted data, bypass auth or tenant isolation, bypass Application Gate, leak secrets, or allow unauthorized document access | Fix each finding or obtain formal exception approval with owner, deadline, compensating controls, and legal/security signoff |
+| High | Open high findings H01-H05 in `SECURITY_FINDINGS.md` | Sensitive metadata, partner data, AI prompt data, webhook status, or export data could leak or be changed with insufficient controls | Close each item against its owner/deadline tracker and update this register with test evidence |
 | High | Production managed KMS and secrets-manager evidence is not attached | Restricted documents and connector secrets are proven by interfaces/tests, but production key custody evidence is still missing | Cloud KMS config, key policy, rotation policy, secrets inventory, access review |
 | High | Production SIEM and audit-log routing evidence is not attached | Audit events exist, but diligence will require destination, retention, alert routing, and owner evidence | SIEM destination config, retention policy, alert owner, sample redacted event |
 | High | Vendor DPAs/security reviews are not complete for every live vendor | Restricted data could be shared before contractual and security review is complete | Approved vendor review, DPA/subprocessor terms, data inventory, offboarding plan |

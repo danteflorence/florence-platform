@@ -78,6 +78,6 @@ unless WEBHOOKS_LIVE.
 - **Component SDK publish** (registry/tarball), **live webhook delivery** (real partner endpoints + retries),
   **live Model Gateway provider** (real ANTHROPIC key + durable cache/cost store) — all wired behind flags,
   flipped when the operator provisions creds.
-- Deploy/DNS to florenceedu.com / florenceeducation.com remains operator click-ops.
+- Deploy/DNS to florenceedu.com / florenceedu.com remains operator click-ops.
 
 Reports: P1 — `PLATFORM_API_REPLATFORM_P1_BUILD_REPORT.md`; P2–P4 — this file.

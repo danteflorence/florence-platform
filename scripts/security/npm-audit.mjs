@@ -14,6 +14,13 @@ for (const job of packageJobs) {
     cwd: join(process.cwd(), job.dir),
     stdio: "inherit"
   });
+  if (result.error) {
+    console.error(
+      `Dependency vulnerability scan could not start in ${job.dir}: ${result.error.message}`
+    );
+    console.error("Install Node.js 24 with npm available, then rerun npm run security:audit.");
+    process.exit(1);
+  }
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 

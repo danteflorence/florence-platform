@@ -1,0 +1,45 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "react": [
+        "node_modules/@types/react/index.d.ts"
+      ],
+      "react/jsx-runtime": [
+        "node_modules/@types/react/jsx-runtime.d.ts"
+      ],
+      "@florence/design-system": [
+        "../../packages/design-system/src/index.tsx",
+        "../packages/design-system/src/index.tsx"
+      ],
+      "@florence/design-system/preview": [
+        "../../packages/design-system/src/preview.tsx",
+        "../packages/design-system/src/preview.tsx"
+      ],
+      "@florence/design-system/tokens.css": [
+        "../../packages/design-system/src/tokens.css",
+        "../packages/design-system/src/tokens.css"
+      ]
+    }
+  },
+  "include": ["src"]
+}

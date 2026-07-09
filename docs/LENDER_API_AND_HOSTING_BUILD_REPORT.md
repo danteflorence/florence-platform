@@ -3,7 +3,7 @@
 **Date:** 2026-06-15. Connects warehouse/partner banks to live, continuous, **consented** per-nurse data for
 loan underwriting (architected so FlorenceRN's own future bank is just another `lender` org on the same API),
 and operationalizes the platform on real cloud infra. Everything in-repo, additive, mock-by-default, fail-closed;
-all suites green on both backends. Decisions: GCP Cloud Run · florencern.com · self-hosted Core (M2M) · all 4 workstreams.
+all suites green on both backends. Decisions: GCP Cloud Run · florenceedu.com · self-hosted Core (M2M) · all 4 workstreams.
 
 ## WS-L — Lender Data API (verify-lender 21/21)
 - **Partner-bank M2M → lender binding:** `ApiClient.org_id` (both backends + schema); `issueClientToken` emits
@@ -31,7 +31,7 @@ all suites green on both backends. Decisions: GCP Cloud Run · florencern.com ·
 
 ## WS-D — GCP Cloud Run hosting + CI/CD (authored; operator provisions)
 - **Terraform** `infra/` — Cloud Run services + Cloud SQL Postgres + GCS+CMEK + Secret Manager + Pub/Sub +
-  Artifact Registry + domain mappings for `id./api./ats./pathway./api.academy./developers./partners.florencern.com`;
+  Artifact Registry + domain mappings for `id./api./ats./pathway./api.academy./developers./partners.florenceedu.com`;
   four envs (`infra/envs/*.tfvars`, separate projects); images by convention + `image_tag`. Dockerfiles reused.
 - **CI/CD** `.github/workflows/` — `ci.yml` (typecheck + ALL smokes both backends + `terraform validate` + dep
   audit) gates `deploy.yml` (build → Artifact Registry → **staging auto** → **manual approval** → production; WIF, no keys).
@@ -41,7 +41,7 @@ all suites green on both backends. Decisions: GCP Cloud Run · florencern.com ·
   lender flow, which is all in Core).
 
 ## WS-O — Partner onboarding + Developer Portal
-- `developers.florencern.com` portal (`gateway/portal.ts`) now has getting-started/auth/versioning + base URLs +
+- `developers.florenceedu.com` portal (`gateway/portal.ts`) now has getting-started/auth/versioning + base URLs +
   the lender no-visa note, over the live aggregated OpenAPI.
 - `docs/partner-onboarding/`: onboarding **README** (who-sees-what, M2M auth, lender quick-start, checklist),
   a **field dictionary** (every field + data class + **prohibited-basis flags**), and the CSV bridge guide.

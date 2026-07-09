@@ -1,78 +1,125 @@
-# FlorenceRN — staging environment. `terraform apply -var-file=envs/staging.tfvars`.
-# Separate GCP project from production (hard isolation). Smaller SQL tier; scale-to-zero
-# on non-issuer services for cost. Image tags are rewritten by CI to the built SHA.
-project_id = "florencern-staging" # OPERATOR: set to the real GCP project id
+# Florence Education -- staging environment.
+project_id = "florenceedu-staging" # OPERATOR: replace with the real staging GCP project id.
 region     = "us-central1"
 env        = "staging"
-domain     = "florencern.com"
+domain     = "florenceedu.com"
 sql_tier   = "db-custom-1-3840"
 
 services = {
-  core = {
-    subdomains      = ["id-staging", "api-staging", "developers-staging", "partners-staging"]
-    needs_sql       = true
-    needs_field_enc = true
-    min_instances   = 1 # the issuer (JWKS) stays warm so auth has no cold-start
-    max_instances   = 4
-    public          = true
-    health_path     = "/v1/health"
+  "core-api" = {
+    subdomains       = ["staging-api", "staging-developers"]
+    needs_sql        = true
+    database_name    = "florence_core"
+    migrate_command  = ["node", "db/migrate.mjs"]
+    needs_field_enc  = true
+    min_instances    = 1
+    max_instances    = 4
+    public           = true
+    health_path      = "/health"
+    session_affinity = false
     extra_env = {
-      PUBLIC_CORE_URL         = "https://id-staging.florencern.com"
+      PUBLIC_CORE_URL         = "https://staging-api.florenceedu.com"
       TOKEN_ISS               = "florence-auth"
       TOKEN_AUD               = "florence"
       COOKIE_SECURE           = "1"
-      FLORENCE_ALLOWED_DOMAIN = "florenceeducation.com"
-      FLORENCE_REDIRECT_HOSTS = ".florencern.com"
-      GOOGLE_REDIRECT_URI     = "https://id-staging.florencern.com/auth/google/callback"
+      FLORENCE_ALLOWED_DOMAIN = "florenceedu.com"
+      FLORENCE_REDIRECT_HOSTS = ".florenceedu.com"
+      GOOGLE_REDIRECT_URI     = "https://staging-api.florenceedu.com/auth/google/callback"
       DEMO_CLIENT_ID          = "florence-core-demo"
     }
   }
-  "academy-web" = {
-    subdomains    = ["academy-staging"]
-    needs_sql     = false
-    min_instances = 0
-    max_instances = 2
-    public        = true
-    health_path   = "/"
+
+  "app-web" = {
+    subdomains       = ["staging.app"]
+    needs_sql        = false
+    min_instances    = 0
+    max_instances    = 3
+    public           = true
+    health_path      = "/"
+    session_affinity = false
+    extra_env        = {}
   }
+
   "academy-api" = {
-    subdomains      = ["api-staging.academy"]
-    needs_sql       = true
-    needs_field_enc = true
-    min_instances   = 0
-    max_instances   = 3
-    public          = true
-    health_path     = "/health"
+    subdomains       = ["staging-academy-api"]
+    needs_sql        = true
+    database_name    = "florence_academy"
+    migrate_command  = ["node", "db/migrate.mjs"]
+    needs_field_enc  = true
+    min_instances    = 0
+    max_instances    = 3
+    public           = true
+    health_path      = "/health"
+    session_affinity = false
     extra_env = {
       TOKEN_ISS            = "florence-auth"
       TOKEN_AUD            = "florence"
       API_JWT_ISSUER       = "florence-auth"
       API_JWT_AUDIENCE     = "florence"
-      CORS_ALLOWED_ORIGINS = "https://academy-staging.florencern.com,https://id-staging.florencern.com"
-      PUBLIC_APP_URL       = "https://academy-staging.florencern.com"
+      CORS_ALLOWED_ORIGINS = "https://staging.app.florenceedu.com,https://staging-api.florenceedu.com"
+      PUBLIC_APP_URL       = "https://staging.app.florenceedu.com"
     }
   }
+
   "academy-live" = {
-    subdomains       = ["live-staging.academy"]
+    subdomains       = ["staging-live"]
     needs_sql        = false
     min_instances    = 0
     max_instances    = 1
     public           = true
     health_path      = "/health"
     session_affinity = true
+    extra_env        = {}
   }
-  ats = {
-    subdomains    = ["ats-staging"]
-    needs_sql     = true
-    min_instances = 0
-    max_instances = 3
-    public        = true
-    health_path   = "/api/health"
+
+  "pathway-api" = {
+    subdomains       = ["staging-pathway-api"]
+    needs_sql        = true
+    database_name    = "florence_pathway"
+    migrate_command  = ["node", "db/migrate.mjs"]
+    min_instances    = 0
+    max_instances    = 3
+    public           = true
+    health_path      = "/api/health"
+    session_affinity = false
     extra_env = {
+      CORE_ISSUER_URL = "https://staging-api.florenceedu.com"
+      PATHWAY_DB      = "postgres"
+      TOKEN_ISS       = "florence-auth"
+      TOKEN_AUD       = "florence"
+    }
+  }
+
+  "employer-connect-api" = {
+    subdomains       = ["staging-partners"]
+    needs_sql        = true
+    database_name    = "florence_employer"
+    migrate_command  = ["node", "--import", "tsx", "scripts/migrate.ts"]
+    min_instances    = 0
+    max_instances    = 3
+    public           = true
+    health_path      = "/api/health"
+    session_affinity = false
+    extra_env = {
+      ATS_CONNECT_BASE_URL = "https://staging-partners.florenceedu.com"
+      ATS_DB               = "postgres"
+      PRICING_API_URL      = "https://staging-economist-api.florenceedu.com"
       TOKEN_ISS            = "florence-auth"
       TOKEN_AUD            = "florence"
-      ATS_DB               = "postgres"
-      ATS_CONNECT_BASE_URL = "https://ats-staging.florencern.com"
+    }
+  }
+
+  "economist-api" = {
+    subdomains       = ["staging-economist-api"]
+    needs_sql        = false
+    min_instances    = 0
+    max_instances    = 2
+    public           = true
+    health_path      = "/health"
+    session_affinity = false
+    extra_env = {
+      ECONOMIST_CORE_EVENTS_REQUIRED = "0"
+      FLORENCE_CORE_URL              = "https://staging-api.florenceedu.com"
     }
   }
 }

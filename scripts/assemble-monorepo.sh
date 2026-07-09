@@ -80,7 +80,7 @@ echo "  ✓ .gitignore + README.md"
 cd "$TARGET"
 git init -q -b main
 git add -A
-git -c user.email="setup@florenceeducation.com" -c user.name="FlorenceRN Setup" \
+git -c user.email="setup@florenceedu.com" -c user.name="FlorenceRN Setup" \
   commit -q -m "FlorenceRN platform: unified SSO (core + 4 apps) + Render blueprint"
 echo
 echo "✓ monorepo assembled + committed at: $TARGET"

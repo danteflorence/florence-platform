@@ -1,239 +1,239 @@
-# ════════════════════════════════════════════════════════════════════════════
-# FlorenceRN platform — single-VPS test stack.
-#
-#   cp .env.testserver.example .env   # then edit BASE_DOMAIN, ACME_EMAIL, secrets
-#   docker compose up -d --build
-#
-# Caddy terminates TLS (Let's Encrypt) and reverse-proxies each subdomain to a
-# container. All apps live under *.${BASE_DOMAIN}, so the fl_session cookie
-# (Domain=.${BASE_DOMAIN}) is shared → one login works everywhere.
-#
-# Point DNS (A/AAAA, or a wildcard *.${BASE_DOMAIN}) at the server, open 80+443,
-# then browse https://id.${BASE_DOMAIN}.
-# ════════════════════════════════════════════════════════════════════════════
-
-x-core-env: &core-issuer "https://id.${BASE_DOMAIN}"
+name: florence-local
 
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports: ["80:80", "443:443"]
-    environment:
-      BASE_DOMAIN: ${BASE_DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    # economist + pricing-api live in the separate `labor-economics-agent` repo (gitignored here)
-    # and only start under the `pricing` compose profile — see those services below.
-    depends_on: [core, academy-web, academy-api, academy-live, pathway, ats]
-
-  # ── databases (Core and Academy keep separate DBs) ───────────────────────
-  core-pg:
+  postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: florence
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-florence}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: florence_core
-    volumes: [core-pg-data:/var/lib/postgresql/data]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/local/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U florence -d florence_core"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d florence_core"]
       interval: 5s
       timeout: 3s
-      retries: 20
+      retries: 30
 
-  academy-pg:
-    image: postgres:16-alpine
+  core-api:
+    build:
+      context: ./apps/core-api
+      dockerfile: Dockerfile
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: florence
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-      POSTGRES_DB: florence_academy
-    volumes: [academy-pg-data:/var/lib/postgresql/data]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U florence -d florence_academy"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  # ── FlorenceRN Core — the identity service ───────────────────────────────
-  core:
-    build: { context: ./florence-core, dockerfile: Dockerfile }
-    restart: unless-stopped
-    command: sh -c "node db/migrate.mjs && node src/index.ts"
+    command: sh -c "node db/migrate.mjs && node scripts/seed-admin.ts && node src/index.ts"
+    ports:
+      - "${CORE_API_PORT:-8080}:8080"
     environment:
       PORT: "8080"
-      PUBLIC_CORE_URL: *core-issuer
-      TOKEN_ISS: florence-auth
-      TOKEN_AUD: florence
-      COOKIE_DOMAIN: ".${BASE_DOMAIN}"
-      COOKIE_SECURE: "1"
-      FLORENCE_ALLOWED_DOMAIN: ${STAFF_DOMAIN:-florenceeducation.com}
-      FLORENCE_REDIRECT_HOSTS: ".${BASE_DOMAIN}"
-      HUMAN_SESSION_TTL_SEC: "3600"
-      REFRESH_TTL_SEC: "2592000"
-      DATABASE_URL: postgres://florence:${PG_PASSWORD}@core-pg:5432/florence_core
+      PUBLIC_CORE_URL: ${PUBLIC_CORE_URL:-http://localhost:8080}
+      TOKEN_ISS: ${TOKEN_ISS:-florence-auth}
+      TOKEN_AUD: ${TOKEN_AUD:-florence}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      FLORENCE_ALLOWED_DOMAIN: ${FLORENCE_ALLOWED_DOMAIN:-florenceedu.com,example.invalid}
+      FLORENCE_REDIRECT_HOSTS: ${FLORENCE_REDIRECT_HOSTS:-localhost,127.0.0.1,.lvh.me,.florenceedu.com}
+      DATABASE_URL: postgres://${POSTGRES_USER:-florence}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/florence_core
+      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE:-changeme}
+      DEMO_CLIENT_ID: ${DEMO_CLIENT_ID:-florence-core-demo}
+      DEMO_CLIENT_SECRET: ${DEMO_CLIENT_SECRET:-changeme}
+      CORE_BOOTSTRAP_ADMIN_EMAIL: ${CORE_BOOTSTRAP_ADMIN_EMAIL:-local-admin@example.invalid}
+      CORE_BOOTSTRAP_ADMIN_PASSWORD: ${CORE_BOOTSTRAP_ADMIN_PASSWORD:-changeme}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: "https://id.${BASE_DOMAIN}/auth/google/callback"
-      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE}
-      DEMO_CLIENT_ID: florence-core-demo
-      DEMO_CLIENT_SECRET: ${DEMO_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/auth/google/callback}
     depends_on:
-      core-pg: { condition: service_healthy }
-
-  # ── Academy — SPA (static) + API + live (Socket.IO) ──────────────────────
-  academy-web:
-    build:
-      context: ./florence-academy
-      dockerfile: Dockerfile.web
-      args:
-        VITE_CORE_URL: "https://id.${BASE_DOMAIN}"
-        VITE_API_URL: "https://api.academy.${BASE_DOMAIN}"
-        VITE_LIVE_URL: "https://live.academy.${BASE_DOMAIN}"
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
 
   academy-api:
-    build: { context: ./florence-academy/api, dockerfile: Dockerfile }
+    build:
+      context: ./apps/academy-web/api
+      dockerfile: Dockerfile
     restart: unless-stopped
     command: sh -c "node db/migrate.mjs && node src/index.ts"
+    ports:
+      - "${ACADEMY_API_PORT:-8088}:8088"
     environment:
       PORT: "8088"
-      CORE_ISSUER_URL: *core-issuer
-      TOKEN_ISS: florence-auth
-      TOKEN_AUD: florence
-      API_JWT_ISSUER: florence-auth
-      API_JWT_AUDIENCE: florence
-      CORS_ALLOWED_ORIGINS: "https://academy.${BASE_DOMAIN},https://id.${BASE_DOMAIN}"
-      PUBLIC_APP_URL: "https://academy.${BASE_DOMAIN}"
-      DATABASE_URL: postgres://florence:${PG_PASSWORD}@academy-pg:5432/florence_academy
-      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?set WEBHOOK_SECRET in .env}
-      # Live classroom A/V (Agora). Blank → live page runs slides-only (no video).
+      CORE_ISSUER_URL: ${CORE_ISSUER_URL:-http://core-api:8080}
+      TOKEN_ISS: ${TOKEN_ISS:-florence-auth}
+      TOKEN_AUD: ${TOKEN_AUD:-florence}
+      API_JWT_ISSUER: ${TOKEN_ISS:-florence-auth}
+      API_JWT_AUDIENCE: ${TOKEN_AUD:-florence}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5174,http://localhost:8080}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5174}
+      DATABASE_URL: postgres://${POSTGRES_USER:-florence}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/florence_academy
+      FIELD_ENC_PASSPHRASE: ${FIELD_ENC_PASSPHRASE:-changeme}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-changeme}
+      API_JWT_SECRET: ${API_JWT_SECRET:-changeme}
+      DEMO_CLIENT_ID: ${ACADEMY_DEMO_CLIENT_ID:-demo-crm}
+      DEMO_CLIENT_SECRET: ${DEMO_CLIENT_SECRET:-changeme}
+      REQUIRE_EMAIL_VERIFICATION: "0"
+      CORE_EVENTS_URL: ${CORE_EVENTS_URL:-}
+      CORE_EVENTS_TOKEN: ${CORE_EVENTS_TOKEN:-}
       AGORA_APP_ID: ${AGORA_APP_ID:-}
       AGORA_APP_CERTIFICATE: ${AGORA_APP_CERTIFICATE:-}
-      # Cloud recording → your storage bucket (optional; blank → Record button hidden).
-      AGORA_CUSTOMER_ID: ${AGORA_CUSTOMER_ID:-}
-      AGORA_CUSTOMER_SECRET: ${AGORA_CUSTOMER_SECRET:-}
-      AGORA_REC_VENDOR: ${AGORA_REC_VENDOR:-1}
-      AGORA_REC_REGION: ${AGORA_REC_REGION:-0}
-      AGORA_REC_BUCKET: ${AGORA_REC_BUCKET:-}
-      AGORA_REC_ACCESS_KEY: ${AGORA_REC_ACCESS_KEY:-}
-      AGORA_REC_SECRET_KEY: ${AGORA_REC_SECRET_KEY:-}
-      AGORA_REC_PREFIX: ${AGORA_REC_PREFIX:-florence-academy}
-      AGORA_REC_PUBLIC_BASE: ${AGORA_REC_PUBLIC_BASE:-}  # CDN in front of the bucket → replay playback
-      # Pre-recorded narration + voice tutor (ElevenLabs). Blank → audio players
-      # hidden + tutor FAB hidden; the app works exactly as before.
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
-      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
-      ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID:-eleven_multilingual_v2}
-      ELEVENLABS_DICTIONARY_ID: ${ELEVENLABS_DICTIONARY_ID:-}          # from `npm run audio:dict`
-      ELEVENLABS_DICTIONARY_VERSION_ID: ${ELEVENLABS_DICTIONARY_VERSION_ID:-}
-      ELEVENLABS_AGENT_ID: ${ELEVENLABS_AGENT_ID:-}                    # from `npm run audio:tutor` → voice tutor
-      AUDIO_DIR: /app/data/audio
-      AUDIO_PUBLIC_BASE: ${AUDIO_PUBLIC_BASE:-}                        # CDN in front of the audio bucket (optional)
-      # Nurse Passport spine: emit readiness events to Core. Blank → no-op.
-      # Provision with `docker compose exec core npm run seed-app-clients`.
-      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ACADEMY_CLIENT_ID:-florence-academy}
-      FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_ACADEMY_CLIENT_SECRET:-}
-    volumes:
-      - academy-audio:/app/data/audio  # generated narration MP3s + manifest (generate once, serve forever)
     depends_on:
-      academy-pg: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
+      core-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8088/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
 
   academy-live:
-    build: { context: ./florence-academy, dockerfile: Dockerfile.live }
+    build:
+      context: ./apps/academy-web
+      dockerfile: Dockerfile.live
     restart: unless-stopped
+    ports:
+      - "${ACADEMY_LIVE_PORT:-5179}:5179"
     environment:
       PORT: "5179"
       LIVE_PORT: "5179"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5179/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
-  # ── Pathway — SPA + Express + node:sqlite (persistent volume) ────────────
-  pathway:
+  app-web:
     build:
-      context: ./florence-pathway-agent
-      dockerfile: Dockerfile
-      args: { VITE_CORE_URL: "https://id.${BASE_DOMAIN}" }
+      context: .
+      dockerfile: apps/app-web/Dockerfile
+      args:
+        VITE_CORE_URL: ${APP_CORE_URL:-http://localhost:8080}
+        VITE_APPLY_URL: ${APP_APPLY_URL:-https://www.florenceedu.com/apply}
+        VITE_ACADEMY_API_URL: ${APP_ACADEMY_API_URL:-http://localhost:8088}
+        VITE_PATHWAY_API_URL: ${APP_PATHWAY_API_URL:-http://localhost:8787/api}
+        VITE_EMPLOYER_CONNECT_API_URL: ${APP_EMPLOYER_CONNECT_API_URL:-http://localhost:8788/api}
+        VITE_LIVE_URL: ${APP_LIVE_URL:-http://localhost:5179}
+        VITE_DEMO_NURSE_ID: ${VITE_DEMO_NURSE_ID:-local-demo-nurse}
     restart: unless-stopped
+    ports:
+      - "${APP_WEB_PORT:-5174}:80"
+    depends_on:
+      core-api:
+        condition: service_healthy
+      academy-api:
+        condition: service_healthy
+      academy-live:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  pathway-api:
+    build:
+      context: .
+      dockerfile: apps/pathway-api/Dockerfile
+      args:
+        VITE_CORE_URL: ${APP_CORE_URL:-http://localhost:8080}
+    restart: unless-stopped
+    ports:
+      - "${PATHWAY_API_PORT:-8787}:8787"
     environment:
       PORT: "8787"
-      CORE_ISSUER_URL: *core-issuer
-      TOKEN_ISS: florence-auth
-      TOKEN_AUD: florence
+      PATHWAY_DB: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-florence}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/florence_pathway
+      CORE_ISSUER_URL: ${CORE_ISSUER_URL:-http://core-api:8080}
+      TOKEN_ISS: ${TOKEN_ISS:-florence-auth}
+      TOKEN_AUD: ${TOKEN_AUD:-florence}
+      ALLOW_SYNTHETIC_SEED: ${ALLOW_SYNTHETIC_SEED:-0}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Nurse Passport spine: emit licensure/visa/NCLEX/doc events to Core. Blank → no-op.
-      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_PATHWAY_CLIENT_ID:-florence-pathway}
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_PATHWAY_CLIENT_ID:-}
       FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_PATHWAY_CLIENT_SECRET:-}
-    volumes: [pathway-data:/app/data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
-  # ── ATS Connect — SPA + Express + node:sqlite (persistent volume) ────────
-  ats:
+  employer-connect-api:
     build:
-      context: ./florence-ats-connect
-      dockerfile: Dockerfile
-      args: { VITE_CORE_URL: "https://id.${BASE_DOMAIN}" }
+      context: .
+      dockerfile: apps/employer-connect-api/Dockerfile
+      args:
+        VITE_CORE_URL: ${APP_CORE_URL:-http://localhost:8080}
     restart: unless-stopped
+    ports:
+      - "${EMPLOYER_CONNECT_API_PORT:-8788}:8788"
     environment:
       PORT: "8788"
-      ATS_DB: "postgres"            # embedded PGlite at /app/data/ats-connect-pg (on the volume)
-      CORE_ISSUER_URL: *core-issuer
-      TOKEN_ISS: florence-auth
-      TOKEN_AUD: florence
-      ATS_CONNECT_BASE_URL: "https://ats.${BASE_DOMAIN}"
-      ATS_CONNECT_VAULT_KEY: ${ATS_CONNECT_VAULT_KEY}
-      STATUS_SYNC_INTERVAL_MS: "600000" # poll employer ATSs for status changes every 10 min (0 = off)
+      ATS_DB: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-florence}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/florence_employer
+      CORE_ISSUER_URL: ${CORE_ISSUER_URL:-http://core-api:8080}
+      TOKEN_ISS: ${TOKEN_ISS:-florence-auth}
+      TOKEN_AUD: ${TOKEN_AUD:-florence}
+      ALLOW_SYNTHETIC_SEED: ${ALLOW_SYNTHETIC_SEED:-0}
+      ATS_CONNECT_BASE_URL: ${ATS_CONNECT_BASE_URL:-http://localhost:8788}
+      ATS_CONNECT_VAULT_KEY: ${ATS_CONNECT_VAULT_KEY:-changeme}
+      ATS_WEBHOOK_SECRET: ${ATS_WEBHOOK_SECRET:-changeme}
+      STATUS_SYNC_INTERVAL_MS: ${STATUS_SYNC_INTERVAL_MS:-0}
+      PRICING_API_URL: ${PRICING_API_URL:-http://economist-api:8094}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Nurse Passport spine: emit funnel events (matched→started→retained) to Core. Blank → no-op.
-      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ATS_CLIENT_ID:-florence-ats}
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ATS_CLIENT_ID:-}
       FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_ATS_CLIENT_SECRET:-}
-      # Demand Radar economics → Workforce Economist pricing-api (in-cluster).
-      PRICING_API_URL: ${PRICING_API_URL:-http://pricing-api:8000}
-      # Public base for Demand Radar tracked links (go.<domain> or a /l path).
-      LINK_BASE_URL: ${LINK_BASE_URL:-https://ats.${BASE_DOMAIN}}
-    volumes: [ats-data:/app/data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-api:
+        condition: service_healthy
+      economist-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8788/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
-  # ── Pricing — Streamlit Workforce Economist (persistent volume) ──────────
-  # NOTE: `economist` + `pricing-api` build from the SEPARATE `labor-economics-agent`
-  # GitHub repo, which is intentionally NOT in this monorepo (it's gitignored). They
-  # are gated behind the `pricing` profile so a clean clone runs `docker compose up`
-  # WITHOUT that directory present. To include pricing, check out that repo alongside
-  # this one and run `docker compose --profile pricing up`. ATS degrades to a standard
-  # fallback fee when PRICING_API_URL is unreachable, so the stack is fully functional
-  # without it.
-  economist:
-    profiles: ["pricing"]
-    build: { context: ./labor-economics-agent, dockerfile: Dockerfile }
+  economist-api:
+    build:
+      context: .
+      dockerfile: apps/economist-app/Dockerfile
     restart: unless-stopped
+    ports:
+      - "${ECONOMIST_API_PORT:-8094}:8094"
     environment:
-      PORT: "8501"
-      CORE_ISSUER_URL: *core-issuer
-      TOKEN_ISS: florence-auth
-      TOKEN_AUD: florence
-      COOKIE_NAME: fl_session
-      FLORENCE_INTERNAL_AUTH: "1"
-      PUBLIC_PRICING_URL: "https://pricing.${BASE_DOMAIN}"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      BLS_REGISTRATION_KEY: ${BLS_REGISTRATION_KEY:-}
-    volumes: [economist-data:/app/data]
-
-  # ── Pricing API — stateless FastAPI quote engine (separate repo; `pricing` profile) ─
-  pricing-api:
-    profiles: ["pricing"]
-    build: { context: ./labor-economics-agent, dockerfile: Dockerfile.api }
-    restart: unless-stopped
-    environment:
-      PORT: "8000"
-      PRICING_API_CORS_ORIGINS: "https://pricing.${BASE_DOMAIN}"
+      PORT: "8094"
+      HOST: 0.0.0.0
+      NODE_ENV: development
+      FLORENCE_CORE_URL: ${FLORENCE_CORE_URL:-}
+      FLORENCE_CORE_CLIENT_ID: ${FLORENCE_ECONOMIST_CLIENT_ID:-}
+      FLORENCE_CORE_CLIENT_SECRET: ${FLORENCE_ECONOMIST_CLIENT_SECRET:-}
+      ECONOMIST_CORE_EVENTS_REQUIRED: "0"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8094/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
 volumes:
-  caddy-data:
-  caddy-config:
-  core-pg-data:
-  academy-pg-data:
-  academy-audio:
-  pathway-data:
-  ats-data:
-  economist-data:
+  postgres-data:

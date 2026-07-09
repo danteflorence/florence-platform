@@ -1,100 +1,129 @@
-# FlorenceRN Security Overview
+# Florence Education Security Overview
 
-Status: SOC 2 ready controls in progress. This package is not a SOC 2, HIPAA, HITRUST, HECVAT, GLBA, FERPA, GDPR, or PCI attestation. No formal audit has been completed.
-
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Purpose
 
-This evidence package prepares FlorenceRN for enterprise diligence by AMN, Kaiser, lenders, universities, ATS/VMS partners, employers, and investors. It documents the security posture currently represented in the repository, the controls that have verification evidence, and the gaps that still require remediation or manual operational controls.
+This overview documents the security posture required for Florence Education / Florence OS. The platform handles high-sensitivity healthcare, education, immigration, financing, workforce, employer, partner, and learning workflows, so all engineering work must preserve bank-grade and healthcare-grade controls.
 
-FlorenceRN is treated as a bank-grade and healthcare-grade platform because it may process passports, dates of birth, addresses, transcripts, I-20s, SEVIS IDs, DS-160 data, visa status, licensure records, Academy learning data, audio and tutor interactions, credit and underwriting signals, lender handoffs, employer packets, ATS/VMS submissions, and Production Ledger events.
+This is not a SOC 2, HIPAA, HITRUST, HECVAT, GLBA, FERPA, GDPR, PCI, production, or legal compliance attestation. The accurate status is production-readiness in progress and SOC 2-aligned control preparation, pending external audit and security review.
 
-## Scope
+## Security Scope
 
 In scope:
 
-- Florence Core: identity, SSO, roles, scopes, consent, Passport views, redaction, Model Gateway, webhooks, audit, Application Gate, document vault, lender and ledger modules.
-- Florence Academy: candidate learning data, assessments, remediation, tutor and audio, employer and university views, outreach, payments, webhooks.
-- Florence ATS Connect: employer packets, applications, ATS/VMS handoffs, document vault bridge, Application Gate, public interest flows, Production Ledger.
-- Florence Pathway Agent: visa, I-20, SEVIS, DS-160, NCLEX, licensure, workflow and consular payment workflows.
-- CI/CD and local security gates: dependency install, typecheck, tests, build, lint, secret scanning, dependency audit, static analysis, CodeQL workflow.
+- Core identity, SSO, roles, scopes, tenant binding, consent, Passport, Application Gate, audit, Document Vault, lender, model, webhook, and ledger controls.
+- Academy learning, enrollment, sponsor, Apply CTA, library, payment-reference, and readiness events.
+- Pathway visa, NCLEX, licensure, consular, QA, document, and workflow automation.
+- Employer Connect demand, packet, ATS/VMS, Application Gate, webhook, and Production Ledger workflows.
+- Grants and fee coverage workflows once formalized.
+- Workforce Economist quote and proposal workflows.
+- Local, CI, staging, and deployment controls.
 
-Out of scope for this repository-only package:
+Out of scope for this repository-only handoff:
 
 - Formal third-party audit.
-- Cloud production environment configuration evidence.
-- Signed BAAs, DPAs, MSAs, lender agreements, university agreements, or processor contracts.
 - External penetration test report.
-- SIEM, EDR, MFA enrollment, HR background-check evidence, security awareness records, and vendor contract files.
+- Signed vendor, employer, lender, school, university, or processor agreements.
+- Cloud IAM evidence, SIEM/EDR evidence, HR controls, production access reviews, or business continuity evidence not stored in this repo.
 
-## Security Architecture Summary
+## Non-Negotiable Controls
 
-FlorenceRN uses Core as the policy center. Core owns the canonical identity model, scoped tokens, partner tenant binding, data classification, consent, recipient-specific redaction, audit logging, Application Gate, Model Gateway, document-vault controls, and Production Ledger primitives.
+- No restricted data in logs, URLs, analytics, telemetry, errors, prompts, fixtures, screenshots, docs, or examples.
+- Every sensitive read, write, share, export, packet view, document view, and document download is audit logged.
+- Every partner, employer, lender, university, school, channel, vendor, and integration is tenant-scoped.
+- Every external share requires explicit, purpose-specific consent.
+- Employers see employer-safe packets only.
+- Lenders see consented lender-safe packets only.
+- Universities see aggregate or anonymized views by default.
+- AI output is assistive and must not make final visa, credit, financing, employment, application submission, licensure, eligibility, or pathway approval decisions.
+- Application submission fails closed unless authorization, license, consent, packet QA, tenant authorization, and workflow gates all pass.
+- Secrets come from approved secret storage, never from committed files.
+- Restricted documents are encrypted at rest and accessed only through short-lived signed URLs.
+- Security controls must not be weakened to make tests pass.
 
-The intended disclosure path is:
+## Core Security Architecture
+
+Core is the platform policy center. It owns:
+
+- Identity, sessions, roles, scopes, and partner tenant binding.
+- Nurse Passport references and cross-app identity resolution.
+- Consent records and revocation.
+- Document Vault metadata, grants, signed URL issuance, revocation, and audit.
+- Application Gate decisions.
+- Tamper-evident audit records.
+- Production Ledger and event ingestion.
+- Model Gateway governance for sensitive AI workflows.
+
+The required sensitive workflow path is:
 
 1. Authenticate caller.
-2. Resolve role, scopes, tenant, recipient, and purpose.
-3. Verify candidate relationship or partner tenant relationship.
-4. Verify purpose-specific consent when data leaves FlorenceRN.
-5. Apply data classification and recipient-safe serializer.
-6. Apply Application Gate for employer packet, ATS/VMS, and application actions.
-7. Serve documents only through encrypted storage and short-lived signed URLs.
-8. Audit every sensitive read, write, share, export, packet view, document view, document download, and AI model event.
-9. Fail closed when any required control is missing.
+2. Resolve role, scope, tenant, recipient, purpose, and candidate or partner relationship.
+3. Verify purpose-specific consent before any external share.
+4. Minimize fields and select the recipient-safe projection.
+5. Run Application Gate when packet sharing, ATS/VMS submission, or application submission is involved.
+6. Serve restricted documents only through short-lived signed URLs.
+7. Emit audit and Core event records.
+8. Fail closed if a required control is missing or ambiguous.
 
-## Evidence Index
+## Module Security Summary
 
-| Evidence file | Contents |
-| --- | --- |
-| `SECURITY_THREAT_MODEL.md` | Existing source-based threat model and high-risk attack paths. |
-| `SECURITY_DATA_MAP.md` | Existing sensitive data domains and where data may appear. |
-| `SECURITY_ATTACK_SURFACE.md` | Existing public, partner, webhook, document, export, and rate-limit surfaces. |
-| `SECURITY_FINDINGS.md` | Existing critical, high, medium, and low findings baseline. |
-| `SECURITY_REMEDIATION_PLAN.md` | Existing execution-order remediation plan. |
-| `SECURITY_DOD.md` | Existing security definition of done. |
-| `SECURITY_CONTROLS_MATRIX.md` | Enterprise controls matrix tied to code evidence, tests, and residual work. |
-| `DATA_CLASSIFICATION_POLICY.md` | Data classes, field tags, recipient views, and redaction rules. |
-| `ACCESS_CONTROL_POLICY.md` | RBAC, ABAC, tenant isolation, candidate binding, and partner access rules. |
-| `CONSENT_AND_DATA_SHARING_POLICY.md` | Purpose-specific consent and external sharing policy. |
-| `DOCUMENT_VAULT_POLICY.md` | Restricted document storage, signed URL, and audit policy. |
-| `AI_SAFETY_POLICY.md` | Model Gateway, prompt safety, AI output, human review, and high-stakes rules. |
-| `INCIDENT_RESPONSE_PLAN.md` | Incident classification, roles, timeline, communications, and evidence handling. |
-| `BACKUP_AND_RECOVERY_PLAN.md` | Backup, recovery, RPO/RTO targets, testing, and gaps. |
-| `VENDOR_RISK_REGISTER.md` | Vendors, processors, partners, data received, risk, and required diligence. |
-| `SOC2_READINESS_CHECKLIST.md` | SOC 2 readiness tracker, tests, manual controls, and residual risks. |
-| `SECURITY_GAP_REGISTER.md` | Remaining critical, high, medium, and low security gaps. |
-| `SECURITY_MANUAL_CONTROLS.md` | Manual controls still required for enterprise operation. |
-| `SECURITY_VENDOR_DATA_FLOWS.md` | Third-party vendors and partners, plus the data each receives. |
-| `SECURITY_TEST_EVIDENCE.md` | Test list and latest local verification results for isolation, Application Gate, redaction, document security, webhooks, and AI safety. |
+| Module | Security/data-sharing rules | Tests | Known gaps |
+| --- | --- | --- | --- |
+| Core | Tenant scopes, role grants, RS256/JWKS, M2M scopes, consent, redaction, Document Vault, Application Gate, audit, lender-safe views, Model Gateway. | Security spine, audit, document vault, Application Gate, gateway, lender, tenant-binding, tenant-isolation, model gateway checks. | External audit and cloud control evidence pending. |
+| App Web | Role-aware shell, shared design system, no sensitive persistence, no restricted data in URLs. | Typecheck/build when npm is available. | Some fallback data remains; standalone module UIs need full shared-shell migration. |
+| Academy | Encrypted sensitive fields, signed library access, sponsor and university-safe views, Apply CTA safety, Core event emission. | Smoke, integration, TLS, walkthrough, web Vitest. | Core event no-op mode must be forbidden outside local development. |
+| Pathway | Candidate binding, staff role checks, human QA gates, no-PII errors, audit redaction, status-only SSN handling, Core Passport writes. | Pathway v1, consular payment, audit redaction, no-PII smokes. | Sensitive JSONB workflow records need Core-governed canonical split over time; Core credentials must be required outside local dev. |
+| Employer Connect | Employer-safe packets, purpose-specific consent, Application Gate, submission locks, HMAC webhooks, signed document access, billing-grade verification. | Document vault, platform API, Application Gate, production loop, Core-required, PII URL, audit redaction, webhook signature, no-PII, VMS smokes. | Core canonical ledger mode must be enforced in staging and production. |
+| Grants | Funding and fee coverage views must be purpose-limited and avoid lender/credit leakage unless separately consented. | No dedicated Grants backend tests found. | Owner service, Core event writer, consent/audit tests, and schema decision required. |
+| Workforce Economist | Aggregate/facility economics only; no nurse PII; Core quote/proposal events required outside local dev. | Smoke script. | Staging should require Core events, matching production behavior. |
 
-## Implemented And Verified Controls
+## Data Handling
 
-The repository currently includes code and verifier evidence for:
+Allowed in tests and docs:
 
-- Central data classification and fail-closed unknown field handling in Core.
-- Recipient-specific serializers for candidate, internal operations, employer, lender, university, AMN/VMS partner, and investor or board aggregate views.
-- Redaction helpers for logs, errors, API responses, exports, analytics, and AI model inputs.
-- Passport view redaction and withholding reasons for partner views.
-- Employer-safe and AMN/VMS-safe packet views that omit passport, DS-160, financing, underwriting, Academy remediation history, and unrelated employer placement data.
-- Lender view controls that omit employer notes unless explicitly permitted.
-- University and investor views that are aggregate or anonymized by default.
-- Core consent records that are purpose-specific, recipient-specific, revocable, and audit logged.
-- Partner tenant isolation logic for employer, lender, university, AMN, and ATS/VMS relationships.
-- Application Gate fail-closed checks for consent, visa or work authorization, license, packet QA, authorized workflow, job status, data-minimized packet generation, and duplicate submission locks.
-- Document Vault encryption, short-lived signed URLs, tenant revalidation at redemption, revocation, document lifecycle hooks, safe document types, malware scanner hook, and document audit events.
-- Model Gateway task registry, data class ceilings, prompt versions, output schemas, untrusted-source handling, prompt-injection detection, high-stakes action blocking, AI audit metadata, and full Passport access gating.
-- Tamper-evident audit log checks and bulk-read anomaly alerts.
-- CI contract for dependency install, typecheck, tests, lint, build, secret scan, dependency audit, static analysis, CodeQL, and Terraform validation.
+- Synthetic names and emails using safe test domains.
+- Synthetic employer, facility, school, and program records.
+- Opaque fake ids.
+- Coarse readiness/status labels when synthetic.
 
-## Current Registers
+Not allowed in tests or docs:
 
-- Remaining security gaps are listed in `SECURITY_GAP_REGISTER.md`.
-- Manual controls still required are listed in `SECURITY_MANUAL_CONTROLS.md`.
-- Third-party vendors and the data each receives are listed in `SECURITY_VENDOR_DATA_FLOWS.md` and summarized in `VENDOR_RISK_REGISTER.md`.
-- Tests proving partner isolation, Application Gate, redaction, document security, webhook security, and AI safety are listed in `SECURITY_TEST_EVIDENCE.md`.
+- Real passports, dates of birth, addresses, SEVIS IDs, DS-160 data, visa status, transcripts, licensure records, loan or credit data, employer packets, restricted document contents, production ids, real secrets, or copied user records.
 
-## Validation Status
+## AI And Automation
 
-The latest local verification status is recorded in `SECURITY_TEST_EVIDENCE.md` and should be refreshed after every material security change. Do not represent these documents as proof of formal SOC 2 compliance.
+AI may:
+
+- Draft, summarize, explain, classify, extract, tutor, simulate, remediate, and recommend review.
+
+AI must not:
+
+- Submit applications, transmit packets, approve financing, approve eligibility, reject candidates, make final visa/licensure/employment decisions, or decide pathway approval.
+
+Sensitive AI workflows must record source, purpose, model/version, input category, output category, reviewer, and final human action.
+
+## Current Evidence And Required Refresh
+
+Existing repo evidence includes security docs, control matrices, threat models, gap registers, manual controls, vendor data flow notes, and security test evidence. This final package should be treated as the current engineering handoff, while detailed legacy evidence files remain supporting material.
+
+Before staging sign-off, refresh:
+
+- All-files secret scan.
+- Tenant-binding and tenant-isolation tests.
+- Consent and data-sharing tests.
+- Document Vault tests.
+- Application Gate tests.
+- Audit redaction and no-PII error tests.
+- Webhook signature tests.
+- AI/model gateway governance tests.
+- Dependency audit and static analysis when tooling/network is available.
+
+## Residual Risk
+
+- No formal external audit or penetration test is complete.
+- Staging plan/apply requires authorized cloud credentials and reviewed secrets.
+- Grants is not yet a complete Core-event-writing module.
+- Some service Core event paths can no-op locally and need staging/prod fail-closed enforcement.
+- Some standalone UI surfaces still need full shared design-system migration.
+- Production-readiness language must remain conservative until controls are independently verified.

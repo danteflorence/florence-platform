@@ -1,7 +1,3 @@
-# FlorenceRN Platform — post-apply outputs the operator needs (service URLs, the Cloud
-# SQL connection name, the document bucket, the KMS key, the DNS records to create, and
-# the per-service runtime SA emails). `terraform output -json` after apply.
-
 output "service_urls" {
   description = "Cloud Run URL per service."
   value       = { for k, s in google_cloud_run_v2_service.svc : k => s.uri }
@@ -13,7 +9,7 @@ output "cloudsql_connection_name" {
 }
 
 output "documents_bucket" {
-  description = "GCS document-vault bucket (CMEK)."
+  description = "GCS document-vault bucket protected by CMEK."
   value       = google_storage_bucket.documents.name
 }
 
@@ -23,23 +19,26 @@ output "kms_crypto_key" {
 }
 
 output "artifact_registry_repo" {
-  description = "Docker repo images are pushed to."
-  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.florencern.repository_id}"
+  description = "Artifact Registry Docker repository."
+  value       = local.repo_url
 }
 
 output "runtime_service_accounts" {
-  description = "Per-service runtime SA emails (the IAM principals)."
+  description = "Per-service runtime service account emails."
   value       = { for k, sa in google_service_account.runtime : k => sa.email }
 }
 
+output "database_url_secrets" {
+  description = "Per-service Secret Manager DATABASE_URL secret ids."
+  value       = { for k, s in google_secret_manager_secret.database_url : k => s.secret_id }
+}
+
 output "migrate_jobs" {
-  description = "Cloud Run Jobs to execute (once per deploy) before serving: gcloud run jobs execute <name> --region <region> --wait."
+  description = "Cloud Run migration job names to execute before serving a deployed image."
   value       = { for k, j in google_cloud_run_v2_job.migrate : k => j.name }
 }
 
-# The CNAME/A records the operator must create at the registrar/Cloud DNS for each mapped
-# host. Google-managed TLS provisions automatically once these resolve.
 output "domain_mapping_records" {
-  description = "DNS records to create per mapped host (from Cloud Run domain mappings)."
+  description = "DNS records to create per mapped florenceedu.com host."
   value       = { for host, m in google_cloud_run_domain_mapping.map : host => m.status[0].resource_records }
 }

@@ -1,13 +1,13 @@
-# FlorenceRN Platform API — partner onboarding
+# Florence Education Platform API — partner onboarding
 
-FlorenceRN is API-first. The **Nurse Passport** is the central object (permissioned views), the
+Florence Education is API-first. The **Nurse Passport** is the central object (permissioned views), the
 **Production Ledger** is the system of record, every workflow is an event, and **every partner gets a
 scoped, audited, consent-gated view** — never the full internal Passport.
 
-- **Sandbox:** `https://sandbox-api.florencern.com/v1` (seeded fake data — test here)
-- **Production:** `https://api.florencern.com/v1`
-- **Docs:** `https://developers.florencern.com` · machine contract: `/v1/openapi.json`
-- **Identity:** `https://id.florencern.com` (Core RS256/JWKS)
+- **Sandbox:** `https://sandbox-api.florenceedu.com/v1` (seeded fake data — test here)
+- **Production:** `https://api.florenceedu.com/v1`
+- **Docs:** `https://developers.florenceedu.com` · machine contract: `/v1/openapi.json`
+- **Identity:** `https://auth.florenceedu.com` (Core RS256/JWKS)
 
 ## Who sees what
 | Partner | Gets | Never gets |
@@ -18,10 +18,10 @@ scoped, audited, consent-gated view** — never the full internal Passport.
 | University | aggregate / k-anonymized cohort dashboards | named-student data without an agreement + consent |
 
 ## Authentication (M2M, client_credentials)
-1. FlorenceRN provisions you an **API key** (`client_id` + `client_secret`, shown once) scoped to your role.
+1. Florence Education provisions you an **API key** (`client_id` + `client_secret`, shown once) scoped to your role.
 2. Exchange it for a short-lived token:
    ```
-   POST https://id.florencern.com/oauth/token
+   POST https://auth.florenceedu.com/oauth/token
    { "grant_type":"client_credentials", "client_id":"…", "client_secret":"…", "scope":"…" }
    ```
 3. Call the API with `Authorization: Bearer <access_token>`. Lender keys are **org-bound** — your token
@@ -48,7 +48,7 @@ can revoke at any time, which immediately closes access (FCRA-aligned). Data acc
 
 ## Integration checklist
 1. Get sandbox key → 2. Mint a token → 3. Read a sample credit-data package → 4. Record a sample decision →
-5. Pull the portfolio + loan tape → 6. Receive a webhook → 7. Validate with FlorenceRN → 8. Move to production.
+5. Pull the portfolio + loan tape → 6. Receive a webhook → 7. Validate with Florence Education → 8. Move to production.
 
 ## Cross-cutting
 - **Versioning:** `/v1` is stable; breaking changes ship as `/v2` with a deprecation window.
