@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS assessment_results (
   id              text PRIMARY KEY,          -- asr_…
   candidate_id    text NOT NULL REFERENCES candidates (id),
   kind            text NOT NULL
-                  CHECK (kind IN ('tutor','nightly','adaptive_exam','timed','diagnostic')),
+                  CHECK (kind IN ('tutor','nightly','adaptive_exam','timed','diagnostic','simulation','live_poll')),
   readiness       double precision,          -- projected pass probability 0..1
   theta           double precision,          -- Rasch ability (logits)
   items_completed integer,
@@ -90,6 +90,11 @@ CREATE TABLE IF NOT EXISTS assessment_results (
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_asr_candidate ON assessment_results (candidate_id, created_at);
+-- Widen the kind CHECK on existing databases (same pattern as payments below):
+-- 'simulation' = virtual-patient sim runs, 'live_poll' = persisted in-class polls.
+ALTER TABLE assessment_results DROP CONSTRAINT IF EXISTS assessment_results_kind_check;
+ALTER TABLE assessment_results ADD CONSTRAINT assessment_results_kind_check
+  CHECK (kind IN ('tutor','nightly','adaptive_exam','timed','diagnostic','simulation','live_poll'));
 
 -- ── Payments (token references only - NO raw instrument data) ───────────────
 CREATE TABLE IF NOT EXISTS payments (

@@ -151,7 +151,12 @@ export type AssessmentKind =
   | "nightly"
   | "adaptive_exam"
   | "timed"
-  | "diagnostic";
+  | "diagnostic"
+  /** Virtual-patient sim run (browser sim or external adapter). Carries
+   *  by_client_need + by_cjmm + mastery like any other result. */
+  | "simulation"
+  /** In-class live poll answers, persisted per student after a session. */
+  | "live_poll";
 
 /** Append-only, immutable performance record (underwriting-grade). */
 export interface AssessmentResult {

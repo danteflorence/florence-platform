@@ -151,6 +151,8 @@ const ASSESSMENT_KINDS: readonly AssessmentKind[] = [
   "adaptive_exam",
   "timed",
   "diagnostic",
+  "simulation",
+  "live_poll",
 ];
 const ENROLLMENT_STATUSES: readonly EnrollmentStatus[] = [
   "registered",

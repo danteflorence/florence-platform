@@ -223,6 +223,43 @@ try {
   assert.ok(!verifyWebhook(config.webhookSecret, wh.signature, wh.body + "x", Math.floor(Date.now() / 1000)));
   ok("tampered webhook body → signature fails");
 
+  // 4b) New assessment kinds: "simulation" (virtual-patient runs) and
+  // "live_poll" (persisted classroom polls) enter the same append-only spine.
+  // Fresh candidate so these rows never perturb the shared candidate's
+  // readiness/remediation assertions later in the suite.
+  const simCandRes = await fetch(`${base}/v1/candidates`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ full_name: "Sim Kinds Probe", country: "PH" }),
+  });
+  const simCand = (await simCandRes.json()) as any;
+  assert.equal(simCandRes.status, 201);
+  const simPost = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({
+      candidate_id: simCand.id,
+      kind: "simulation",
+      items_completed: 9,
+      by_client_need: { "physiological-adaptation": 0.6, "management-of-care": 0.4 },
+      by_cjmm: { "recognize-cues": 0.7, "take-actions": 0.3 },
+    }),
+  });
+  assert.equal(simPost.status, 201);
+  const pollPost = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, kind: "live_poll", readiness: 0.66, items_completed: 12 }),
+  });
+  assert.equal(pollPost.status, 201);
+  ok("kind simulation + live_poll → 201 (sim/classroom results enter the spine)");
+  const kindListRes = await fetch(`${base}/v1/assessment-results?candidate_id=${simCand.id}`, { headers: bearer(T) });
+  const kindList = (await kindListRes.json()) as any;
+  const kindsSeen = new Set((kindList.data ?? []).map((r: any) => r.kind));
+  assert.equal(kindListRes.status, 200);
+  assert.ok(kindsSeen.has("simulation") && kindsSeen.has("live_poll"));
+  ok("listing returns simulation + live_poll rows (no kind-filter regression)");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },
