@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run",
+    "test": "vitest run && node --test server/liveScoring.test.mjs",
     "lint": "npm run typecheck",
     "clean": "node ../../scripts/ci/clean-artifacts.mjs .",
     "live": "node server/liveServer.mjs"

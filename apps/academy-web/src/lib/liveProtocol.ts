@@ -112,6 +112,12 @@ export interface JoinPayload {
   room: string;
   role: LiveRole;
   name: string;
+  /** Signed-in learner's academy session token. The live server verifies it
+   *  against the Data API (GET /v1/me) and resolves the candidate id
+   *  server-side - the client never self-asserts an identity - so graded
+   *  poll answers can persist as kind:"live_poll" assessment results.
+   *  Absent/invalid → the student participates anonymously, as before. */
+  token?: string;
 }
 
 export interface NavPayload {

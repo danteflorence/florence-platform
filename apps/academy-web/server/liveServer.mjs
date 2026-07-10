@@ -23,9 +23,98 @@
 
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import {
+  choicesOf,
+  isPollCorrect,
+  recordPollOutcome,
+  summarizePollStats,
+} from "./liveScoring.mjs";
 
 // Cloud Run injects PORT; LIVE_PORT is the local/compose override; 5179 is the dev default.
 const PORT = Number(process.env.PORT ?? process.env.LIVE_PORT ?? 5179);
+
+// ── Poll persistence (optional, env-gated) ──────────────────────────────────
+// When configured, graded poll outcomes persist to the Data API as
+// kind:"live_poll" assessment results so classroom checks-for-understanding
+// feed readiness + the instructor copilot instead of vanishing at class end.
+//   DATA_API_URL             e.g. http://localhost:8088 (also enables student
+//                            token verification at join)
+//   LIVE_API_CLIENT_ID/      an M2M client with performance:write (posting is
+//   LIVE_API_CLIENT_SECRET   disabled without it; verification still works)
+// All unset (the default) → the server behaves exactly as before: in-memory
+// only, nothing leaves the process.
+const DATA_API_URL = (process.env.DATA_API_URL ?? "").replace(/\/$/, "");
+const LIVE_API_CLIENT_ID = process.env.LIVE_API_CLIENT_ID ?? "";
+const LIVE_API_CLIENT_SECRET = process.env.LIVE_API_CLIENT_SECRET ?? "";
+const persistEnabled = Boolean(DATA_API_URL && LIVE_API_CLIENT_ID && LIVE_API_CLIENT_SECRET);
+
+/** Resolve a student's candidate id from their academy session token - the
+ *  client never self-asserts an identity. Returns null on any failure. */
+async function verifyCandidate(token) {
+  if (!DATA_API_URL || !token) return null;
+  try {
+    const res = await fetch(`${DATA_API_URL}/v1/me`, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const me = await res.json();
+    return typeof me?.id === "string" && me.id ? me.id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Mint a short-lived M2M token for posting results. */
+async function mintApiToken() {
+  const params = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: LIVE_API_CLIENT_ID,
+    client_secret: LIVE_API_CLIENT_SECRET,
+    scope: "performance:write",
+  });
+  const res = await fetch(`${DATA_API_URL}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: params,
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!res.ok) throw new Error(`oauth/token ${res.status}`);
+  const j = await res.json();
+  if (!j?.access_token) throw new Error("oauth/token: no access_token");
+  return j.access_token;
+}
+
+/** POST one kind:"live_poll" assessment result per candidate who answered a
+ *  graded poll this class. Fire-and-forget from room GC; failures only log -
+ *  a flaky API must never take the live class server down with it. */
+async function flushPollStats(room) {
+  if (!persistEnabled || !room.pollStats || room.pollStats.size === 0) return;
+  const rows = summarizePollStats(room.pollStats);
+  if (rows.length === 0) return;
+  try {
+    const token = await mintApiToken();
+    let sent = 0;
+    for (const row of rows) {
+      const res = await fetch(`${DATA_API_URL}/v1/assessment-results`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+          // One result per candidate per class run, even if GC double-fires.
+          "idempotency-key": `live:${room.code}:${room.startedAt}:${row.candidate_id}`,
+        },
+        body: JSON.stringify(row),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) sent += 1;
+      else console.error(`[florence-live] poll persist ${row.candidate_id}: ${res.status}`);
+    }
+    console.log(`[florence-live] room ${room.code}: persisted poll results for ${sent}/${rows.length} students`);
+  } catch (e) {
+    console.error(`[florence-live] poll persist failed for room ${room.code}: ${e.message}`);
+  }
+}
 
 // A live poll reveals its answer automatically after this long, no matter what
 // the instructor does — so the class always sees the answer + rationale in a
@@ -86,6 +175,10 @@ function getRoom(code) {
       flushScope: null,
       qa: [], // live Q&A: [{ id, name, text, at, answered }]
       members: new Map(),
+      // Poll persistence: per-candidate graded outcomes for this class run
+      // (candidateId → {taken, correct, byCjmm}), flushed to the Data API at GC.
+      pollStats: new Map(),
+      startedAt: Date.now(),
     };
     rooms.set(code, room);
   } else if (room.gcTimer) {
@@ -245,6 +338,9 @@ function scheduleRoomGc(room) {
   room.gcTimer = setTimeout(() => {
     clearPollTimer(room);
     if (room.flushTimer) clearTimeout(room.flushTimer);
+    // Class is over: persist this run's graded poll outcomes (no-op unless
+    // DATA_API_URL + LIVE_API_CLIENT_* are configured).
+    void flushPollStats(room);
     rooms.delete(room.code);
   }, ROOM_GRACE_MS);
 }
@@ -255,7 +351,29 @@ function revealPoll(room) {
   if (!room.poll) return;
   room.poll.revealed = true;
   room.poll.open = false;
+  recordPollForPersistence(room);
   broadcast(room);
+}
+
+/** At reveal (answers are frozen), accumulate one graded outcome per verified
+ *  student into the room's pollStats. Ungraded polls and anonymous students
+ *  are skipped; a poll records at most once (reveal can fire via timer AND
+ *  button). Never touches what students see. */
+function recordPollForPersistence(room) {
+  const poll = room.poll;
+  if (!poll || poll.recorded || !Array.isArray(poll.correct) || poll.correct.length === 0) return;
+  poll.recorded = true;
+  for (const [socketId, member] of room.members.entries()) {
+    if (member.role !== "student" || !member.candidateId) continue;
+    const choices = choicesOf(poll.answers, socketId);
+    if (choices.length === 0) continue; // never answered → no signal
+    recordPollOutcome(
+      room.pollStats,
+      member.candidateId,
+      isPollCorrect(poll.correct, choices, poll.multi),
+      poll.cjmm,
+    );
+  }
 }
 
 const httpServer = createServer((req, res) => {
@@ -313,6 +431,17 @@ io.on("connection", (socket) => {
     }
     joined = { code, role, name };
     room.members.set(socket.id, { role, name });
+    // Signed-in students: resolve their candidate id from the session token
+    // they handed us (verified against the Data API - never self-asserted).
+    // Async on purpose: the join ack never waits on an HTTP round-trip, and
+    // the id is only needed later, at poll reveal.
+    if (role === "student" && typeof payload?.token === "string" && payload.token) {
+      void verifyCandidate(payload.token).then((candidateId) => {
+        if (!candidateId) return;
+        const m = rooms.get(code)?.members.get(socket.id);
+        if (m) m.candidateId = candidateId;
+      });
+    }
     socket.join(code);
     // Instructors also join the staff sub-room that carries the live roster.
     if (role === "instructor") socket.join(`${code}:staff`);

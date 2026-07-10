@@ -260,6 +260,29 @@ try {
   assert.ok(kindsSeen.has("simulation") && kindsSeen.has("live_poll"));
   ok("listing returns simulation + live_poll rows (no kind-filter regression)");
 
+  // 4c) Band stability: the band derives from the latest result that CARRIES
+  // a pass probability. A later readiness-less classroom poll must neither
+  // wipe the band to "none" nor move it.
+  const timedPost = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, kind: "timed", readiness: 0.72, theta: 0.4, items_completed: 60 }),
+  });
+  assert.equal(timedPost.status, 201);
+  const latePoll = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, kind: "live_poll", items_completed: 6, by_cjmm: { "take-actions": 0.5 } }),
+  });
+  assert.equal(latePoll.status, 201);
+  const bandRes = await fetch(`${base}/v1/candidates/${simCand.id}/readiness`, { headers: bearer(T) });
+  const band = (await bandRes.json()) as any;
+  assert.equal(bandRes.status, 200);
+  assert.equal(band.band, "yellow");
+  assert.equal(band.readiness, 0.72);
+  assert.equal(band.items_completed, 9 + 12 + 60 + 6); // polls still count toward volume
+  ok("readiness band survives a later readiness-less live_poll result");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

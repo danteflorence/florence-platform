@@ -95,7 +95,12 @@ export function computeReadiness(opts: {
   );
   const live = results.filter((r) => !supersededIds.has(r.id));
   const sorted = [...live].sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const latest = sorted[sorted.length - 1];
+  // The band comes from the latest result that CARRIES a pass probability.
+  // Kinds that don't estimate one (live_poll, uncalibrated simulation runs)
+  // still count toward items/assessments but can never reset a band to "none".
+  const latest =
+    [...sorted].reverse().find((r) => r.readiness !== undefined) ??
+    sorted[sorted.length - 1];
   const latestWithNeeds = [...sorted]
     .reverse()
     .find((r) => r.by_client_need && Object.keys(r.by_client_need).length > 0);

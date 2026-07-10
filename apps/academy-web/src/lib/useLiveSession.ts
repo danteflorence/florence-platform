@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { storedToken } from "./academyAuth";
 import {
   liveServerUrl,
   type ClientToServerEvents,
@@ -95,7 +96,11 @@ export function useLiveSession(opts: {
     socketRef.current = socket;
 
     const join = () => {
-      socket.emit("join", { room, role, name }, (ack) => {
+      // Signed-in students hand the live server their session token so graded
+      // poll answers persist to their record (server verifies via /v1/me;
+      // anonymous participation still works exactly as before).
+      const token = role === "student" ? storedToken() : null;
+      socket.emit("join", { room, role, name, ...(token ? { token } : {}) }, (ack) => {
         if (ack?.ok) {
           everJoined = true;
           setSnapshot(ack.snapshot);
