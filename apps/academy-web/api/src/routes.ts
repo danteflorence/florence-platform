@@ -34,6 +34,7 @@ import { hashSecret, verifySecret } from "./crypto.ts";
 import { computeReadiness } from "./readiness.ts";
 import { buildPathwayIntake } from "./pathway.ts";
 import { computeCohortCopilot } from "./copilot.ts";
+import { patientVoiceReply } from "./patientVoice.ts";
 import { renderMailpiece } from "./mailpiece.ts";
 import {
   countryToIso2,
@@ -1161,6 +1162,42 @@ async function recordResponse(ctx: ReqCtx, deps: Deps): Promise<void> {
 async function getQuestionAnalytics(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, await deps.store.questionResponses.analytics(ctx.params["id"] ?? ""));
 }
+// ── PatientVoice (conversational virtual patient, key stays server-side) ────
+async function postPatientVoice(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "patient_voice";
+  const question = str(ctx.body, "question");
+  if (!question || question.length > 300)
+    return err(ctx, 400, "invalid_request", "question is required (max 300 chars)");
+  const personaRaw = obj(ctx.body, "persona") as Record<string, unknown> | undefined;
+  if (!personaRaw || typeof personaRaw["name"] !== "string" || typeof personaRaw["setting"] !== "string")
+    return err(ctx, 400, "invalid_request", "persona.name and persona.setting are required");
+  const bound = (s: unknown, max: number) => String(s ?? "").slice(0, max);
+  const revealed = ((arr(ctx.body, "revealed") ?? []) as unknown[])
+    .filter((x): x is string => typeof x === "string")
+    .slice(0, 30)
+    .map((s) => s.slice(0, 200));
+  const canned = ((arr(ctx.body, "canned") ?? []) as unknown[])
+    .filter(
+      (x): x is { match: string[]; text: string } =>
+        !!x && typeof x === "object" && Array.isArray((x as { match?: unknown }).match) &&
+        typeof (x as { text?: unknown }).text === "string",
+    )
+    .slice(0, 20)
+    .map((c) => ({ match: c.match.filter((m): m is string => typeof m === "string").slice(0, 8), text: c.text.slice(0, 300) }));
+  const reply = await patientVoiceReply({
+    question,
+    persona: {
+      name: bound(personaRaw["name"], 60),
+      age: Number(personaRaw["age"]) || 0,
+      sex: bound(personaRaw["sex"], 12),
+      setting: bound(personaRaw["setting"], 200),
+    },
+    revealed,
+    canned,
+  });
+  send(ctx, 200, reply);
+}
+
 // ── spaced re-practice queue (candidate-bound JSON blob) ────────────────────
 // The Leitner queue lives client-side (src/lib/spacedQueue.ts owns the merge
 // semantics); the API stores one blob per candidate so the queue follows the
@@ -4253,6 +4290,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/assessment-results", "performance:write", true, createAssessment),
   compile("GET", "/v1/assessment-results/:id", "performance:read", true, getAssessment),
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
+  compile("POST", "/v1/sim/patient-voice", "candidates:read", true, postPatientVoice),
   compile("GET", "/v1/candidates/:id/spaced-queue", "performance:read", true, getSpacedQueue),
   compile("POST", "/v1/candidates/:id/spaced-queue", "performance:write", true, putSpacedQueue),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),

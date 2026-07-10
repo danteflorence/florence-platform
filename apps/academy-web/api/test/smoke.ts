@@ -370,6 +370,36 @@ try {
   assert.equal(sqBad.status, 400);
   ok("spaced-queue blob round-trips per candidate; junk rejected");
 
+  // 4h) PatientVoice proxy: mock provider keyword-matches the scenario's
+  // canned lines server-side (no MODEL_GATEWAY_* in the test env).
+  const pvBody = {
+    persona: { name: "Rosa", age: 58, sex: "F", setting: "Med-surg" },
+    revealed: ["Chills reported"],
+    canned: [{ match: ["pain", "hurt"], text: "It hurts deep in my belly." }],
+  };
+  const pv = await fetch(`${base}/v1/sim/patient-voice`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ ...pvBody, question: "How bad is the pain right now?" }),
+  });
+  const pvj = (await pv.json()) as any;
+  assert.equal(pv.status, 200);
+  assert.equal(pvj.source, "mock");
+  assert.equal(pvj.text, "It hurts deep in my belly.");
+  const pvMiss = (await (await fetch(`${base}/v1/sim/patient-voice`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ ...pvBody, question: "What is your favorite color?" }),
+  })).json()) as any;
+  assert.ok(pvMiss.text.includes("doesn't seem to follow"));
+  const pvBad = await fetch(`${base}/v1/sim/patient-voice`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ persona: pvBody.persona }),
+  });
+  assert.equal(pvBad.status, 400);
+  ok("patient-voice proxy answers in mock mode; validation rejects junk");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

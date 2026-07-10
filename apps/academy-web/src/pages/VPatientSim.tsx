@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { getScenario } from "../data/vpatient/registry";
+import { apiBaseUrl, call, storedToken } from "../lib/academyAuth";
 import {
   availableActions,
   dispatch as engineDispatch,
@@ -131,12 +132,47 @@ function SimRunner({ scenario }: { scenario: VPatientScenario }) {
     .flatMap((p) => p.cues ?? [])
     .filter((c) => state.revealedCueIds.includes(c.id));
 
-  const ask = () => {
-    const q = askText.trim().toLowerCase();
+  const ask = async () => {
+    const q = askText.trim();
     if (!q) return;
-    const match = scenario.patientResponses.find((r) => r.match.some((k) => q.includes(k)));
-    setAskReply(match ? match.text : "The patient looks at you but doesn't respond to that.");
     setAskText("");
+    const localReply = () => {
+      const ql = q.toLowerCase();
+      const match = scenario.patientResponses.find((r) => r.match.some((k) => ql.includes(k)));
+      return match ? match.text : "The patient looks at you but doesn't respond to that.";
+    };
+    // Prefer the server PatientVoice proxy: conversational when the model
+    // gateway is wired, byte-identical keyword behavior in mock mode. The
+    // prompt only ever carries findings the learner has ALREADY revealed -
+    // the patient must not do the assessment for you. Local fallback on any
+    // failure so a dead network never mutes the patient.
+    try {
+      if (storedToken() && apiBaseUrl()) {
+        const revealedTexts = scenario.phases
+          .flatMap((p) => p.cues ?? [])
+          .filter((c) => state.revealedCueIds.includes(c.id))
+          .map((c) => c.text);
+        const reply = await call<{ text: string }>("/v1/sim/patient-voice", {
+          method: "POST",
+          body: {
+            question: q.slice(0, 300),
+            persona: {
+              name: scenario.patient.name,
+              age: scenario.patient.age,
+              sex: scenario.patient.sex,
+              setting: scenario.setting,
+            },
+            revealed: revealedTexts,
+            canned: scenario.patientResponses.map((r) => ({ match: r.match, text: r.text })),
+          },
+        });
+        setAskReply(reply.text);
+        return;
+      }
+    } catch {
+      /* fall through to the local keyword match */
+    }
+    setAskReply(localReply());
   };
 
   if (state.ended) {
