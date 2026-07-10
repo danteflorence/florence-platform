@@ -17,6 +17,7 @@ import {
   type RosterMember,
 } from "../../lib/instructorApi";
 import { SECTIONS, CLIENT_NEED_LABEL, CJMM_STEPS } from "../../data/blueprint";
+import { GENERIC_NOTES, SECTION_NOTES, SESSION_FRAME } from "../../data/teachingRunbook";
 import type { ClientNeed } from "../../types/question";
 
 // ── Top-level page ──────────────────────────────────────────────────────────
@@ -500,6 +501,8 @@ function CohortConsole({
         />
 
         <StartSessionPane cohort={cohort} nextSection={nextSection} />
+
+        <RunbookPane nextSection={nextSection} copilot={copilot} />
 
         <RosterPane
           roster={roster === null ? null : activeRoster}
@@ -1057,6 +1060,93 @@ function TomorrowsPlan({
       )}
       <p className="mt-4 text-[11px] text-florence-slate/80">Cohort {copilot.cohort} · you can follow this line by line</p>
     </div>
+  );
+}
+
+// ── Teaching runbook ────────────────────────────────────────────────────────
+/**
+ * The minute-by-minute script for running the next live session - the
+ * instructor-side heavy lifting for first-time teachers. The frame is
+ * generic; section notes coach the specific material; the {WEAKEST_AREA}
+ * placeholder hydrates from the live copilot so the script always names the
+ * cohort's actual weak spot. Collapsed by default once an instructor has
+ * taught a few sessions (it's a <details>, their choice).
+ */
+function RunbookPane({
+  nextSection,
+  copilot,
+}: {
+  nextSection: { n: number; title: string } | null;
+  copilot: CohortCopilot | null;
+}) {
+  const weakest = copilot?.top_reteach?.[0]?.client_need;
+  const weakestLabel = weakest
+    ? (CLIENT_NEED_LABEL[weakest as ClientNeed] ?? weakest)
+    : "your cohort's weakest area (check Tomorrow's plan)";
+  const notes = nextSection ? (SECTION_NOTES[nextSection.n] ?? GENERIC_NOTES) : GENERIC_NOTES;
+  const hydrate = (line: string) => line.replace("{WEAKEST_AREA}", weakestLabel);
+
+  return (
+    <details className="group rounded-2xl border border-florence-line bg-white" open>
+      <summary className="flex cursor-pointer items-center justify-between p-6">
+        <div>
+          <p className="text-sm font-medium">Teaching runbook</p>
+          <h2 className="mt-1 text-base font-semibold">
+            {nextSection ? `How to run Section ${nextSection.n} · ${nextSection.title}` : "How to run a live session"}
+          </h2>
+        </div>
+        <span className="text-xs text-florence-slate group-open:hidden">Open</span>
+      </summary>
+      <div className="border-t border-florence-line p-6 pt-4">
+        {/* Section coaching */}
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl bg-florence-teal-soft/40 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-florence-teal-dark">Focus</p>
+            <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.focus}</p>
+          </div>
+          <div className="rounded-xl bg-amber-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Watch for</p>
+            <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.watchFor}</p>
+          </div>
+          <div className="rounded-xl bg-florence-indigo-soft/40 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-florence-indigo-dark">Opening hook</p>
+            <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.hook}</p>
+          </div>
+        </div>
+
+        {/* Minute-by-minute frame */}
+        <div className="mt-4 space-y-3">
+          {SESSION_FRAME.map((beat) => (
+            <div key={beat.minutes} className="flex gap-3">
+              <div className="w-14 shrink-0 pt-0.5 text-right">
+                <span className="font-mono text-xs font-semibold text-florence-slate">{beat.minutes}</span>
+              </div>
+              <div className="min-w-0 flex-1 rounded-xl border border-florence-line p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-florence-ink">{beat.title}</p>
+                  {beat.surface && beat.surface !== "none" && (
+                    <span className="rounded bg-florence-mist px-1.5 py-0.5 text-[10px] font-bold uppercase text-florence-slate">
+                      {beat.surface}
+                    </span>
+                  )}
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {beat.script.map((line, i) => (
+                    <li key={i} className="flex gap-2 text-xs leading-relaxed text-florence-ink/90">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-florence-teal" />
+                      <span>{hydrate(line)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-florence-slate/80">
+          The frame is yours to bend - the beats matter more than the exact minutes.
+        </p>
+      </div>
+    </details>
   );
 }
 
