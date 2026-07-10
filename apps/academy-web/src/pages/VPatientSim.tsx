@@ -22,6 +22,8 @@ import {
   type SimState,
 } from "../lib/vpatient/engine";
 import type { ActionCategory, VPatientScenario } from "../data/vpatient/types";
+import type { CjmmStep } from "../types/question";
+import { coachingFocus } from "../lib/vpatient/score";
 import {
   applyDifficulty,
   DIFFICULTIES,
@@ -54,6 +56,17 @@ const CHANNEL_LABEL = {
   chart: "Chart",
   assessment: "Assessment",
 } as const;
+
+// Offline Socratic nudges - mirror the server's mock tutor so a hint works
+// with no network. Never names a correct action; coaches the reasoning step.
+const STEP_FALLBACK: Record<CjmmStep, string> = {
+  "recognize-cues": "Slow down and look before you act. What have you actually assessed versus assumed? Some dangerous findings only appear if you go looking.",
+  "analyze-cues": "You have some data. Which single finding worries you most, and what is it pointing to? Name the pattern before you decide.",
+  "prioritize-hypotheses": "Unsure of the cause? Ask which possibility is the most dangerous to miss, and rule that out first.",
+  "generate-solutions": "You sense what is wrong. What are your options, and which can you do on your own versus which needs an order?",
+  "take-actions": "You have decided. What is the very first thing, and is anything time-critical slipping while you set up?",
+  "evaluate-outcomes": "You acted - how will you KNOW it worked? What will you reassess, and how soon?",
+};
 
 // Reducer wrapping the pure engine so React batches state cleanly.
 type Action =
@@ -121,6 +134,7 @@ function SimRunner({
   const [chartOpen, setChartOpen] = useState(false);
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
+  const [tutorHint, setTutorHint] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Re-arm the run whenever the difficulty changes before the shift starts
@@ -201,6 +215,30 @@ function SimRunner({
       /* fall through to the local keyword match */
     }
     setAskReply(localReply());
+  };
+
+  // Ask the AI tutor for a safe-to-fail nudge. Coaches the NCJMM step the
+  // learner is stuck on; the server never learns the correct action, so it
+  // can't hand over the answer. Using a hint flags the run (down-weighted,
+  // not reported) - the price of a hint is an honest score.
+  const askTutor = async () => {
+    const focus = coachingFocus(state, scenario);
+    dispatch({ type: "hint" });
+    const situation = `Patient ${scenario.patient.name}, ${scenario.setting}. The learner has surfaced ${state.revealedCueIds.length} findings and taken ${state.actionLog.length} actions with ${focus.openDecisions} clinical decisions still open.`;
+    const fallback = STEP_FALLBACK[focus.step];
+    try {
+      if (storedToken() && apiBaseUrl()) {
+        const reply = await call<{ text: string }>("/v1/sim/tutor-hint", {
+          method: "POST",
+          body: { step: focus.step, criticalCuesRemaining: focus.criticalCuesRemaining, situation },
+        });
+        setTutorHint(reply.text);
+        return;
+      }
+    } catch {
+      /* fall through to the offline nudge */
+    }
+    setTutorHint(fallback);
   };
 
   if (state.ended) {
@@ -323,6 +361,29 @@ function SimRunner({
                 </button>
               </div>
               {askReply && <p className="mt-2 text-sm italic text-florence-indigo">"{askReply}"</p>}
+
+              {/* Safe-to-fail tutor: a Socratic nudge, never the answer. */}
+              <div className="mt-3 border-t border-florence-line pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-florence-slate">
+                    Stuck? The tutor will nudge your thinking, not give the answer.
+                  </p>
+                  <button
+                    onClick={askTutor}
+                    className="shrink-0 rounded-lg border border-florence-teal/40 bg-florence-teal-soft/40 px-3 py-1.5 text-xs font-semibold text-florence-teal-dark hover:bg-florence-teal-soft"
+                  >
+                    Ask the tutor
+                  </button>
+                </div>
+                {tutorHint && (
+                  <div className="mt-2 rounded-lg bg-florence-teal-soft/40 px-3 py-2">
+                    <p className="text-sm leading-relaxed text-florence-ink">{tutorHint}</p>
+                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-florence-slate">
+                      Hint used · this run won't be scored
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

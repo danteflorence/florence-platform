@@ -34,7 +34,7 @@ import { hashSecret, verifySecret } from "./crypto.ts";
 import { computeReadiness } from "./readiness.ts";
 import { buildPathwayIntake } from "./pathway.ts";
 import { computeCohortCopilot } from "./copilot.ts";
-import { patientVoiceReply } from "./patientVoice.ts";
+import { patientVoiceReply, tutorHintReply, type NcjmmStep } from "./patientVoice.ts";
 import { renderMailpiece } from "./mailpiece.ts";
 import {
   countryToIso2,
@@ -1195,6 +1195,26 @@ async function postPatientVoice(ctx: ReqCtx, _deps: Deps): Promise<void> {
     revealed,
     canned,
   });
+  send(ctx, 200, reply);
+}
+
+const NCJMM_STEPS: readonly NcjmmStep[] = [
+  "recognize-cues",
+  "analyze-cues",
+  "prioritize-hypotheses",
+  "generate-solutions",
+  "take-actions",
+  "evaluate-outcomes",
+];
+// Safe-to-fail sim tutor: coaches the NCJMM step, never the answer.
+async function postTutorHint(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "sim_tutor_hint";
+  const step = str(ctx.body, "step");
+  if (!NCJMM_STEPS.includes(step as NcjmmStep))
+    return err(ctx, 400, "invalid_request", "step must be an NCJMM step");
+  const situation = (str(ctx.body, "situation") ?? "").slice(0, 300);
+  const criticalCuesRemaining = Math.max(0, Math.min(50, Math.floor(num(ctx.body, "criticalCuesRemaining") ?? 0)));
+  const reply = await tutorHintReply({ step: step as NcjmmStep, situation, criticalCuesRemaining });
   send(ctx, 200, reply);
 }
 
@@ -4291,6 +4311,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/assessment-results/:id", "performance:read", true, getAssessment),
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
   compile("POST", "/v1/sim/patient-voice", "candidates:read", true, postPatientVoice),
+  compile("POST", "/v1/sim/tutor-hint", "candidates:read", true, postTutorHint),
   compile("GET", "/v1/candidates/:id/spaced-queue", "performance:read", true, getSpacedQueue),
   compile("POST", "/v1/candidates/:id/spaced-queue", "performance:write", true, putSpacedQueue),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),

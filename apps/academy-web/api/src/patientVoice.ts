@@ -98,3 +98,94 @@ export async function patientVoiceReply(req: PatientVoiceRequest): Promise<Patie
     return mockReply(req); // degrade gracefully mid-class
   }
 }
+
+// ── Tutor hint (safe-to-fail Socratic coaching) ─────────────────────────────
+// The same AI tutor the learner uses everywhere, inside the sim. It coaches
+// the REASONING (which NCJMM step to work) and never names the correct action -
+// the client only ever sends the step + a spoiler-free situation, so even the
+// model cannot hand over the answer. Same mock-default / model-gated shape.
+
+export type NcjmmStep =
+  | "recognize-cues"
+  | "analyze-cues"
+  | "prioritize-hypotheses"
+  | "generate-solutions"
+  | "take-actions"
+  | "evaluate-outcomes";
+
+export interface TutorHintRequest {
+  /** The reasoning phase to coach (never a specific action). */
+  step: NcjmmStep;
+  /** Critical cues the learner has not yet surfaced. */
+  criticalCuesRemaining: number;
+  /** A one-line, spoiler-free situation summary (client-composed). */
+  situation: string;
+}
+
+export interface TutorHintReply {
+  text: string;
+  source: "mock" | "model";
+}
+
+// Socratic nudges per NCJMM step - a question, never an answer.
+const STEP_NUDGE: Record<NcjmmStep, string> = {
+  "recognize-cues":
+    "Slow down and look before you act. What have you actually assessed versus assumed? Some of the most dangerous findings only show up if you go looking for them.",
+  "analyze-cues":
+    "You have some data now. Which single finding worries you most, and what is it pointing to? Say the pattern out loud before you decide.",
+  "prioritize-hypotheses":
+    "If you are not sure of the cause, ask which possibility is the most dangerous to miss - and rule that one out first.",
+  "generate-solutions":
+    "You have a sense of what is wrong. What are your options, and which can you do on your own versus which needs an order first?",
+  "take-actions":
+    "You have decided. What is the very first thing, and is anything time-critical slipping while you set up?",
+  "evaluate-outcomes":
+    "You acted - now how will you KNOW it worked? What will you reassess, and how soon?",
+};
+
+export function tutorHintConfigured(): boolean {
+  return patientVoiceConfigured();
+}
+
+export function tutorMockReply(req: TutorHintRequest): TutorHintReply {
+  let text = STEP_NUDGE[req.step] ?? STEP_NUDGE["recognize-cues"];
+  if (req.step === "recognize-cues" && req.criticalCuesRemaining > 0) {
+    text += ` There ${req.criticalCuesRemaining === 1 ? "is 1 key finding" : `are ${req.criticalCuesRemaining} key findings`} you have not uncovered yet.`;
+  }
+  return { text, source: "mock" };
+}
+
+function tutorSystemPrompt(req: TutorHintRequest): string {
+  return [
+    "You are a calm bedside clinical-judgment coach for a nursing student inside a safe-to-fail patient simulation.",
+    `The student is working the '${req.step}' step of the NCSBN Clinical Judgment Measurement Model.`,
+    "Give ONE short Socratic nudge (1-2 sentences) that pushes their reasoning forward.",
+    "NEVER name the correct assessment, intervention, medication, or answer. Ask a question or point at a category of thinking. It is a safe-to-fail environment - it is fine for them to be wrong; your job is to make them think, not to rescue them.",
+    `Situation (spoiler-free): ${req.situation}`,
+  ].join("\n");
+}
+
+async function tutorModelReply(req: TutorHintRequest): Promise<TutorHintReply> {
+  const res = await fetch(process.env.MODEL_GATEWAY_URL as string, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${process.env.MODEL_GATEWAY_KEY}`,
+    },
+    body: JSON.stringify({ system: tutorSystemPrompt(req), user: "Give me a hint.", max_tokens: 90 }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`model gateway ${res.status}`);
+  const j = (await res.json()) as { text?: string };
+  if (!j.text) throw new Error("model gateway: empty reply");
+  return { text: j.text.slice(0, 400), source: "model" };
+}
+
+export async function tutorHintReply(req: TutorHintRequest): Promise<TutorHintReply> {
+  if (!tutorHintConfigured()) return tutorMockReply(req);
+  try {
+    return await tutorModelReply(req);
+  } catch {
+    return tutorMockReply(req);
+  }
+}

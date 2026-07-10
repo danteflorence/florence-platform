@@ -16,6 +16,7 @@ import type {
   RunOutcome,
   VPatientScenario,
 } from "../../data/vpatient/types";
+import type { CjmmStep } from "../../types/question";
 import type { SimState } from "./engine";
 
 /** Ids of repeatable actions - needed to decide whether a pre-window action
@@ -138,6 +139,60 @@ function evaluateDecision(
 }
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+const NCJMM_ORDER: CjmmStep[] = [
+  "recognize-cues",
+  "analyze-cues",
+  "prioritize-hypotheses",
+  "generate-solutions",
+  "take-actions",
+  "evaluate-outcomes",
+];
+
+export interface CoachingFocus {
+  /** The NCJMM step the tutor should nudge - the phase of thinking the
+   *  learner is currently in but hasn't completed. */
+  step: CjmmStep;
+  /** Critical cues the learner has NOT yet surfaced (a recognize-cues signal). */
+  criticalCuesRemaining: number;
+  /** How many rubric decisions are still unmet. */
+  openDecisions: number;
+}
+
+/**
+ * What the AI tutor should coach RIGHT NOW - computed client-side from the
+ * rubric + current state. Deliberately returns only the NCJMM STEP (a phase of
+ * reasoning), never a correct action, so the hint that flows to the model can
+ * never leak the answer. Picks the earliest-in-NCJMM-order decision that is
+ * open (its window has begun) and unmet; falls back to the earliest unmet, then
+ * to evaluate-outcomes when everything's done.
+ */
+export function coachingFocus(state: SimState, scenario: VPatientScenario): CoachingFocus {
+  const done = (ids: string[]) => ids.some((id) => state.actionLog.some((e) => e.actionId === id));
+  const windowOpen = (d: (typeof scenario.rubric)[number]) => {
+    if (d.afterFlag !== undefined) return state.flagsSetAt[d.afterFlag] !== undefined;
+    return (d.opensAtSec ?? 0) <= state.clockSec;
+  };
+  const unmet = scenario.rubric.filter((d) => !done(d.correctActions));
+  const open = unmet.filter(windowOpen);
+  const pick = (list: typeof unmet) =>
+    [...list].sort(
+      (a, b) => NCJMM_ORDER.indexOf(a.ncjmmStep) - NCJMM_ORDER.indexOf(b.ncjmmStep),
+    )[0];
+  const focus = pick(open) ?? pick(unmet);
+
+  const criticalIds = scenario.phases
+    .flatMap((p) => p.cues ?? [])
+    .filter((c) => c.critical)
+    .map((c) => c.id);
+  const criticalCuesRemaining = criticalIds.filter((id) => !state.revealedCueIds.includes(id)).length;
+
+  return {
+    step: focus?.ncjmmStep ?? "evaluate-outcomes",
+    criticalCuesRemaining,
+    openDecisions: unmet.length,
+  };
+}
 
 export function evaluate(state: SimState, scenario: VPatientScenario): SimEvaluation {
   const repeatable: RepeatableSet = new Set(

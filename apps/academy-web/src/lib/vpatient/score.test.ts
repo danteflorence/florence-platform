@@ -3,7 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { SEPSIS_01 } from "../../data/vpatient/scenarios/sepsis01";
 import { validateScenario } from "../../data/vpatient/validate";
-import { evaluate, toAssessmentSummary } from "./score";
+import { coachingFocus, evaluate, toAssessmentSummary } from "./score";
+import { init } from "./engine";
 import { runScript } from "./engine.test";
 
 const sc = SEPSIS_01;
@@ -111,6 +112,27 @@ describe("evaluate", () => {
     ]);
     const ev = evaluate(state, sc);
     expect(verdictOf(ev, "d-reassess")).toBe("missed");
+  });
+
+  it("coachingFocus nudges recognize-cues at the start, moves on as the run progresses", () => {
+    const atStart = coachingFocus(init(sc), sc);
+    expect(atStart.step).toBe("recognize-cues");
+    expect(atStart.criticalCuesRemaining).toBeGreaterThan(0);
+    expect(atStart.openDecisions).toBe(sc.rubric.length);
+    // After assessing + escalating + treating, the focus is past recognition.
+    const mid = coachingFocus(
+      runScript([
+        [0, "check_vitals"],
+        [40, "assess_wound"],
+        [90, "review_labs"],
+        [120, "check_urine"],
+        [150, "notify_provider"],
+        [210, "draw_cultures"],
+      ], 240),
+      sc,
+    );
+    expect(mid.step).not.toBe("recognize-cues");
+    expect(mid.openDecisions).toBeLessThan(sc.rubric.length);
   });
 
   it("maps into the assessment-results payload with no readiness field", () => {

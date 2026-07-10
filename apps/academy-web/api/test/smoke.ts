@@ -400,6 +400,25 @@ try {
   assert.equal(pvBad.status, 400);
   ok("patient-voice proxy answers in mock mode; validation rejects junk");
 
+  // 4i) Sim tutor hint: coaches the NCJMM step (mock mode), never the answer.
+  const th = await fetch(`${base}/v1/sim/tutor-hint`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ step: "recognize-cues", criticalCuesRemaining: 2, situation: "Post-op patient, two findings surfaced." }),
+  });
+  const thj = (await th.json()) as any;
+  assert.equal(th.status, 200);
+  assert.equal(thj.source, "mock");
+  assert.ok(/look|assess/i.test(thj.text)); // a recognize-cues nudge
+  assert.ok(/2 key findings/.test(thj.text)); // reflects the remaining-cue count
+  const thBad = await fetch(`${base}/v1/sim/tutor-hint`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ step: "not-a-step" }),
+  });
+  assert.equal(thBad.status, 400);
+  ok("sim tutor-hint coaches the NCJMM step in mock mode; bad step rejected");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },
