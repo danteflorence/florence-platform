@@ -11,6 +11,8 @@ import {
 import { CLIENT_NEED_LABEL } from "../data/blueprint";
 import { CLIENT_NEEDS } from "../data/blueprint";
 import type { ClientNeed, Question } from "../types/question";
+import { useCandidate } from "../lib/CandidateContext";
+import { dueEntries, loadQueue } from "../lib/spacedQueue";
 import { CASE_COUNT, loadCaseBank, loadedCaseBank } from "../data/caseBank";
 import {
   applyLevel,
@@ -101,6 +103,7 @@ export default function Practice() {
   const focus = params.get("focus");
   const focusNeed = focus && VALID_NEEDS.has(focus as ClientNeed) ? (focus as ClientNeed) : null;
   const deepCases = params.get("mode") === "cases";
+  const reviewMode = params.get("mode") === "review";
 
   const [kind, setKind] = useState<SessionKind | null>(deepCases ? "cases" : null);
   // A focus drill auto-picks its difficulty (medium) so it starts in one tap.
@@ -111,8 +114,19 @@ export default function Practice() {
     setKind(null);
     setLevel(null);
     // Drop the deep-link params so "Start another session" returns to the menu.
-    if (focus || deepCases) setParams({}, { replace: true });
+    if (focus || deepCases || reviewMode) setParams({}, { replace: true });
   };
+
+  // Spaced re-practice: a session on exactly the items whose review is due.
+  if (reviewMode) {
+    return (
+      <SessionGate load={loadQuestionBank} cached={loadedQuestionBank} onExit={reset}>
+        {(pool) => (
+          <ReviewSession key={runKey} pool={pool} onExit={reset} onRestart={() => setRunKey((k) => k + 1)} />
+        )}
+      </SessionGate>
+    );
+  }
 
   // Remediation focus drill: a tutor set narrowed to ONE Client Need, launched
   // straight from the learner's remediation plan. Reuses the exact CAT engine
@@ -327,6 +341,71 @@ function BankFallback({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-[60vh] place-items-center px-5">
       <div className="flex flex-col items-center text-center">{children}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Daily review - spaced re-practice on exactly the queued items that are due
+// (Leitner 1/3/7/14-day curve, see src/lib/spacedQueue.ts). Results.tsx
+// applies the outcomes back to the queue, so a correct answer here advances
+// the box and a miss resets it - no extra wiring.
+// ---------------------------------------------------------------------------
+const REVIEW_SESSION_CAP = 20; // oldest-due first; keeps a session doable
+
+function ReviewSession({
+  pool,
+  onExit,
+  onRestart,
+}: {
+  pool: Question[];
+  onExit: () => void;
+  onRestart: () => void;
+}) {
+  const { candidate } = useCandidate();
+  // Freeze the due set at mount so the session doesn't shift under the learner.
+  const duePool = useMemo(() => {
+    const due = dueEntries(loadQueue(candidate?.id ?? null), Date.now());
+    const ids = new Set(due.slice(0, REVIEW_SESSION_CAP).map((e) => e.id));
+    return pool.filter((q) => ids.has(q.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pool]);
+
+  if (duePool.length === 0) {
+    return (
+      <BankFallback>
+        <p className="text-sm font-semibold text-florence-ink">Nothing due for review</p>
+        <p className="mt-1 max-w-sm text-sm text-florence-slate">
+          Missed items resurface on a 1/3/7/14-day curve. Keep practicing - the queue fills
+          itself.
+        </p>
+        <FlorenceButton onClick={onExit} variant="primary" className="mt-4">
+          ← Back to practice
+        </FlorenceButton>
+      </BankFallback>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mx-auto max-w-3xl px-4 pt-6">
+        <div className="rounded-2xl border border-florence-indigo/30 bg-florence-indigo-soft/30 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-florence-indigo-dark">
+            Daily review
+          </p>
+          <p className="text-sm text-florence-ink">
+            {duePool.length} {duePool.length === 1 ? "item" : "items"} you missed before, back on
+            their curve. Clear each one four times and it graduates.
+          </p>
+        </div>
+      </div>
+      <QuizRunner
+        pool={duePool}
+        config={{ ...CAT_MODES.tutor, minItems: duePool.length, maxItems: duePool.length }}
+        title="Daily review"
+        onExit={onExit}
+        onRestart={onRestart}
+      />
     </div>
   );
 }

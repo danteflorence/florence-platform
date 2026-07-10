@@ -16,6 +16,12 @@ import {
   summaryFromSession,
 } from "../../lib/academyApi";
 import { useCandidate } from "../../lib/CandidateContext";
+import {
+  applySessionOutcomes,
+  loadQueue,
+  markReviewDone,
+  saveQueue,
+} from "../../lib/spacedQueue";
 import ReadinessCard from "../ReadinessCard";
 import { CLIENT_NEED_LABEL } from "../../data/blueprint";
 import { QUESTION_TYPE_LABELS, type ClientNeed } from "../../types/question";
@@ -64,7 +70,28 @@ export default function Results({
   onRestart: () => void;
   onExit: () => void;
 }) {
-  const { readiness, refreshReadiness } = useCandidate();
+  const { candidate, readiness, refreshReadiness } = useCandidate();
+
+  // Spaced re-practice: every graded outcome updates the Leitner queue -
+  // misses (re)enter box 1, corrects advance already-queued items - and any
+  // session that touched a queued item counts as today's retrieval practice.
+  useEffect(() => {
+    const graded = history.filter((h) => h.grade);
+    if (graded.length === 0) return;
+    const candId = candidate?.id ?? null;
+    const before = loadQueue(candId);
+    const queuedIds = new Set(before.entries.map((e) => e.id));
+    const touchedQueue = graded.some((h) => queuedIds.has(h.question.id));
+    const now = Date.now();
+    let next = applySessionOutcomes(
+      before,
+      graded.map((h) => ({ id: h.question.id, correct: h.grade!.score > 0.999 })),
+      now,
+    );
+    if (touchedQueue) next = markReviewDone(next, now);
+    saveQueue(candId, next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Report this finished session to the Data API using the signed-in candidate's
   // live session token (falls back to env, else a no-op). Fires once on mount,
   // then refreshes the learner's readiness band from the new result.

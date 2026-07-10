@@ -11,6 +11,7 @@ import { useCandidate } from "../lib/CandidateContext";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import ReadinessCard from "../components/ReadinessCard";
 import RemediationPanel from "../components/RemediationPanel";
+import DailyReviewCard from "../components/DailyReviewCard";
 import {
   Badge as FlorenceBadge,
   Card as FlorenceCard,
@@ -139,12 +140,19 @@ export default function AcademyHome() {
         </div>
       </section>
 
-      {status === "authenticated" && readiness && (
+      {status === "authenticated" && readiness ? (
         <section className="border-b border-florence-line bg-florence-mist/60">
           <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:px-8">
             <ReadinessCard snapshot={readiness} />
+            <DailyReviewCard />
             <RemediationPanel />
           </div>
+        </section>
+      ) : (
+        /* The spaced-review queue is device-local, so anonymous learners keep
+           their daily review too. Renders nothing when the queue is empty. */
+        <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-8">
+          <DailyReviewCard />
         </section>
       )}
 
