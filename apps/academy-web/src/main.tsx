@@ -32,6 +32,7 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const EmployerPortal = lazy(() => import("./pages/partners/EmployerPortal"));
 const UniversityDashboard = lazy(() => import("./pages/partners/UniversityDashboard"));
 const DesignSystemPreviewPage = lazy(() => import("./pages/DesignSystemPreview"));
+const VPatientSim = lazy(() => import("./pages/VPatientSim"));
 
 function PageFallback() {
   return (
@@ -110,6 +111,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           element={
             <Suspense fallback={<PageFallback />}>
               <UniversityDashboard />
+            </Suspense>
+          }
+        />
+        {/* Virtual-patient sim - full-screen, tap-only, mobile-first. Rendered
+            OUTSIDE the App chrome so the monitor + action sheet own the
+            viewport. Learners reach only approved scenarios; ?preview=1 (ops/
+            authoring) also reveals drafts. */}
+        <Route
+          path="sim/:scenarioId"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <VPatientSim />
             </Suspense>
           }
         />

@@ -34,7 +34,7 @@ export interface PracticeItem {
 }
 
 /** Optional interactive widget a segment can mount after its prose. */
-export type LessonWidget = "heart" | "rhythms" | "sim" | "ngn";
+export type LessonWidget = "heart" | "rhythms" | "sim" | "ngn" | "vpatient";
 
 export interface Segment {
   id: string; // anchor slug

@@ -44,8 +44,8 @@ describe("summaryFromSession", () => {
     expect(s.readiness).toBe(0.78);
     expect(s.theta).toBe(0.42);
     expect(s.items_completed).toBe(3);
-    expect(s.by_client_need["management-of-care"]).toBeCloseTo(0.5);
-    expect(s.by_client_need["pharmacological-therapies"]).toBe(1);
+    expect(s.by_client_need!["management-of-care"]).toBeCloseTo(0.5);
+    expect(s.by_client_need!["pharmacological-therapies"]).toBe(1);
   });
 
   it("counts only graded items", () => {

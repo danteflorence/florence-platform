@@ -23,18 +23,22 @@ export type AssessmentKind =
   | "nightly"
   | "adaptive_exam"
   | "timed"
-  | "diagnostic";
+  | "diagnostic"
+  | "simulation"
+  | "live_poll";
 
 export interface AssessmentSummary {
   candidate_id: string;
   kind: AssessmentKind;
-  /** Projected pass probability, 0..1. */
-  readiness: number;
-  /** Rasch ability estimate (logits). */
-  theta: number;
+  /** Projected pass probability, 0..1. Omitted by kinds that don't estimate a
+   *  calibrated pass probability (simulation, live_poll) so they never move a
+   *  readiness band - the server's rollup ignores results without it. */
+  readiness?: number;
+  /** Rasch ability estimate (logits). Omitted alongside readiness. */
+  theta?: number;
   items_completed: number;
   /** Mean score per NCSBN Client Need category. */
-  by_client_need: Record<string, number>;
+  by_client_need?: Record<string, number>;
   /** Pass-probability per NGN clinical-judgment (NCJMM) step, when items were tagged. */
   by_cjmm?: Record<string, number>;
   /** Per-subscale ability (Client Need + CJMM) for gates + remediation dispatch. */

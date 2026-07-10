@@ -124,6 +124,10 @@ function Widget({ kind }: { kind: DeckWidget }) {
       return <VitalsMonitor />;
     case "ngn":
       return <NgnCase />;
+    case "vpatient":
+      // The virtual-patient sim is a full-screen, self-paced learner activity,
+      // not a slide element - a presenter deck doesn't embed it.
+      return null;
   }
 }
 

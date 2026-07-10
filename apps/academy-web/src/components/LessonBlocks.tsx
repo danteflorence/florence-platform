@@ -2,11 +2,13 @@
 // renders identical content. `Blocks` renders the typed ContentBlock prose; `Widget`
 // mounts the optional interactive widget after a segment.
 
+import { Link } from "react-router-dom";
 import type { CalloutTone, ContentBlock, LessonWidget } from "../data/lessonTypes";
 import HeartViewer from "./HeartViewer";
 import RhythmDrill from "./RhythmDrill";
 import VitalsMonitor from "./VitalsMonitor";
 import NgnCase from "./NgnCase";
+import { approvedScenarios } from "../data/vpatient/registry";
 
 export const CALLOUT_STYLE: Record<CalloutTone, { ring: string; label: string; chip: string }> = {
   key: { ring: "border-l-4 border-florence-teal bg-florence-teal-soft/50", label: "Key point", chip: "text-florence-teal-dark" },
@@ -65,5 +67,32 @@ export function Widget({ kind }: { kind: LessonWidget }) {
       return <VitalsMonitor />;
     case "ngn":
       return <NgnCase />;
+    case "vpatient":
+      return <VPatientLauncher />;
   }
+}
+
+/** In-lesson launch card for the full-screen virtual-patient sim. Shows the
+ *  first approved scenario; renders nothing until one is approved (the sepsis
+ *  gold scenario is still draft), so a lesson never dead-ends on an empty sim. */
+function VPatientLauncher() {
+  const scenario = approvedScenarios()[0];
+  if (!scenario) return null;
+  return (
+    <div className="fl-card my-6 overflow-hidden">
+      <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-florence-slate">Virtual patient</p>
+          <h3 className="text-lg font-semibold text-florence-ink">{scenario.title}</h3>
+          <p className="mt-1 text-sm text-florence-slate">{scenario.setting}</p>
+        </div>
+        <Link
+          to={`/sim/${scenario.id}`}
+          className="shrink-0 rounded-xl bg-florence-teal px-5 py-3 text-center text-sm font-semibold text-white shadow-card hover:bg-florence-teal-dark"
+        >
+          Start the simulation →
+        </Link>
+      </div>
+    </div>
+  );
 }
