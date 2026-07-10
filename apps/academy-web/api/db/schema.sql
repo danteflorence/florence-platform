@@ -95,6 +95,12 @@ CREATE INDEX IF NOT EXISTS idx_asr_candidate ON assessment_results (candidate_id
 ALTER TABLE assessment_results DROP CONSTRAINT IF EXISTS assessment_results_kind_check;
 ALTER TABLE assessment_results ADD CONSTRAINT assessment_results_kind_check
   CHECK (kind IN ('tutor','nightly','adaptive_exam','timed','diagnostic','simulation','live_poll'));
+-- Dimension payloads the memory store always carried but Postgres previously
+-- dropped (by_cjmm/mastery), plus the reasoning-error tags sim debriefs post.
+-- All jsonb, all optional; readiness/copilot/sim-debrief read them.
+ALTER TABLE assessment_results ADD COLUMN IF NOT EXISTS by_cjmm jsonb;
+ALTER TABLE assessment_results ADD COLUMN IF NOT EXISTS mastery jsonb;
+ALTER TABLE assessment_results ADD COLUMN IF NOT EXISTS error_tags jsonb;
 
 -- ── Payments (token references only - NO raw instrument data) ───────────────
 CREATE TABLE IF NOT EXISTS payments (

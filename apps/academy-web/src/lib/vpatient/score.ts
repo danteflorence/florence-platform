@@ -212,6 +212,7 @@ export function toAssessmentSummary(
   items_completed: number;
   by_client_need: Record<string, number>;
   by_cjmm: Record<string, number>;
+  error_tags?: string[];
 } {
   return {
     candidate_id: candidateId,
@@ -219,5 +220,8 @@ export function toAssessmentSummary(
     items_completed: ev.itemsCompleted,
     by_client_need: ev.byClientNeed,
     by_cjmm: ev.byCjmm,
+    // The reasoning-error tags this run earned - the API dispatches
+    // dim:"error_type" remediation when a tag repeats across results.
+    ...(ev.errorTags.length ? { error_tags: ev.errorTags } : {}),
   };
 }

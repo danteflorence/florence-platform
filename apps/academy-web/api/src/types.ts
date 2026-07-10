@@ -171,6 +171,10 @@ export interface AssessmentResult {
   by_cjmm?: Record<string, number>;
   /** Per-subscale ability (Client Need + CJMM step) - feeds gates + remediation. */
   mastery?: { dim: string; key: string; theta: number; se: number; passProb: number; items: number }[];
+  /** Reasoning-error tags earned this run (walkthrough taxonomy, e.g.
+   *  "missed_cue", "unsafe_delay"). Sim debriefs post them; a tag repeating
+   *  across results dispatches dim:"error_type" remediation. */
+  error_tags?: string[];
   /** ID of a prior result this row corrects (corrections never edit in place). */
   supersedes?: string;
   /** SHA-256 of the canonical payload - tamper-evidence. */

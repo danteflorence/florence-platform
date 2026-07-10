@@ -12,6 +12,7 @@ import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import ReadinessCard from "../components/ReadinessCard";
 import RemediationPanel from "../components/RemediationPanel";
 import DailyReviewCard from "../components/DailyReviewCard";
+import ReasoningProfileCard from "../components/ReasoningProfileCard";
 import {
   Badge as FlorenceBadge,
   Card as FlorenceCard,
@@ -146,6 +147,7 @@ export default function AcademyHome() {
             <ReadinessCard snapshot={readiness} />
             <DailyReviewCard />
             <RemediationPanel />
+            <ReasoningProfileCard />
           </div>
         </section>
       ) : (

@@ -301,6 +301,31 @@ try {
   assert.equal(sd.by_client_need["management-of-care"], 0.4);
   ok("cohort sim-debrief aggregates simulation runs only, weakest step first");
 
+  // 4e) Reasoning-error loop: error_tags round-trip, and a tag REPEATING
+  // across results dispatches dim:"error_type" remediation (one occurrence
+  // is an incident, two is a pattern).
+  const tagged1 = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, kind: "simulation", items_completed: 5, by_cjmm: { "take-actions": 0.5 }, error_tags: ["unsafe_delay", "missed_cue"] }),
+  });
+  assert.equal(tagged1.status, 201);
+  const remAfter1 = (await (await fetch(`${base}/v1/candidates/${simCand.id}/remediations`, { headers: bearer(T) })).json()) as any;
+  assert.ok(!remAfter1.remediations.some((x: any) => x.dim === "error_type"));
+  const tagged2 = await fetch(`${base}/v1/assessment-results`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, kind: "simulation", items_completed: 6, by_cjmm: { "take-actions": 0.6 }, error_tags: ["unsafe_delay"] }),
+  });
+  const tagged2Json = (await tagged2.json()) as any;
+  assert.equal(tagged2.status, 201);
+  assert.deepEqual(tagged2Json.error_tags, ["unsafe_delay"]); // round-trips on the row
+  const remAfter2 = (await (await fetch(`${base}/v1/candidates/${simCand.id}/remediations`, { headers: bearer(T) })).json()) as any;
+  const errRem = remAfter2.remediations.find((x: any) => x.dim === "error_type" && x.key === "unsafe_delay");
+  assert.ok(errRem, "repeated tag should dispatch error_type remediation");
+  assert.ok(!remAfter2.remediations.some((x: any) => x.dim === "error_type" && x.key === "missed_cue"));
+  ok("repeated error tag dispatches dim:error_type remediation; single tag does not");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

@@ -262,6 +262,9 @@ export class PostgresStore implements Store {
     ...(r["by_client_need"] != null && {
       by_client_need: r["by_client_need"] as Record<string, number>,
     }),
+    ...(r["by_cjmm"] != null && { by_cjmm: r["by_cjmm"] as Record<string, number> }),
+    ...(r["mastery"] != null && { mastery: r["mastery"] as AssessmentResult["mastery"] }),
+    ...(r["error_tags"] != null && { error_tags: r["error_tags"] as string[] }),
     ...(r["supersedes"] != null && { supersedes: String(r["supersedes"]) }),
   });
   private toPayment = async (r: Record<string, unknown>): Promise<Payment> => ({
@@ -821,8 +824,8 @@ export class PostgresStore implements Store {
       const r = buildAssessment(input); // hash computed app-side
       await this.sql.query(
         `INSERT INTO assessment_results
-           (id, candidate_id, kind, readiness, theta, items_completed, by_client_need, supersedes, content_hash, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10)`,
+           (id, candidate_id, kind, readiness, theta, items_completed, by_client_need, by_cjmm, mastery, error_tags, supersedes, content_hash, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11,$12,$13)`,
         [
           r.id,
           r.candidate_id,
@@ -831,6 +834,9 @@ export class PostgresStore implements Store {
           r.theta ?? null,
           r.items_completed ?? null,
           r.by_client_need != null ? JSON.stringify(r.by_client_need) : null,
+          r.by_cjmm != null ? JSON.stringify(r.by_cjmm) : null,
+          r.mastery != null ? JSON.stringify(r.mastery) : null,
+          r.error_tags != null ? JSON.stringify(r.error_tags) : null,
           r.supersedes ?? null,
           r.content_hash,
           r.created_at,

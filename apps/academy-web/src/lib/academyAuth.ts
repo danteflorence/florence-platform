@@ -238,16 +238,32 @@ export async function fetchReadiness(candidateId: string): Promise<ReadinessSnap
   return call<ReadinessSnapshot>(`/v1/candidates/${candidateId}/readiness`);
 }
 
-/** A targeted-remediation assignment (auto-dispatched for a weak subscale). */
+/** A targeted-remediation assignment (auto-dispatched for a weak subscale or
+ *  a repeated reasoning error). */
 export interface RemediationAssignment {
   candidate_id: string;
-  dim: "client_need" | "cjmm";
+  dim: "client_need" | "cjmm" | "error_type";
   key: string;
   theta: number;
   pass_prob: number;
   status: "assigned" | "in_progress" | "cleared";
   created_at: string;
   updated_at: string;
+}
+
+/** A learner's own assessment rows (session token is candidate-bound). Used by
+ *  the reasoning-profile card to aggregate error_tags across results. */
+export interface AssessmentRow {
+  id: string;
+  kind: string;
+  created_at: string;
+  error_tags?: string[];
+}
+export async function fetchAssessmentRows(candidateId: string): Promise<AssessmentRow[]> {
+  const res = await call<{ data: AssessmentRow[] }>(
+    `/v1/assessment-results?candidate_id=${encodeURIComponent(candidateId)}`,
+  );
+  return res.data ?? [];
 }
 
 export async function fetchRemediations(candidateId: string): Promise<RemediationAssignment[]> {

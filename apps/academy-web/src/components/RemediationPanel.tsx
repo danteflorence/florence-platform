@@ -15,6 +15,7 @@ import {
 import { useCandidate } from "../lib/CandidateContext";
 import { CLIENT_NEED_LABEL } from "../data/blueprint";
 import { CJMM_STEPS } from "../data/blueprint";
+import { ERROR_TYPE_LABEL, type ErrorType } from "../lib/walkthrough";
 import type { ClientNeed } from "../types/question";
 
 const CJMM_LABEL: Record<string, string> = Object.fromEntries(
@@ -23,12 +24,23 @@ const CJMM_LABEL: Record<string, string> = Object.fromEntries(
 
 function labelFor(a: RemediationAssignment): string {
   if (a.dim === "client_need") return CLIENT_NEED_LABEL[a.key as ClientNeed] ?? a.key;
+  if (a.dim === "error_type") return ERROR_TYPE_LABEL[a.key as ErrorType]?.label ?? a.key;
   return CJMM_LABEL[a.key] ?? a.key;
 }
 
+/** The one-line context under the assignment name. */
+function detailFor(a: RemediationAssignment): string {
+  if (a.dim === "error_type") {
+    const meaning = ERROR_TYPE_LABEL[a.key as ErrorType]?.meaning;
+    return `Reasoning pattern${meaning ? ` · ${meaning}` : ""}`;
+  }
+  const kind = a.dim === "client_need" ? "Client Need" : "Clinical judgment";
+  return `${kind} · currently ${Math.round(a.pass_prob * 100)}% pass probability`;
+}
+
 /** Where "Practice this now" sends the learner. Client-Need assignments deep-link
- *  into a focused adaptive drill; CJMM assignments route to unfolding cases,
- *  which are what actually exercise clinical-judgment steps. */
+ *  into a focused adaptive drill; CJMM and reasoning-error assignments route to
+ *  unfolding cases, which are what actually exercise clinical judgment. */
 function practiceHref(a: RemediationAssignment): string {
   if (a.dim === "client_need") return `/academy/practice?focus=${encodeURIComponent(a.key)}`;
   return `/academy/practice?mode=cases`;
@@ -84,16 +96,12 @@ export default function RemediationPanel() {
       <div className="mt-3 space-y-2">
         {rows.map((a) => {
           const k = `${a.dim}:${a.key}`;
-          const pct = Math.round(a.pass_prob * 100);
           return (
             <div key={k} className="rounded-xl border border-florence-line bg-white p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium text-florence-ink">{labelFor(a)}</p>
-                  <p className="text-xs text-florence-slate">
-                    {a.dim === "client_need" ? "Client Need" : "Clinical judgment"} · currently{" "}
-                    <span className="font-semibold">{pct}%</span> pass probability
-                  </p>
+                  <p className="text-xs text-florence-slate">{detailFor(a)}</p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Link

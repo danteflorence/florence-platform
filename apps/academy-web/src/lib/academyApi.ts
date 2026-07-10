@@ -43,6 +43,8 @@ export interface AssessmentSummary {
   by_cjmm?: Record<string, number>;
   /** Per-subscale ability (Client Need + CJMM) for gates + remediation dispatch. */
   mastery?: SubscaleMastery[];
+  /** Reasoning-error tags (walkthrough taxonomy) - sim debriefs post these. */
+  error_tags?: string[];
 }
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;

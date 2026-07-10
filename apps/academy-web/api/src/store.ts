@@ -314,6 +314,7 @@ export interface AssessmentInput {
   by_client_need?: Record<string, number>;
   by_cjmm?: Record<string, number>;
   mastery?: AssessmentResult["mastery"];
+  error_tags?: string[];
   supersedes?: string;
 }
 export interface PaymentInput {
@@ -1097,6 +1098,7 @@ export function buildAssessment(input: AssessmentInput): AssessmentResult {
     by_client_need: input.by_client_need ?? null,
     by_cjmm: input.by_cjmm ?? null,
     mastery: input.mastery ?? null,
+    error_tags: input.error_tags ?? null,
     supersedes: input.supersedes ?? null,
     created_at: now,
   };
@@ -1112,6 +1114,7 @@ export function buildAssessment(input: AssessmentInput): AssessmentResult {
     ...(input.by_client_need !== undefined && { by_client_need: input.by_client_need }),
     ...(input.by_cjmm !== undefined && { by_cjmm: input.by_cjmm }),
     ...(input.mastery !== undefined && { mastery: input.mastery }),
+    ...(input.error_tags !== undefined && { error_tags: input.error_tags }),
     ...(input.supersedes !== undefined && { supersedes: input.supersedes }),
   };
 }

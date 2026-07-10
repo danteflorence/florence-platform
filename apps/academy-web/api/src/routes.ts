@@ -237,6 +237,7 @@ const SCHEMAS = {
     by_client_need: { type: "object" },
     by_cjmm: { type: "object" },
     mastery: { type: "array" },
+    error_tags: { type: "array" },
     supersedes: { type: "string", max: 64 },
   },
   payment: {
@@ -1027,6 +1028,11 @@ async function createAssessment(ctx: ReqCtx, deps: Deps): Promise<void> {
     by_client_need: obj(ctx.body, "by_client_need") as Record<string, number> | undefined,
     by_cjmm: obj(ctx.body, "by_cjmm") as Record<string, number> | undefined,
     mastery: arr(ctx.body, "mastery") as AssessmentResult["mastery"],
+    // Reasoning-error tags (walkthrough taxonomy slugs). Keep them tame:
+    // strings only, bounded count/length - they feed dispatch + profiles.
+    error_tags: (arr(ctx.body, "error_tags") ?? undefined)
+      ?.filter((t): t is string => typeof t === "string" && t.length > 0 && t.length <= 40)
+      .slice(0, 20),
     supersedes: str(ctx.body, "supersedes"),
   });
   ctx.resourceType = "assessment_result";
@@ -1064,6 +1070,19 @@ async function createAssessment(ctx: ReqCtx, deps: Deps): Promise<void> {
     for (const m of r.mastery) {
       if (m.items >= REMEDIATION_MIN_ITEMS && m.theta < REMEDIATION_THRESHOLD && (m.dim === "client_need" || m.dim === "cjmm")) {
         await deps.store.remediations.dispatch({ candidate_id, dim: m.dim, key: m.key, theta: m.theta, pass_prob: m.passProb });
+      }
+    }
+  }
+  // Reasoning-error dispatch: one bad run is an incident, a REPEATED tag is a
+  // pattern. When a tag on this result also appears on any earlier result,
+  // assign dim:"error_type" remediation (theta/pass_prob 0 by convention -
+  // reasoning errors aren't an ability estimate).
+  if (Array.isArray(r.error_tags) && r.error_tags.length > 0) {
+    const prior = (await allAssessments(deps, candidate_id)).filter((x) => x.id !== r.id);
+    const seenBefore = new Set(prior.flatMap((x) => x.error_tags ?? []));
+    for (const tag of new Set(r.error_tags)) {
+      if (seenBefore.has(tag)) {
+        await deps.store.remediations.dispatch({ candidate_id, dim: "error_type", key: tag, theta: 0, pass_prob: 0 });
       }
     }
   }
