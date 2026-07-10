@@ -202,6 +202,25 @@ export async function fetchSimDebrief(code: string): Promise<CohortSimDebrief> {
   return (await res.json()) as CohortSimDebrief;
 }
 
+/** Item analytics: the hardest questions across the bank, lowest pass rate
+ *  first (min-attempts evidence bar applied server-side). */
+export interface TopMissedItem {
+  question_id: string;
+  attempts: number;
+  correct: number;
+  pass_rate: number | null;
+  by_option: number[];
+  most_common_wrong: number | null;
+  walkthrough_seen_rate: number | null;
+}
+
+export async function fetchTopMissed(limit = 8): Promise<TopMissedItem[]> {
+  const res = await authedFetch(`/v1/ops/questions/top-missed?limit=${limit}&min_attempts=3`);
+  if (!res.ok) throw new InstructorError(res.status, "could not load item analytics");
+  const j = (await res.json()) as { items?: TopMissedItem[] };
+  return j.items ?? [];
+}
+
 /**
  * Mark attendance for one candidate in a cohort on a given date.
  * - `status` matches the API enum: "present" | "absent" | "late".

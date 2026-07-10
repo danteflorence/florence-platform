@@ -326,6 +326,32 @@ try {
   assert.ok(!remAfter2.remediations.some((x: any) => x.dim === "error_type" && x.key === "missed_cue"));
   ok("repeated error tag dispatches dim:error_type remediation; single tag does not");
 
+  // 4f) Top-missed items: lowest pass rate first, with a minimum-evidence bar.
+  const respond = (qid: string, correct: boolean, chosen: number) =>
+    fetch(`${base}/v1/candidates/${simCand.id}/responses`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...bearer(T) },
+      body: JSON.stringify({ question_id: qid, correct, chosen_option_index: chosen }),
+    });
+  // q-hard: 1/3 correct, wrong answers cluster on option 2. q-easy: 3/3. q-thin: 1 attempt.
+  await respond("q-hard", false, 2);
+  await respond("q-hard", false, 2);
+  await respond("q-hard", true, 0);
+  await respond("q-easy", true, 1);
+  await respond("q-easy", true, 1);
+  await respond("q-easy", true, 1);
+  await respond("q-thin", false, 3);
+  const tmRes = await fetch(`${base}/v1/ops/questions/top-missed?limit=5&min_attempts=3`, { headers: bearer(T) });
+  const tm = (await tmRes.json()) as any;
+  assert.equal(tmRes.status, 200);
+  const ids4f = tm.items.map((x: any) => x.question_id);
+  assert.equal(ids4f[0], "q-hard"); // hardest first
+  assert.ok(!ids4f.includes("q-thin")); // one attempt is not evidence
+  const hard = tm.items[0];
+  assert.equal(hard.most_common_wrong, 2); // the wrong-answer magnet
+  assert.ok(Math.abs(hard.pass_rate - 1 / 3) < 1e-9);
+  ok("top-missed ranks hardest first, honors min_attempts, names the wrong-answer magnet");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

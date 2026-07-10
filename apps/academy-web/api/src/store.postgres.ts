@@ -1651,6 +1651,24 @@ export class PostgresStore implements Store {
         walkthrough_seen: Boolean(r["walkthrough_seen"]), created_at: iso(r["created_at"]),
       })));
     },
+    topMissed: async (limit: number, minAttempts: number): Promise<QuestionAnalytics[]> => {
+      // Grouped pass rates in SQL (cheap even on large tables), then the full
+      // per-question rollup only for the shortlisted ids.
+      const grouped = await this.sql.query<Record<string, unknown>>(
+        `SELECT question_id
+           FROM question_responses
+          GROUP BY question_id
+         HAVING count(*) >= $2
+          ORDER BY sum((correct)::int)::float / count(*) ASC
+          LIMIT $1`,
+        [limit, minAttempts],
+      );
+      const out: QuestionAnalytics[] = [];
+      for (const row of grouped) {
+        out.push(await this.questionResponses.analytics(String(row["question_id"])));
+      }
+      return out;
+    },
   };
 
   // ── email verification tokens (single-use, expiring) ──────────────────────

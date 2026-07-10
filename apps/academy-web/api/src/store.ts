@@ -742,6 +742,9 @@ export interface Store {
   questionResponses: {
     record(input: ResponseInput): Promise<QuestionResponse>;
     analytics(questionId: string): Promise<QuestionAnalytics>;
+    /** Hardest items across the whole bank: lowest pass rate first, requiring
+     *  minAttempts of evidence so a single unlucky miss can't top the list. */
+    topMissed(limit: number, minAttempts: number): Promise<QuestionAnalytics[]>;
   };
   /** Single-use email-verification tokens (token → candidate, with expiry). */
   verifications: {
@@ -2120,6 +2123,19 @@ export class MemoryStore implements Store {
     },
     analytics: async (questionId: string): Promise<QuestionAnalytics> =>
       rollupAnalytics(questionId, this._responses.filter((r) => r.question_id === questionId)),
+    topMissed: async (limit: number, minAttempts: number): Promise<QuestionAnalytics[]> => {
+      const byQuestion = new Map<string, QuestionResponse[]>();
+      for (const r of this._responses) {
+        const arr = byQuestion.get(r.question_id) ?? [];
+        arr.push(r);
+        byQuestion.set(r.question_id, arr);
+      }
+      return [...byQuestion.entries()]
+        .map(([qid, rows]) => rollupAnalytics(qid, rows))
+        .filter((a) => a.attempts >= minAttempts)
+        .sort((a, b) => (a.pass_rate ?? 1) - (b.pass_rate ?? 1))
+        .slice(0, limit);
+    },
   };
 
   verifications = {

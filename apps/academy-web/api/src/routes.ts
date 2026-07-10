@@ -1161,6 +1161,14 @@ async function recordResponse(ctx: ReqCtx, deps: Deps): Promise<void> {
 async function getQuestionAnalytics(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, await deps.store.questionResponses.analytics(ctx.params["id"] ?? ""));
 }
+/** The hardest items across the bank, lowest pass rate first, with a minimum
+ *  evidence bar - the instructor's "what is everyone missing" surface. */
+async function getTopMissedQuestions(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "question_analytics";
+  const limit = Math.max(1, Math.min(50, Number(ctx.query.get("limit") ?? 10) || 10));
+  const minAttempts = Math.max(1, Math.min(100, Number(ctx.query.get("min_attempts") ?? 3) || 3));
+  send(ctx, 200, { items: await deps.store.questionResponses.topMissed(limit, minAttempts) });
+}
 
 async function listRemediations(ctx: ReqCtx, deps: Deps): Promise<void> {
   const candidate_id = ctx.params["id"] ?? "";
@@ -4219,6 +4227,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),
   compile("POST", "/v1/candidates/:id/responses", "performance:write", true, recordResponse),
+  compile("GET", "/v1/ops/questions/top-missed", "performance:read", true, getTopMissedQuestions),
   compile("GET", "/v1/ops/questions/:id/analytics", "performance:read", true, getQuestionAnalytics),
   // Clinical-judgment walkthroughs: learner fetch (approved only) + content QA.
   compile("GET", "/v1/questions/:id/walkthrough", "performance:read", true, getQuestionWalkthrough),

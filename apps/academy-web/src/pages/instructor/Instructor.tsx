@@ -11,11 +11,16 @@ import {
   InstructorError,
   recordAttendance,
   fetchSimDebrief,
+  fetchTopMissed,
   type CohortCopilot,
   type CohortSimDebrief,
   type InstructorCohort,
   type RosterMember,
+  type TopMissedItem,
 } from "../../lib/instructorApi";
+import { loadQuestionBank } from "../../data/questionBank";
+import { optionTextsOf } from "../../lib/walkthrough";
+import type { Question } from "../../types/question";
 import { SECTIONS, CLIENT_NEED_LABEL, CJMM_STEPS } from "../../data/blueprint";
 import { GENERIC_NOTES, SECTION_NOTES, SESSION_FRAME } from "../../data/teachingRunbook";
 import type { ClientNeed } from "../../types/question";
@@ -523,6 +528,8 @@ function CohortConsole({
         <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
 
         <ClassSimDebrief debrief={simDebrief} />
+
+        <TopMissedPane />
 
         <PostClassWrap
           cohort={cohort}
@@ -1145,6 +1152,107 @@ function RunbookPane({
         <p className="mt-3 text-[11px] text-florence-slate/80">
           The frame is yours to bend - the beats matter more than the exact minutes.
         </p>
+      </div>
+    </details>
+  );
+}
+
+// ── Top-missed items ────────────────────────────────────────────────────────
+/**
+ * Item analytics for humans: the hardest questions across the bank, hardest
+ * first, each with the option most learners wrongly pick - so the instructor
+ * can name the misconception, not just the topic. Data loads on expand (the
+ * question bank is a heavy chunk; no reason to pay for it unopened).
+ */
+function TopMissedPane() {
+  const [state, setState] = useState<
+    | { phase: "closed" }
+    | { phase: "loading" }
+    | { phase: "error"; message: string }
+    | { phase: "ready"; rows: { item: TopMissedItem; question?: Question }[] }
+  >({ phase: "closed" });
+
+  const load = async () => {
+    if (state.phase === "ready" || state.phase === "loading") return;
+    setState({ phase: "loading" });
+    try {
+      const [items, pool] = await Promise.all([fetchTopMissed(8), loadQuestionBank()]);
+      const byId = new Map(pool.map((q) => [q.id, q]));
+      setState({
+        phase: "ready",
+        rows: items.map((item) => ({ item, ...(byId.has(item.question_id) ? { question: byId.get(item.question_id) } : {}) })),
+      });
+    } catch (e) {
+      setState({ phase: "error", message: e instanceof Error ? e.message : "could not load" });
+    }
+  };
+
+  return (
+    <details
+      className="group rounded-2xl border border-florence-line bg-white"
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) void load();
+      }}
+    >
+      <summary className="cursor-pointer p-6">
+        <span className="text-sm font-medium">Most-missed items</span>
+        <span className="ml-2 text-xs text-florence-slate group-open:hidden">Open</span>
+      </summary>
+      <div className="border-t border-florence-line p-6 pt-4">
+        {state.phase === "loading" && (
+          <p className="text-sm text-florence-slate">Crunching the response log…</p>
+        )}
+        {state.phase === "error" && (
+          <p className="text-sm text-vital-danger">{state.message}</p>
+        )}
+        {state.phase === "ready" && state.rows.length === 0 && (
+          <p className="text-sm text-florence-slate">
+            Not enough response data yet - this fills once students have logged practice on the
+            live stack (3+ attempts per item).
+          </p>
+        )}
+        {state.phase === "ready" && state.rows.length > 0 && (
+          <div className="space-y-3">
+            {state.rows.map(({ item, question }) => {
+              const pass = item.pass_rate != null ? Math.round(item.pass_rate * 100) : null;
+              const wrongIdx = item.most_common_wrong;
+              const wrongShare =
+                wrongIdx != null && item.attempts > 0
+                  ? Math.round(((item.by_option[wrongIdx] ?? 0) / item.attempts) * 100)
+                  : null;
+              const options = question ? optionTextsOf(question) : [];
+              const wrongText = wrongIdx != null ? options[wrongIdx] : undefined;
+              return (
+                <div key={item.question_id} className="rounded-xl border border-florence-line p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 flex-1 truncate text-sm text-florence-ink" title={question?.stem}>
+                      {question?.stem ?? item.question_id}
+                    </p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-xs font-bold ${pass != null && pass < 50 ? "bg-vital-danger/15 text-red-800" : "bg-vital-warn/15 text-amber-800"}`}>
+                      {pass != null ? `${pass}%` : "-"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-florence-slate">
+                    {item.attempts} attempts
+                    {wrongShare != null && (
+                      <>
+                        {" · "}
+                        <span className="font-medium text-florence-ink">{wrongShare}% picked</span>
+                        {wrongText ? ` "${wrongText.length > 70 ? wrongText.slice(0, 70) + "…" : wrongText}"` : ` option ${String.fromCharCode(65 + (wrongIdx ?? 0))}`}
+                      </>
+                    )}
+                    {item.walkthrough_seen_rate != null &&
+                      ` · ${Math.round(item.walkthrough_seen_rate * 100)}% read the walkthrough`}
+                  </p>
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-florence-slate/80">
+              Put the top one on screen tomorrow and ask the room why the popular wrong answer
+              tempts - that IS the reteach.
+            </p>
+          </div>
+        )}
       </div>
     </details>
   );
