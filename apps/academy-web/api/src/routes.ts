@@ -35,6 +35,8 @@ import { computeReadiness } from "./readiness.ts";
 import { buildPathwayIntake } from "./pathway.ts";
 import { computeCohortCopilot } from "./copilot.ts";
 import { patientVoiceReply, tutorHintReply, type NcjmmStep } from "./patientVoice.ts";
+import { ingestScenario } from "./scenarioIngest.ts";
+import type { AuthoredScenarioStatus } from "./store.ts";
 import { renderMailpiece } from "./mailpiece.ts";
 import {
   countryToIso2,
@@ -1216,6 +1218,71 @@ async function postTutorHint(ctx: ReqCtx, _deps: Deps): Promise<void> {
   const criticalCuesRemaining = Math.max(0, Math.min(50, Math.floor(num(ctx.body, "criticalCuesRemaining") ?? 0)));
   const reply = await tutorHintReply({ step: step as NcjmmStep, situation, criticalCuesRemaining });
   send(ctx, 200, reply);
+}
+
+// ── Scenario Studio: authored virtual-patient scenarios ─────────────────────
+const AUTHORED_STATUSES: readonly AuthoredScenarioStatus[] = ["draft", "sme_reviewed", "approved"];
+
+// Instructor uploads a scenario doc; we return a DRAFT in our schema to edit.
+async function postScenarioIngest(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "scenario_ingest";
+  const text = str(ctx.body, "text");
+  if (!text || text.length < 20) return err(ctx, 400, "invalid_request", "text is required (paste or extract the document first)");
+  const result = await ingestScenario({
+    text: text.slice(0, 20000),
+    ...(str(ctx.body, "title") ? { title: str(ctx.body, "title") } : {}),
+    ...(str(ctx.body, "clientNeed") ? { clientNeed: str(ctx.body, "clientNeed") } : {}),
+  });
+  send(ctx, 200, result);
+}
+
+// Save/update an authored scenario draft. The body is opaque here; the Studio
+// validates its shape client-side before calling this.
+async function postAuthoredScenario(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "authored_scenario";
+  const scenario = obj(ctx.body, "scenario") as Record<string, unknown> | undefined;
+  if (!scenario || typeof scenario["id"] !== "string" || typeof scenario["title"] !== "string")
+    return err(ctx, 400, "invalid_request", "scenario.id and scenario.title are required");
+  const id = String(scenario["id"]).slice(0, 80);
+  if (JSON.stringify(scenario).length > 200_000)
+    return err(ctx, 400, "invalid_request", "scenario too large");
+  const statusRaw = str(ctx.body, "status");
+  if (statusRaw && !AUTHORED_STATUSES.includes(statusRaw as AuthoredScenarioStatus))
+    return err(ctx, 400, "invalid_request", "invalid status");
+  ctx.resourceId = id;
+  const saved = await deps.store.authoredScenarios.upsert({
+    id,
+    author: ctx.auth?.clientId ?? ctx.auth?.candidateId ?? "unknown",
+    title: String(scenario["title"]).slice(0, 200),
+    client_need: typeof scenario["clientNeed"] === "string" ? String(scenario["clientNeed"]) : "physiological-adaptation",
+    scenario,
+    ...(statusRaw ? { status: statusRaw as AuthoredScenarioStatus } : {}),
+  });
+  send(ctx, 201, saved);
+}
+
+// List authored scenarios. Default: approved only (the learner registry reads
+// this). ?all=1 with an authoring scope returns every draft (the Studio).
+async function listAuthoredScenarios(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "authored_scenario";
+  const wantAll = ctx.query.get("all") === "1";
+  const canAuthor = ctx.auth?.scopes?.has("cohorts:write");
+  const rows = wantAll && canAuthor
+    ? await deps.store.authoredScenarios.listAll()
+    : await deps.store.authoredScenarios.listApproved();
+  send(ctx, 200, { data: rows });
+}
+
+async function setAuthoredScenarioStatus(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "authored_scenario";
+  const id = ctx.params["id"] ?? "";
+  ctx.resourceId = id;
+  const status = str(ctx.body, "status");
+  if (!AUTHORED_STATUSES.includes(status as AuthoredScenarioStatus))
+    return err(ctx, 400, "invalid_request", "invalid status");
+  const updated = await deps.store.authoredScenarios.setStatus(id, status as AuthoredScenarioStatus);
+  if (!updated) return err(ctx, 404, "not_found", "no such authored scenario");
+  send(ctx, 200, updated);
 }
 
 // ── spaced re-practice queue (candidate-bound JSON blob) ────────────────────
@@ -4312,6 +4379,10 @@ export const routes: Route[] = [
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
   compile("POST", "/v1/sim/patient-voice", "candidates:read", true, postPatientVoice),
   compile("POST", "/v1/sim/tutor-hint", "candidates:read", true, postTutorHint),
+  compile("POST", "/v1/sim/ingest", "cohorts:write", true, postScenarioIngest),
+  compile("POST", "/v1/sim/scenarios", "cohorts:write", true, postAuthoredScenario),
+  compile("GET", "/v1/sim/scenarios", "candidates:read", true, listAuthoredScenarios),
+  compile("POST", "/v1/sim/scenarios/:id/status", "cohorts:write", true, setAuthoredScenarioStatus),
   compile("GET", "/v1/candidates/:id/spaced-queue", "performance:read", true, getSpacedQueue),
   compile("POST", "/v1/candidates/:id/spaced-queue", "performance:write", true, putSpacedQueue),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),

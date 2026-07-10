@@ -354,6 +354,22 @@ CREATE TABLE IF NOT EXISTS candidate_spaced_queues (
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
 
+-- Instructor-authored virtual-patient scenarios (Scenario Studio). The
+-- scenario body is opaque jsonb here; the SPA validates its shape. Learners
+-- only ever receive status 'approved'.
+CREATE TABLE IF NOT EXISTS authored_scenarios (
+  id            text PRIMARY KEY,
+  author        text NOT NULL,
+  title         text NOT NULL,
+  client_need   text NOT NULL,
+  status        text NOT NULL DEFAULT 'draft'
+                CHECK (status IN ('draft','sme_reviewed','approved')),
+  scenario      jsonb NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_authored_status ON authored_scenarios (status);
+
 -- Auto-dispatched targeted-remediation assignments (one per weak subscale).
 CREATE TABLE IF NOT EXISTS candidate_remediations (
   candidate_id  text NOT NULL REFERENCES candidates (id),

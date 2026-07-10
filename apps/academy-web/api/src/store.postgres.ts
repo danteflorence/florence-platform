@@ -61,6 +61,9 @@ import type {
   ApplicationFeeCoveragePatch,
   ApplyAttributionInput,
   AssessmentInput,
+  AuthoredScenario,
+  AuthoredScenarioInput,
+  AuthoredScenarioStatus,
   AttendanceInput,
   CampInput,
   CampReservationInput,
@@ -1526,6 +1529,47 @@ export class PostgresStore implements Store {
         [candidateId, JSON.stringify(queue), now],
       );
       return { updated_at: now };
+    },
+  };
+
+  private toAuthored = (r: Record<string, unknown>): AuthoredScenario => ({
+    id: String(r["id"]),
+    author: String(r["author"]),
+    title: String(r["title"]),
+    client_need: String(r["client_need"]),
+    status: String(r["status"]) as AuthoredScenarioStatus,
+    scenario: r["scenario"],
+    created_at: iso(r["created_at"]),
+    updated_at: iso(r["updated_at"]),
+  });
+  authoredScenarios = {
+    upsert: async (input: AuthoredScenarioInput): Promise<AuthoredScenario> => {
+      const now = new Date().toISOString();
+      const prev = (await this.sql.query<Record<string, unknown>>(
+        `SELECT created_at, status FROM authored_scenarios WHERE id=$1`,
+        [input.id],
+      ))[0];
+      const status = input.status ?? (prev ? String(prev["status"]) : "draft");
+      await this.sql.query(
+        `INSERT INTO authored_scenarios (id, author, title, client_need, status, scenario, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8)
+         ON CONFLICT (id) DO UPDATE SET title=$3, client_need=$4, status=$5, scenario=$6::jsonb, updated_at=$8`,
+        [input.id, input.author, input.title, input.client_need, status, JSON.stringify(input.scenario), prev ? iso(prev["created_at"]) : now, now],
+      );
+      return { id: input.id, author: input.author, title: input.title, client_need: input.client_need, status: status as AuthoredScenarioStatus, scenario: input.scenario, created_at: prev ? iso(prev["created_at"]) : now, updated_at: now };
+    },
+    get: async (id: string) => {
+      const rows = await this.sql.query<Record<string, unknown>>(`SELECT * FROM authored_scenarios WHERE id=$1`, [id]);
+      return rows[0] ? this.toAuthored(rows[0]) : undefined;
+    },
+    listApproved: async () => (await this.sql.query<Record<string, unknown>>(`SELECT * FROM authored_scenarios WHERE status='approved' ORDER BY updated_at DESC`)).map(this.toAuthored),
+    listAll: async () => (await this.sql.query<Record<string, unknown>>(`SELECT * FROM authored_scenarios ORDER BY updated_at DESC`)).map(this.toAuthored),
+    setStatus: async (id: string, status: AuthoredScenarioStatus) => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `UPDATE authored_scenarios SET status=$2, updated_at=now() WHERE id=$1 RETURNING *`,
+        [id, status],
+      );
+      return rows[0] ? this.toAuthored(rows[0]) : undefined;
     },
   };
 

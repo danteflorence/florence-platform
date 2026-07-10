@@ -317,6 +317,26 @@ export interface AssessmentInput {
   error_tags?: string[];
   supersedes?: string;
 }
+export type AuthoredScenarioStatus = "draft" | "sme_reviewed" | "approved";
+export interface AuthoredScenario {
+  id: string;
+  author: string;
+  title: string;
+  client_need: string;
+  status: AuthoredScenarioStatus;
+  scenario: unknown; // opaque VPatientScenario body; SPA validates
+  created_at: string;
+  updated_at: string;
+}
+export interface AuthoredScenarioInput {
+  id: string;
+  author: string;
+  title: string;
+  client_need: string;
+  scenario: unknown;
+  status?: AuthoredScenarioStatus;
+}
+
 export interface PaymentInput {
   candidate_id: string;
   kind: Payment["kind"];
@@ -734,6 +754,16 @@ export interface Store {
   spacedQueues: {
     get(candidateId: string): Promise<{ queue: unknown; updated_at: string } | undefined>;
     put(candidateId: string, queue: unknown): Promise<{ updated_at: string }>;
+  };
+  /** Instructor-authored virtual-patient scenarios (Scenario Studio). The
+   *  scenario body is opaque to the API; the SPA validates it. QA gate:
+   *  learners only ever get status "approved". */
+  authoredScenarios: {
+    upsert(input: AuthoredScenarioInput): Promise<AuthoredScenario>;
+    get(id: string): Promise<AuthoredScenario | undefined>;
+    listApproved(): Promise<AuthoredScenario[]>;
+    listAll(): Promise<AuthoredScenario[]>;
+    setStatus(id: string, status: AuthoredScenarioStatus): Promise<AuthoredScenario | undefined>;
   };
   walkthroughs: {
     /** Idempotent (content_hash) upsert of a clinical-judgment walkthrough. */
@@ -2061,6 +2091,44 @@ export class MemoryStore implements Store {
       const row = { queue, updated_at: new Date().toISOString() };
       this._spacedQueues.set(candidateId, row);
       return { updated_at: row.updated_at };
+    },
+  };
+
+  private _authoredScenarios: AuthoredScenario[] = [];
+  authoredScenarios = {
+    upsert: async (input: AuthoredScenarioInput): Promise<AuthoredScenario> => {
+      const now = new Date().toISOString();
+      const existing = this._authoredScenarios.find((s) => s.id === input.id);
+      if (existing) {
+        existing.title = input.title;
+        existing.client_need = input.client_need;
+        existing.scenario = input.scenario;
+        if (input.status) existing.status = input.status;
+        existing.updated_at = now;
+        return existing;
+      }
+      const rec: AuthoredScenario = {
+        id: input.id,
+        author: input.author,
+        title: input.title,
+        client_need: input.client_need,
+        status: input.status ?? "draft",
+        scenario: input.scenario,
+        created_at: now,
+        updated_at: now,
+      };
+      this._authoredScenarios.push(rec);
+      return rec;
+    },
+    get: async (id: string) => this._authoredScenarios.find((s) => s.id === id),
+    listApproved: async () => this._authoredScenarios.filter((s) => s.status === "approved"),
+    listAll: async () => [...this._authoredScenarios],
+    setStatus: async (id: string, status: AuthoredScenarioStatus) => {
+      const s = this._authoredScenarios.find((x) => x.id === id);
+      if (!s) return undefined;
+      s.status = status;
+      s.updated_at = new Date().toISOString();
+      return s;
     },
   };
 

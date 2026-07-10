@@ -419,6 +419,45 @@ try {
   assert.equal(thBad.status, 400);
   ok("sim tutor-hint coaches the NCJMM step in mock mode; bad step rejected");
 
+  // 4j) Scenario Studio: ingest a doc → draft skeleton; save → list → approve.
+  const ing = await fetch(`${base}/v1/sim/ingest`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ title: "Chest Pain Case", text: "Patient Name: John Ray. Age: 61. HR 118 RR 24 BP 88/54 SpO2 90. Male with crushing chest pain." }),
+  });
+  const ingj = (await ing.json()) as any;
+  assert.equal(ing.status, 200);
+  assert.equal(ingj.source, "mock");
+  assert.equal(ingj.scenario.initialVitals.hr, 118); // regex pulled the HR
+  assert.equal(ingj.scenario.initialVitals.sbp, 88);
+  assert.equal(ingj.scenario.patient.name, "John Ray");
+  assert.ok(Array.isArray(ingj.scenario.rubric) && ingj.scenario.rubric.length >= 1);
+  ok("scenario ingest returns an editable skeleton with vitals pulled from text");
+
+  const draft = { ...ingj.scenario, id: "vp-authored-smoke-1", title: "Smoke Authored" };
+  const saveDraft = await fetch(`${base}/v1/sim/scenarios`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ scenario: draft }),
+  });
+  assert.equal(saveDraft.status, 201);
+  // Learner list (approved only) does NOT include the draft yet.
+  const learnerList = (await (await fetch(`${base}/v1/sim/scenarios`, { headers: bearer(T) })).json()) as any;
+  assert.ok(!learnerList.data.some((s: any) => s.id === "vp-authored-smoke-1"));
+  // Author list (?all=1, needs cohorts:write) does.
+  const authorList = (await (await fetch(`${base}/v1/sim/scenarios?all=1`, { headers: bearer(T) })).json()) as any;
+  assert.ok(authorList.data.some((s: any) => s.id === "vp-authored-smoke-1" && s.status === "draft"));
+  // Approve it → now visible to learners.
+  const appr = await fetch(`${base}/v1/sim/scenarios/vp-authored-smoke-1/status`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ status: "approved" }),
+  });
+  assert.equal(appr.status, 200);
+  const learnerList2 = (await (await fetch(`${base}/v1/sim/scenarios`, { headers: bearer(T) })).json()) as any;
+  assert.ok(learnerList2.data.some((s: any) => s.id === "vp-authored-smoke-1"));
+  ok("authored scenario: draft hidden from learners until approved, then visible");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },
