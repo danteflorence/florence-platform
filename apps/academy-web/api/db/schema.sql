@@ -365,10 +365,15 @@ CREATE TABLE IF NOT EXISTS authored_scenarios (
   status        text NOT NULL DEFAULT 'draft'
                 CHECK (status IN ('draft','sme_reviewed','approved')),
   scenario      jsonb NOT NULL,
+  render_state  text NOT NULL DEFAULT 'none' CHECK (render_state IN ('none','queued','ready')),
+  render_manifest jsonb,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_authored_status ON authored_scenarios (status);
+-- 3D-render columns for existing databases (orthogonal to clinical status).
+ALTER TABLE authored_scenarios ADD COLUMN IF NOT EXISTS render_state text NOT NULL DEFAULT 'none';
+ALTER TABLE authored_scenarios ADD COLUMN IF NOT EXISTS render_manifest jsonb;
 
 -- Auto-dispatched targeted-remediation assignments (one per weak subscale).
 CREATE TABLE IF NOT EXISTS candidate_remediations (

@@ -22,11 +22,13 @@ import {
   instructorSession,
   InstructorError,
   listScenarios,
+  requestRender,
   saveScenario,
   setScenarioStatus,
   type AuthoredScenarioRow,
 } from "../../lib/instructorApi";
 import { validateScenario } from "../../data/vpatient/validate";
+import { toUnrealManifest } from "../../lib/vpatient/unrealManifest";
 import type { VPatientScenario } from "../../data/vpatient/types";
 import { CLIENT_NEEDS } from "../../data/blueprint";
 import { SimRunner } from "../VPatientSim";
@@ -179,6 +181,18 @@ function Studio() {
     }
   };
 
+  const requestRenderFor = async (row: AuthoredScenarioRow) => {
+    setError(null);
+    try {
+      const manifest = toUnrealManifest(row.scenario as VPatientScenario);
+      const { render_state } = await requestRender(row.id, manifest);
+      setSavedMsg(`3D render ${render_state} for "${row.title}". The 2D sim is already playable.`);
+      void refreshMine();
+    } catch (e) {
+      setError(e instanceof InstructorError ? e.message : "Render request failed");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-florence-mist">
       <header className="border-b border-florence-line bg-white px-5 py-3">
@@ -249,8 +263,14 @@ function Studio() {
                     <span className="min-w-0 flex-1 truncate">{s.title}</span>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.status === "approved" ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>{s.status}</span>
                     <button onClick={() => setJson(JSON.stringify(s.scenario, null, 2))} className="shrink-0 text-xs font-semibold text-florence-teal-dark">Load</button>
-                    {s.status !== "approved" && (
+                    {s.status !== "approved" ? (
                       <button onClick={() => approve(s.id)} className="shrink-0 text-xs font-semibold text-florence-indigo">Approve</button>
+                    ) : s.render_state === "ready" ? (
+                      <span className="shrink-0 text-[10px] font-bold uppercase text-emerald-700">3D ready</span>
+                    ) : s.render_state === "queued" ? (
+                      <span className="shrink-0 text-[10px] font-bold uppercase text-amber-700">3D queued</span>
+                    ) : (
+                      <button onClick={() => requestRenderFor(s)} className="shrink-0 text-xs font-semibold text-florence-indigo">Build 3D</button>
                     )}
                   </div>
                 ))}

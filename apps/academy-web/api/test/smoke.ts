@@ -458,6 +458,29 @@ try {
   assert.ok(learnerList2.data.some((s: any) => s.id === "vp-authored-smoke-1"));
   ok("authored scenario: draft hidden from learners until approved, then visible");
 
+  // 4k) Render seam: gated on approval; mock-queues without UNREAL_RENDER_URL.
+  const renderBeforeApprove = await fetch(`${base}/v1/sim/scenarios/vp-authored-smoke-1/render`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ manifest: { manifestVersion: 1, scene: { id: "x" } } }),
+  });
+  // (it was approved in 4j) → allowed. Re-test the gate on a fresh draft:
+  await fetch(`${base}/v1/sim/scenarios`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ scenario: { ...draft, id: "vp-authored-render-gate" } }),
+  });
+  const gate = await fetch(`${base}/v1/sim/scenarios/vp-authored-render-gate/render`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ manifest: { manifestVersion: 1 } }),
+  });
+  assert.equal(gate.status, 409); // not approved → blocked
+  assert.equal(renderBeforeApprove.status, 200); // approved one → queued (no UNREAL_RENDER_URL)
+  const rj = (await renderBeforeApprove.json()) as any;
+  assert.equal(rj.render_state, "queued");
+  ok("render seam: blocked until approved, mock-queues without an Unreal service");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

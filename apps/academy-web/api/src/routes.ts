@@ -1273,6 +1273,42 @@ async function listAuthoredScenarios(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { data: rows });
 }
 
+// Request a 3D render. The SPA computes the Unreal scene manifest (it owns the
+// scenario types) and POSTs it here. We forward to the Unreal render service
+// when UNREAL_RENDER_URL is configured, else mock-queue it. The 2D playable
+// build is unaffected - render is orthogonal to clinical approval.
+async function postScenarioRender(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "authored_scenario";
+  const id = ctx.params["id"] ?? "";
+  ctx.resourceId = id;
+  const existing = await deps.store.authoredScenarios.get(id);
+  if (!existing) return err(ctx, 404, "not_found", "no such authored scenario");
+  if (existing.status !== "approved")
+    return err(ctx, 409, "not_approved", "approve the scenario before requesting a render");
+  const manifest = obj(ctx.body, "manifest");
+  if (!manifest) return err(ctx, 400, "invalid_request", "manifest is required");
+  let state: "queued" | "ready" = "queued";
+  const url = process.env.UNREAL_RENDER_URL;
+  if (url) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(process.env.UNREAL_RENDER_KEY ? { authorization: `Bearer ${process.env.UNREAL_RENDER_KEY}` } : {}),
+        },
+        body: JSON.stringify({ scenarioId: id, manifest }),
+        signal: AbortSignal.timeout(15000),
+      });
+      state = res.ok ? "ready" : "queued";
+    } catch {
+      state = "queued"; // the render service is async/unavailable; leave it queued
+    }
+  }
+  const updated = await deps.store.authoredScenarios.setRender(id, state, manifest);
+  send(ctx, 200, { id, render_state: updated?.render_state ?? state });
+}
+
 async function setAuthoredScenarioStatus(ctx: ReqCtx, deps: Deps): Promise<void> {
   ctx.resourceType = "authored_scenario";
   const id = ctx.params["id"] ?? "";
@@ -4383,6 +4419,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/sim/scenarios", "cohorts:write", true, postAuthoredScenario),
   compile("GET", "/v1/sim/scenarios", "candidates:read", true, listAuthoredScenarios),
   compile("POST", "/v1/sim/scenarios/:id/status", "cohorts:write", true, setAuthoredScenarioStatus),
+  compile("POST", "/v1/sim/scenarios/:id/render", "cohorts:write", true, postScenarioRender),
   compile("GET", "/v1/candidates/:id/spaced-queue", "performance:read", true, getSpacedQueue),
   compile("POST", "/v1/candidates/:id/spaced-queue", "performance:write", true, putSpacedQueue),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),

@@ -64,6 +64,7 @@ import type {
   AuthoredScenario,
   AuthoredScenarioInput,
   AuthoredScenarioStatus,
+  RenderState,
   AttendanceInput,
   CampInput,
   CampReservationInput,
@@ -1539,6 +1540,8 @@ export class PostgresStore implements Store {
     client_need: String(r["client_need"]),
     status: String(r["status"]) as AuthoredScenarioStatus,
     scenario: r["scenario"],
+    render_state: (String(r["render_state"] ?? "none") as RenderState),
+    ...(r["render_manifest"] != null && { render_manifest: r["render_manifest"] }),
     created_at: iso(r["created_at"]),
     updated_at: iso(r["updated_at"]),
   });
@@ -1556,7 +1559,7 @@ export class PostgresStore implements Store {
          ON CONFLICT (id) DO UPDATE SET title=$3, client_need=$4, status=$5, scenario=$6::jsonb, updated_at=$8`,
         [input.id, input.author, input.title, input.client_need, status, JSON.stringify(input.scenario), prev ? iso(prev["created_at"]) : now, now],
       );
-      return { id: input.id, author: input.author, title: input.title, client_need: input.client_need, status: status as AuthoredScenarioStatus, scenario: input.scenario, created_at: prev ? iso(prev["created_at"]) : now, updated_at: now };
+      return { id: input.id, author: input.author, title: input.title, client_need: input.client_need, status: status as AuthoredScenarioStatus, scenario: input.scenario, render_state: (prev ? (this.toAuthored(prev) as AuthoredScenario).render_state : "none") ?? "none", created_at: prev ? iso(prev["created_at"]) : now, updated_at: now };
     },
     get: async (id: string) => {
       const rows = await this.sql.query<Record<string, unknown>>(`SELECT * FROM authored_scenarios WHERE id=$1`, [id]);
@@ -1568,6 +1571,13 @@ export class PostgresStore implements Store {
       const rows = await this.sql.query<Record<string, unknown>>(
         `UPDATE authored_scenarios SET status=$2, updated_at=now() WHERE id=$1 RETURNING *`,
         [id, status],
+      );
+      return rows[0] ? this.toAuthored(rows[0]) : undefined;
+    },
+    setRender: async (id: string, state: RenderState, manifest?: unknown) => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `UPDATE authored_scenarios SET render_state=$2, render_manifest=COALESCE($3::jsonb, render_manifest), updated_at=now() WHERE id=$1 RETURNING *`,
+        [id, state, manifest !== undefined ? JSON.stringify(manifest) : null],
       );
       return rows[0] ? this.toAuthored(rows[0]) : undefined;
     },

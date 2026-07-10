@@ -233,6 +233,7 @@ export interface AuthoredScenarioRow {
   client_need: string;
   status: "draft" | "sme_reviewed" | "approved";
   scenario: unknown;
+  render_state?: "none" | "queued" | "ready";
   updated_at: string;
 }
 
@@ -270,6 +271,19 @@ export async function setScenarioStatus(id: string, status: string): Promise<voi
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new InstructorError(res.status, "could not change the scenario status");
+}
+
+/** Request a 3D render: send the Unreal scene manifest for an approved scenario. */
+export async function requestRender(id: string, manifest: unknown): Promise<{ render_state: string }> {
+  const res = await authedFetch(`/v1/sim/scenarios/${encodeURIComponent(id)}/render`, {
+    method: "POST",
+    body: JSON.stringify({ manifest }),
+  });
+  if (!res.ok) {
+    if (res.status === 409) throw new InstructorError(409, "Approve the scenario first, then request the 3D render.");
+    throw new InstructorError(res.status, "could not queue the render");
+  }
+  return (await res.json()) as { render_state: string };
 }
 
 /**

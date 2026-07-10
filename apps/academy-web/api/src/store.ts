@@ -318,6 +318,9 @@ export interface AssessmentInput {
   supersedes?: string;
 }
 export type AuthoredScenarioStatus = "draft" | "sme_reviewed" | "approved";
+/** 3D-render lifecycle, orthogonal to the clinical status. The 2D playable
+ *  build is always available once approved; this tracks the Unreal render. */
+export type RenderState = "none" | "queued" | "ready";
 export interface AuthoredScenario {
   id: string;
   author: string;
@@ -325,6 +328,8 @@ export interface AuthoredScenario {
   client_need: string;
   status: AuthoredScenarioStatus;
   scenario: unknown; // opaque VPatientScenario body; SPA validates
+  render_state: RenderState;
+  render_manifest?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -764,6 +769,7 @@ export interface Store {
     listApproved(): Promise<AuthoredScenario[]>;
     listAll(): Promise<AuthoredScenario[]>;
     setStatus(id: string, status: AuthoredScenarioStatus): Promise<AuthoredScenario | undefined>;
+    setRender(id: string, state: RenderState, manifest?: unknown): Promise<AuthoredScenario | undefined>;
   };
   walkthroughs: {
     /** Idempotent (content_hash) upsert of a clinical-judgment walkthrough. */
@@ -2114,6 +2120,7 @@ export class MemoryStore implements Store {
         client_need: input.client_need,
         status: input.status ?? "draft",
         scenario: input.scenario,
+        render_state: "none",
         created_at: now,
         updated_at: now,
       };
@@ -2127,6 +2134,14 @@ export class MemoryStore implements Store {
       const s = this._authoredScenarios.find((x) => x.id === id);
       if (!s) return undefined;
       s.status = status;
+      s.updated_at = new Date().toISOString();
+      return s;
+    },
+    setRender: async (id: string, state: RenderState, manifest?: unknown) => {
+      const s = this._authoredScenarios.find((x) => x.id === id);
+      if (!s) return undefined;
+      s.render_state = state;
+      if (manifest !== undefined) s.render_manifest = manifest;
       s.updated_at = new Date().toISOString();
       return s;
     },
