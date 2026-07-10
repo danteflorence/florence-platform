@@ -221,6 +221,57 @@ export async function fetchTopMissed(limit = 8): Promise<TopMissedItem[]> {
   return j.items ?? [];
 }
 
+// ── Scenario Studio ─────────────────────────────────────────────────────────
+export interface IngestResult {
+  scenario: Record<string, unknown>;
+  source: "mock" | "model";
+  notes: string[];
+}
+export interface AuthoredScenarioRow {
+  id: string;
+  title: string;
+  client_need: string;
+  status: "draft" | "sme_reviewed" | "approved";
+  scenario: unknown;
+  updated_at: string;
+}
+
+/** Turn extracted document text into a draft scenario in our schema. */
+export async function ingestScenario(input: { text: string; title?: string; clientNeed?: string }): Promise<IngestResult> {
+  const res = await authedFetch(`/v1/sim/ingest`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new InstructorError(res.status, "could not draft a scenario from that text");
+  return (await res.json()) as IngestResult;
+}
+
+/** Save/update an authored scenario draft (optionally set its status). */
+export async function saveScenario(scenario: unknown, status?: string): Promise<AuthoredScenarioRow> {
+  const res = await authedFetch(`/v1/sim/scenarios`, {
+    method: "POST",
+    body: JSON.stringify({ scenario, ...(status ? { status } : {}) }),
+  });
+  if (!res.ok) throw new InstructorError(res.status, "could not save the scenario");
+  return (await res.json()) as AuthoredScenarioRow;
+}
+
+/** List authored scenarios (all drafts, for the Studio). */
+export async function listScenarios(): Promise<AuthoredScenarioRow[]> {
+  const res = await authedFetch(`/v1/sim/scenarios?all=1`);
+  if (!res.ok) throw new InstructorError(res.status, "could not load scenarios");
+  const j = (await res.json()) as { data?: AuthoredScenarioRow[] };
+  return j.data ?? [];
+}
+
+export async function setScenarioStatus(id: string, status: string): Promise<void> {
+  const res = await authedFetch(`/v1/sim/scenarios/${encodeURIComponent(id)}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new InstructorError(res.status, "could not change the scenario status");
+}
+
 /**
  * Mark attendance for one candidate in a cohort on a given date.
  * - `status` matches the API enum: "present" | "absent" | "late".

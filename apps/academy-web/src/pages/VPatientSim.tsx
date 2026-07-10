@@ -117,12 +117,12 @@ export default function VPatientSim() {
   );
 }
 
-function SimRunner({
+export function SimRunner({
   base,
-  initialDifficulty,
+  initialDifficulty = "standard",
 }: {
   base: VPatientScenario;
-  initialDifficulty: Difficulty;
+  initialDifficulty?: Difficulty;
 }) {
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   // The scenario actually run - difficulty scales timing without changing

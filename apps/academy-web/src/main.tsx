@@ -27,6 +27,7 @@ const Signup = lazy(() => import("./pages/Signup"));
 const Activate = lazy(() => import("./pages/Activate"));
 const ControlTower = lazy(() => import("./pages/ops/ControlTower"));
 const Instructor = lazy(() => import("./pages/instructor/Instructor"));
+const ScenarioStudio = lazy(() => import("./pages/instructor/ScenarioStudio"));
 const CheckoutMock = lazy(() => import("./pages/CheckoutMock"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const EmployerPortal = lazy(() => import("./pages/partners/EmployerPortal"));
@@ -93,6 +94,16 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           element={
             <Suspense fallback={<PageFallback />}>
               <Instructor />
+            </Suspense>
+          }
+        />
+        {/* Scenario Studio - instructor authoring tool, full-screen, NOT linked
+            from the public app. Reuses the instructor M2M session. */}
+        <Route
+          path="instructor/studio"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <ScenarioStudio />
             </Suspense>
           }
         />
