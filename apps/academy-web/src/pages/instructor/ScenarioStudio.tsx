@@ -141,14 +141,21 @@ function Studio() {
     }
   };
 
-  const onFile = (file: File) => {
-    if (!/\.txt$/i.test(file.name)) {
-      setError("v1 accepts pasted text or a .txt file. For a PDF/Word doc, copy its text into the box.");
-      return;
+  const [extracting, setExtracting] = useState(false);
+  const onFile = async (file: File) => {
+    setError(null);
+    setExtracting(true);
+    try {
+      const { extractDocumentText } = await import("../../lib/vpatient/docExtract");
+      const res = await extractDocumentText(file);
+      setDocText(res.text);
+      if (!title.trim()) setTitle(file.name.replace(/\.(pdf|docx?|txt)$/i, ""));
+      if (res.notes.length) setIngestNotes(res.notes);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not read that file.");
+    } finally {
+      setExtracting(false);
     }
-    const reader = new FileReader();
-    reader.onload = () => setDocText(String(reader.result ?? ""));
-    reader.readAsText(file);
   };
 
   const save = async (status?: string) => {
@@ -190,7 +197,7 @@ function Studio() {
           <div className="rounded-2xl border border-florence-line bg-white p-4">
             <p className="text-sm font-semibold">1. Start from a document</p>
             <p className="mt-1 text-xs text-florence-slate">
-              Paste the scenario text from your PDF or Word document. We draft it into an editable
+              Upload a PDF or Word document (or paste the text). We draft it into an editable
               simulation - you refine and validate it before anyone runs it.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -213,8 +220,14 @@ function Studio() {
                 {ingesting ? "Drafting…" : "Draft it →"}
               </button>
               <label className="cursor-pointer rounded-md border border-florence-line px-3 py-2 text-xs font-medium text-florence-slate hover:bg-florence-mist">
-                Upload .txt
-                <input type="file" accept=".txt,text/plain" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+                {extracting ? "Reading…" : "Upload PDF / Word / .txt"}
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  className="hidden"
+                  disabled={extracting}
+                  onChange={(e) => e.target.files?.[0] && void onFile(e.target.files[0])}
+                />
               </label>
             </div>
             {ingestNotes.length > 0 && (
