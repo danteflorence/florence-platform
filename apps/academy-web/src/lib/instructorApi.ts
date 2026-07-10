@@ -137,13 +137,27 @@ export interface RosterMember {
   readiness_band?: "green" | "yellow" | "orange" | "red" | "none";
   readiness?: number;
 }
+export interface CopilotReteach {
+  client_need: string;
+  mean_score: number;
+}
+export interface CopilotGroup {
+  client_need: string;
+  candidate_ids: string[];
+}
 export interface CohortCopilot {
   cohort: string;
   candidates: number;
   band_counts: Record<string, number>;
   avg_readiness: number | null;
   fallers: { candidate_id: string; full_name?: string; band: string; readiness?: number }[];
-  weak_needs: { key: string; label: string; share: number }[];
+  /** Weakest Client-Need areas across the cohort - what to reteach tomorrow. */
+  top_reteach: CopilotReteach[];
+  /** Candidates bucketed by their single weakest Client Need - small-group stations. */
+  groups: CopilotGroup[];
+  /** Day-5 routing draft: candidate ids by readiness route. */
+  routing: Record<string, string[]>;
+  generated_at?: string;
 }
 
 // ── Endpoints ───────────────────────────────────────────────────────────────

@@ -14,7 +14,8 @@ import {
   type InstructorCohort,
   type RosterMember,
 } from "../../lib/instructorApi";
-import { SECTIONS } from "../../data/blueprint";
+import { SECTIONS, CLIENT_NEED_LABEL } from "../../data/blueprint";
+import type { ClientNeed } from "../../types/question";
 
 // ── Top-level page ──────────────────────────────────────────────────────────
 /**
@@ -507,6 +508,8 @@ function CohortConsole({
       <div className="space-y-6">
         <CopilotPane copilot={copilot} cohort={cohort} />
 
+        <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
+
         <PostClassWrap
           cohort={cohort}
           nextSection={nextSection}
@@ -914,6 +917,138 @@ function CopilotPane({ copilot, cohort }: { copilot: CohortCopilot | null; cohor
   );
 }
 
+// ── Tomorrow's Plan ─────────────────────────────────────────────────────────
+/**
+ * The instructor's next_action. First-time faculty can't synthesize a
+ * dashboard into a lesson plan, so we hand them the literal plan: what to
+ * reteach (weakest Client Needs across the cohort), how to split the room into
+ * small-group stations (the copilot's groups, resolved to names), and a
+ * ready-to-run drill per weak area. All derived from the SAME copilot the
+ * memo uses - no new backend.
+ */
+function TomorrowsPlan({
+  copilot,
+  roster,
+  nextTitle,
+}: {
+  copilot: CohortCopilot | null;
+  roster: RosterMember[];
+  nextTitle?: string;
+}) {
+  if (!copilot) return <SkeletonCard title="Tomorrow's plan" />;
+  const nameOf = (id: string) =>
+    roster.find((m) => m.candidate_id === id)?.full_name ?? id.slice(0, 8);
+  const label = (key: string) => CLIENT_NEED_LABEL[key as ClientNeed] ?? key;
+
+  const reteach = copilot.top_reteach ?? [];
+  const groups = (copilot.groups ?? []).filter((g) => g.candidate_ids.length > 0);
+  const hasData = reteach.length > 0 || groups.length > 0;
+
+  return (
+    <div className="rounded-2xl border border-florence-line bg-white p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Tomorrow's plan</p>
+        <span className="rounded-full bg-florence-teal-soft/60 px-2.5 py-0.5 text-[11px] font-semibold text-florence-teal-dark">
+          Auto-drafted
+        </span>
+      </div>
+
+      {!hasData ? (
+        <p className="mt-3 text-sm text-florence-slate">
+          Once students have logged practice, this fills with what to reteach and how to group
+          the room.
+        </p>
+      ) : (
+        <>
+          {reteach.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-florence-slate">
+                Reteach first
+              </p>
+              <ol className="mt-2 space-y-2">
+                {reteach.slice(0, 3).map((r, i) => (
+                  <li key={r.client_need} className="flex items-center gap-3">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-florence-ink text-xs font-bold text-white">
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 text-sm font-medium text-florence-ink">
+                      {label(r.client_need)}
+                    </span>
+                    <span className="w-24 shrink-0">
+                      <span className="block h-1.5 w-full overflow-hidden rounded-full bg-florence-mist">
+                        <span
+                          className="block h-full rounded-full bg-vital-danger"
+                          style={{ width: `${Math.max(4, Math.round(r.mean_score * 100))}%` }}
+                        />
+                      </span>
+                    </span>
+                    <span className="w-10 shrink-0 text-right font-mono text-xs text-florence-slate">
+                      {Math.round(r.mean_score * 100)}%
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {groups.length > 0 && (
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-florence-slate">
+                Group the room
+              </p>
+              <p className="mt-1 text-[11px] text-florence-slate/80">
+                Run these as small-group stations - each group drills its weakest area.
+              </p>
+              <div className="mt-2 space-y-2">
+                {groups.slice(0, 4).map((g) => (
+                  <div key={g.client_need} className="rounded-xl border border-florence-line bg-florence-mist/30 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-florence-ink">{label(g.client_need)}</p>
+                      <span className="text-[11px] font-medium text-florence-slate">
+                        {g.candidate_ids.length} {g.candidate_ids.length === 1 ? "student" : "students"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-florence-slate">
+                      {g.candidate_ids.slice(0, 6).map(nameOf).join(", ")}
+                      {g.candidate_ids.length > 6 ? `, +${g.candidate_ids.length - 6} more` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 rounded-xl bg-florence-indigo-soft/40 p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-florence-indigo-dark">
+              Do this in class
+            </p>
+            <ol className="mt-1.5 space-y-1 text-sm text-florence-ink/90">
+              {nextTitle && <li>1. Teach the next live section: <span className="font-medium">{nextTitle}</span>.</li>}
+              {reteach[0] && (
+                <li>
+                  {nextTitle ? "2" : "1"}. Open with a 10-minute reteach of{" "}
+                  <span className="font-medium">{label(reteach[0].client_need)}</span> - the class's weakest area.
+                </li>
+              )}
+              {groups.length > 0 && (
+                <li>
+                  {nextTitle ? "3" : "2"}. Break into the {groups.length}{" "}
+                  station{groups.length === 1 ? "" : "s"} above; circulate to the lowest group first.
+                </li>
+              )}
+              <li>
+                {(nextTitle ? 3 : 2) + (groups.length > 0 ? 1 : 0)}. Assign tonight's focused practice on
+                each student's flagged area (it's already waiting on their home screen).
+              </li>
+            </ol>
+          </div>
+        </>
+      )}
+      <p className="mt-4 text-[11px] text-florence-slate/80">Cohort {copilot.cohort} · you can follow this line by line</p>
+    </div>
+  );
+}
+
 function PostClassWrap({
   cohort,
   nextSection,
@@ -1088,6 +1223,13 @@ function formatMemo(
       lines.push(
         `  · ${f.full_name ?? f.candidate_id.slice(0, 8)} - ${f.band}${f.readiness != null ? `, ${Math.round(f.readiness * 100)}%` : ""}`,
       );
+    }
+  }
+  if ((cp.top_reteach ?? []).length > 0) {
+    lines.push("");
+    lines.push("Reteach tomorrow (weakest areas):");
+    for (const r of cp.top_reteach.slice(0, 3)) {
+      lines.push(`  · ${CLIENT_NEED_LABEL[r.client_need as ClientNeed] ?? r.client_need} - ${Math.round(r.mean_score * 100)}% mean`);
     }
   }
   if (nextTitle) {
