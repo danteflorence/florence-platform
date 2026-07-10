@@ -6,8 +6,9 @@
 import type { VPatientScenario } from "./types";
 import { SEPSIS_01 } from "./scenarios/sepsis01";
 import { HF_01 } from "./scenarios/hf01";
+import { HEMORRHAGE_01 } from "./scenarios/hemorrhage01";
 
-const ALL: VPatientScenario[] = [SEPSIS_01, HF_01];
+const ALL: VPatientScenario[] = [SEPSIS_01, HF_01, HEMORRHAGE_01];
 
 /** Approved scenarios a learner may launch. */
 export function approvedScenarios(): VPatientScenario[] {
