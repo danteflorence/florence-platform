@@ -22,6 +22,14 @@ import {
   type SimState,
 } from "../lib/vpatient/engine";
 import type { ActionCategory, VPatientScenario } from "../data/vpatient/types";
+import {
+  applyDifficulty,
+  DIFFICULTIES,
+  DIFFICULTY_BLURB,
+  DIFFICULTY_LABEL,
+  isDifficulty,
+  type Difficulty,
+} from "../lib/vpatient/difficulty";
 import VitalsDisplay from "../components/vpatient/VitalsDisplay";
 import SimDebrief from "../components/vpatient/SimDebrief";
 
@@ -73,6 +81,7 @@ export default function VPatientSim() {
   const { scenarioId = "" } = useParams();
   const [params] = useSearchParams();
   const preview = params.get("preview") === "1";
+  const urlDifficulty = params.get("difficulty");
   const scenario = useMemo(() => getScenario(scenarioId, preview), [scenarioId, preview]);
 
   if (!scenario) {
@@ -90,10 +99,22 @@ export default function VPatientSim() {
       </div>
     );
   }
-  return <SimRunner scenario={scenario} />;
+  return (
+    <SimRunner base={scenario} initialDifficulty={isDifficulty(urlDifficulty) ? urlDifficulty : "standard"} />
+  );
 }
 
-function SimRunner({ scenario }: { scenario: VPatientScenario }) {
+function SimRunner({
+  base,
+  initialDifficulty,
+}: {
+  base: VPatientScenario;
+  initialDifficulty: Difficulty;
+}) {
+  const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
+  // The scenario actually run - difficulty scales timing without changing
+  // the clinical content. Recomputed only when the base or level changes.
+  const scenario = useMemo(() => applyDifficulty(base, difficulty), [base, difficulty]);
   const [state, dispatch] = useReducer(reducer, scenario, init);
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
@@ -101,6 +122,13 @@ function SimRunner({ scenario }: { scenario: VPatientScenario }) {
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Re-arm the run whenever the difficulty changes before the shift starts
+  // (locked once started - you can't change the clock mid-code).
+  useEffect(() => {
+    if (!started) dispatch({ type: "reset", scenario });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenario]);
 
   // 1 Hz clock. setInterval (not rAF) so a backgrounded phone tab still
   // advances predictably and CPU stays near zero between ticks.
@@ -221,11 +249,34 @@ function SimRunner({ scenario }: { scenario: VPatientScenario }) {
           </div>
         )}
 
-        {/* Not started: brief the learner */}
+        {/* Not started: brief the learner + let them pick the difficulty */}
         {!started && (
           <div className="rounded-2xl border border-florence-line bg-white p-5 text-center">
             <p className="text-sm text-florence-slate">You're picking up {scenario.patient.name} at the start of your shift.</p>
             <p className="mt-1 text-sm font-medium text-florence-ink">Watch, assess, and act. The clock runs in real time.</p>
+
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-florence-slate">Difficulty</p>
+              <div className="mt-1.5 inline-flex flex-wrap justify-center gap-1.5">
+                {DIFFICULTIES.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      difficulty === d
+                        ? "border-florence-teal bg-florence-teal/10 text-florence-teal-dark"
+                        : "border-florence-line bg-white text-florence-slate hover:bg-florence-mist"
+                    }`}
+                  >
+                    {DIFFICULTY_LABEL[d]}
+                  </button>
+                ))}
+              </div>
+              <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-florence-slate">
+                {DIFFICULTY_BLURB[difficulty]}
+              </p>
+            </div>
+
             <button
               onClick={start}
               className="mt-4 rounded-xl bg-florence-teal px-6 py-3 text-sm font-semibold text-white shadow-card hover:bg-florence-teal-dark"

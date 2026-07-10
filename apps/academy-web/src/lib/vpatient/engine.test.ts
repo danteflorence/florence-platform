@@ -3,25 +3,30 @@
 import { describe, expect, it } from "vitest";
 import { SEPSIS_01 } from "../../data/vpatient/scenarios/sepsis01";
 import { availableActions, dispatch, init, tick, type SimState } from "./engine";
+import type { VPatientScenario } from "../../data/vpatient/types";
 
 const sc = SEPSIS_01;
 
-/** Drive a run: dispatch scripted [atSec, actionId] pairs, tick to the end. */
+/** Drive a run: dispatch scripted [atSec, actionId] pairs, tick to the end.
+ *  Defaults to the sepsis scenario; pass `scenario` to drive any other one
+ *  (e.g. a difficulty-transformed copy). */
 export function runScript(
   script: [number, string][],
-  until: number = sc.durationSec,
+  until?: number,
+  scenario: VPatientScenario = sc,
 ): SimState {
-  let s = init(sc);
+  const limit = until ?? scenario.durationSec;
+  let s = init(scenario);
   const pending = [...script].sort((a, b) => a[0] - b[0]);
   for (;;) {
     while (pending.length && pending[0][0] <= s.clockSec) {
       const [at, actionId] = pending.shift()!;
-      const r = dispatch(s, sc, actionId);
+      const r = dispatch(s, scenario, actionId);
       if (!r.ok) throw new Error(`dispatch ${actionId} at ${at} (clock ${s.clockSec}): ${r.rejection}`);
       s = r.state;
     }
-    if (s.ended || s.clockSec >= until) return s;
-    s = tick(s, sc);
+    if (s.ended || s.clockSec >= limit) return s;
+    s = tick(s, scenario);
   }
 }
 
