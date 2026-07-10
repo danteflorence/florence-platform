@@ -112,6 +112,38 @@ export function markReviewDone(queue: SpacedQueue, now: number): SpacedQueue {
   return { ...queue, lastReviewDay: today, streak };
 }
 
+/**
+ * Merge two queue snapshots (e.g. this device's local queue with the
+ * server-synced one from another device). Per item: the entry with more
+ * progress (higher box) wins; ties keep the later due date; lapses take the
+ * max; addedAt keeps the earliest. Streak takes the best of both, keyed to
+ * the later review day. Commutative, so push/pull order can't corrupt state.
+ */
+export function mergeQueues(a: SpacedQueue, b: SpacedQueue): SpacedQueue {
+  const byId = new Map<string, SpacedEntry>();
+  for (const e of [...a.entries, ...b.entries]) {
+    const prev = byId.get(e.id);
+    if (!prev) {
+      byId.set(e.id, { ...e });
+      continue;
+    }
+    const winner =
+      e.box !== prev.box ? (e.box > prev.box ? e : prev) : e.dueAt > prev.dueAt ? e : prev;
+    byId.set(e.id, {
+      ...winner,
+      lapses: Math.max(e.lapses, prev.lapses),
+      addedAt: Math.min(e.addedAt, prev.addedAt),
+    });
+  }
+  const laterDay =
+    (a.lastReviewDay ?? "") >= (b.lastReviewDay ?? "") ? a.lastReviewDay : b.lastReviewDay;
+  return {
+    entries: [...byId.values()],
+    streak: Math.max(a.streak, b.streak),
+    ...(laterDay ? { lastReviewDay: laterDay } : {}),
+  };
+}
+
 // ── localStorage adapter ─────────────────────────────────────────────────────
 
 const KEY_PREFIX = "fl_academy_spaced_v1";

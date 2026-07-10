@@ -22,6 +22,7 @@ import {
   markReviewDone,
   saveQueue,
 } from "../../lib/spacedQueue";
+import { pushSpacedQueue } from "../../lib/spacedSync";
 import ReadinessCard from "../ReadinessCard";
 import { CLIENT_NEED_LABEL } from "../../data/blueprint";
 import { QUESTION_TYPE_LABELS, type ClientNeed } from "../../types/question";
@@ -90,6 +91,8 @@ export default function Results({
     );
     if (touchedQueue) next = markReviewDone(next, now);
     saveQueue(candId, next);
+    // Mirror to the server so other devices see the updated queue.
+    if (candId) void pushSpacedQueue(candId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Report this finished session to the Data API using the signed-in candidate's

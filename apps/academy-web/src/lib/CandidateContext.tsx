@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import * as auth from "./academyAuth";
+import { syncSpacedQueue } from "./spacedSync";
 import type { CandidateProfile, ReadinessSnapshot, SignupInput } from "./academyAuth";
 
 export type SessionStatus = "loading" | "anonymous" | "authenticated";
@@ -63,6 +64,9 @@ export function CandidateProvider({ children }: { children: ReactNode }) {
         setCandidate(me);
         setStatus("authenticated");
         void loadReadiness(me.id);
+        // Pull + merge + push the spaced-review queue so this device sees the
+        // learner's queue from everywhere. Best-effort, never blocks boot.
+        void syncSpacedQueue(me.id);
       } catch {
         if (!alive) return;
         auth.clearSession();
@@ -79,6 +83,7 @@ export function CandidateProvider({ children }: { children: ReactNode }) {
       setCandidate(c);
       setStatus("authenticated");
       void loadReadiness(c.id);
+      void syncSpacedQueue(c.id);
     },
     [loadReadiness],
   );

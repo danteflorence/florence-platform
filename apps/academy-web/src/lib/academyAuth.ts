@@ -156,7 +156,7 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(
+export async function call<T>(
   path: string,
   opts: { method?: string; body?: unknown; token?: string | null } = {},
 ): Promise<T> {

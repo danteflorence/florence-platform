@@ -1508,6 +1508,27 @@ export class PostgresStore implements Store {
     },
   };
 
+  spacedQueues = {
+    get: async (candidateId: string) => {
+      const rows = await this.sql.query<Record<string, unknown>>(
+        `SELECT queue, updated_at FROM candidate_spaced_queues WHERE candidate_id=$1`,
+        [candidateId],
+      );
+      if (!rows[0]) return undefined;
+      return { queue: rows[0]["queue"], updated_at: iso(rows[0]["updated_at"]) };
+    },
+    put: async (candidateId: string, queue: unknown) => {
+      const now = new Date().toISOString();
+      await this.sql.query(
+        `INSERT INTO candidate_spaced_queues (candidate_id, queue, updated_at)
+         VALUES ($1,$2::jsonb,$3)
+         ON CONFLICT (candidate_id) DO UPDATE SET queue=$2::jsonb, updated_at=$3`,
+        [candidateId, JSON.stringify(queue), now],
+      );
+      return { updated_at: now };
+    },
+  };
+
   private toWalkthrough = (r: Record<string, unknown>): Walkthrough => {
     const j = (v: unknown, fallback: unknown) => (typeof v === "string" ? JSON.parse(v) : (v ?? fallback));
     return {

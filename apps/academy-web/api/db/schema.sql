@@ -345,6 +345,15 @@ CREATE TABLE IF NOT EXISTS candidate_progress (
 );
 CREATE INDEX IF NOT EXISTS idx_progress_candidate ON candidate_progress (candidate_id);
 
+-- Spaced re-practice queue (Leitner) - one JSON blob per candidate. The blob
+-- is the client lib's SpacedQueue shape; merge semantics live client-side
+-- (src/lib/spacedQueue.ts) so the API stays a dumb, candidate-bound store.
+CREATE TABLE IF NOT EXISTS candidate_spaced_queues (
+  candidate_id  text PRIMARY KEY REFERENCES candidates (id),
+  queue         jsonb NOT NULL,
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
 -- Auto-dispatched targeted-remediation assignments (one per weak subscale).
 CREATE TABLE IF NOT EXISTS candidate_remediations (
   candidate_id  text NOT NULL REFERENCES candidates (id),

@@ -729,6 +729,12 @@ export interface Store {
     listByCandidate(candidateId: string): Promise<RemediationAssignment[]>;
     setStatus(candidateId: string, dim: string, key: string, status: RemediationStatus): Promise<RemediationAssignment | undefined>;
   };
+  /** Spaced re-practice queue - one opaque JSON blob per candidate. Merge
+   *  semantics live in the client lib; the API is a dumb, bound store. */
+  spacedQueues: {
+    get(candidateId: string): Promise<{ queue: unknown; updated_at: string } | undefined>;
+    put(candidateId: string, queue: unknown): Promise<{ updated_at: string }>;
+  };
   walkthroughs: {
     /** Idempotent (content_hash) upsert of a clinical-judgment walkthrough. */
     upsert(input: WalkthroughUpsertInput): Promise<Walkthrough>;
@@ -2045,6 +2051,16 @@ export class MemoryStore implements Store {
       r.status = status;
       r.updated_at = new Date().toISOString();
       return r;
+    },
+  };
+
+  private _spacedQueues = new Map<string, { queue: unknown; updated_at: string }>();
+  spacedQueues = {
+    get: async (candidateId: string) => this._spacedQueues.get(candidateId),
+    put: async (candidateId: string, queue: unknown) => {
+      const row = { queue, updated_at: new Date().toISOString() };
+      this._spacedQueues.set(candidateId, row);
+      return { updated_at: row.updated_at };
     },
   };
 

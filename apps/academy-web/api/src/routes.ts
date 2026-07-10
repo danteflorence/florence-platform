@@ -1161,6 +1161,34 @@ async function recordResponse(ctx: ReqCtx, deps: Deps): Promise<void> {
 async function getQuestionAnalytics(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, await deps.store.questionResponses.analytics(ctx.params["id"] ?? ""));
 }
+// ── spaced re-practice queue (candidate-bound JSON blob) ────────────────────
+// The Leitner queue lives client-side (src/lib/spacedQueue.ts owns the merge
+// semantics); the API stores one blob per candidate so the queue follows the
+// learner across devices. Candidate-bound tokens only touch their own row.
+async function getSpacedQueue(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["id"] ?? "";
+  ctx.resourceType = "spaced_queue";
+  ctx.resourceId = id;
+  if (!boundOk(ctx, id)) return err(ctx, 403, "forbidden", "token is bound to a different candidate");
+  const row = await deps.store.spacedQueues.get(id);
+  if (!row) return err(ctx, 404, "not_found", "no spaced queue saved yet");
+  send(ctx, 200, { candidate_id: id, queue: row.queue, updated_at: row.updated_at });
+}
+async function putSpacedQueue(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const id = ctx.params["id"] ?? "";
+  ctx.resourceType = "spaced_queue";
+  ctx.resourceId = id;
+  if (!boundOk(ctx, id)) return err(ctx, 403, "forbidden", "token is bound to a different candidate");
+  if (!(await deps.store.candidates.get(id))) return err(ctx, 404, "not_found", "candidate not found");
+  const queue = obj(ctx.body, "queue") as { entries?: unknown } | undefined;
+  if (!queue || !Array.isArray(queue.entries))
+    return err(ctx, 400, "invalid_request", "queue.entries must be an array");
+  if (queue.entries.length > 2000)
+    return err(ctx, 400, "invalid_request", "queue too large (max 2000 entries)");
+  const saved = await deps.store.spacedQueues.put(id, queue);
+  send(ctx, 200, { candidate_id: id, updated_at: saved.updated_at });
+}
+
 /** The hardest items across the bank, lowest pass rate first, with a minimum
  *  evidence bar - the instructor's "what is everyone missing" surface. */
 async function getTopMissedQuestions(ctx: ReqCtx, deps: Deps): Promise<void> {
@@ -4225,6 +4253,8 @@ export const routes: Route[] = [
   compile("POST", "/v1/assessment-results", "performance:write", true, createAssessment),
   compile("GET", "/v1/assessment-results/:id", "performance:read", true, getAssessment),
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
+  compile("GET", "/v1/candidates/:id/spaced-queue", "performance:read", true, getSpacedQueue),
+  compile("POST", "/v1/candidates/:id/spaced-queue", "performance:write", true, putSpacedQueue),
   compile("POST", "/v1/candidates/:id/remediations/clear", "performance:write", true, clearRemediation),
   compile("POST", "/v1/candidates/:id/responses", "performance:write", true, recordResponse),
   compile("GET", "/v1/ops/questions/top-missed", "performance:read", true, getTopMissedQuestions),

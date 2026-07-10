@@ -4,6 +4,7 @@ import {
   dueEntries,
   emptyQueue,
   markReviewDone,
+  mergeQueues,
   nextDueAt,
   recordCorrect,
   recordMiss,
@@ -70,6 +71,45 @@ describe("due + next-due", () => {
     expect(dueEntries(q, at).map((e) => e.id)).toEqual(["a"]);
     expect(nextDueAt(q, at)).toBe(T0 + 2 * DAY);
     expect(nextDueAt(emptyQueue(), T0)).toBeNull();
+  });
+});
+
+describe("mergeQueues (cross-device sync)", () => {
+  it("unions by id, keeping the entry with more progress", () => {
+    // Device A: q1 advanced to box 3. Device B: q1 still box 1, plus q2.
+    let a = recordMiss(emptyQueue(), "q1", T0);
+    a = recordCorrect(a, "q1", T0);
+    a = recordCorrect(a, "q1", T0); // box 3
+    let b = recordMiss(emptyQueue(), "q1", T0 + DAY);
+    b = recordMiss(b, "q2", T0 + DAY);
+    const m = mergeQueues(a, b);
+    expect(m.entries).toHaveLength(2);
+    expect(m.entries.find((e) => e.id === "q1")!.box).toBe(3);
+    expect(m.entries.find((e) => e.id === "q2")!.box).toBe(1);
+  });
+
+  it("is commutative and takes the best streak + later review day", () => {
+    const a = { ...markReviewDone(emptyQueue(), T0), streak: 4, lastReviewDay: "2026-07-08" };
+    const b = { ...markReviewDone(emptyQueue(), T0), streak: 2, lastReviewDay: "2026-07-10" };
+    const ab = mergeQueues(a, b);
+    const ba = mergeQueues(b, a);
+    expect(ab.streak).toBe(4);
+    expect(ab.lastReviewDay).toBe("2026-07-10");
+    expect(JSON.stringify([...ab.entries].sort((x, y) => x.id.localeCompare(y.id)))).toBe(
+      JSON.stringify([...ba.entries].sort((x, y) => x.id.localeCompare(y.id))),
+    );
+    expect(ba.streak).toBe(ab.streak);
+  });
+
+  it("keeps max lapses and earliest addedAt on conflicts", () => {
+    let a = recordMiss(emptyQueue(), "q1", T0); // addedAt T0
+    let b = recordMiss(emptyQueue(), "q1", T0 + DAY);
+    b = recordCorrect(b, "q1", T0 + DAY);
+    b = recordMiss(b, "q1", T0 + 2 * DAY); // lapses 1
+    const m = mergeQueues(a, b);
+    const e = m.entries[0];
+    expect(e.lapses).toBe(1);
+    expect(e.addedAt).toBe(T0);
   });
 });
 

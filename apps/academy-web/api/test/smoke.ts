@@ -352,6 +352,24 @@ try {
   assert.ok(Math.abs(hard.pass_rate - 1 / 3) < 1e-9);
   ok("top-missed ranks hardest first, honors min_attempts, names the wrong-answer magnet");
 
+  // 4g) Spaced-queue blob: round-trips per candidate; validation rejects junk.
+  const sqQueue = { entries: [{ id: "q-hard", box: 2, dueAt: 1, lapses: 0, addedAt: 1 }], streak: 3 };
+  const sqPut = await fetch(`${base}/v1/candidates/${simCand.id}/spaced-queue`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ queue: sqQueue }),
+  });
+  assert.equal(sqPut.status, 200);
+  const sqGet = (await (await fetch(`${base}/v1/candidates/${simCand.id}/spaced-queue`, { headers: bearer(T) })).json()) as any;
+  assert.deepEqual(sqGet.queue, sqQueue);
+  const sqBad = await fetch(`${base}/v1/candidates/${simCand.id}/spaced-queue`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ queue: { entries: "nope" } }),
+  });
+  assert.equal(sqBad.status, 400);
+  ok("spaced-queue blob round-trips per candidate; junk rejected");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },
