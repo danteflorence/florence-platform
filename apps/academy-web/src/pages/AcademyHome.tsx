@@ -10,6 +10,7 @@ import { fetchMyCohort, type MyCohort } from "../lib/academyAuth";
 import { useCandidate } from "../lib/CandidateContext";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import ReadinessCard from "../components/ReadinessCard";
+import RemediationPanel from "../components/RemediationPanel";
 import {
   Badge as FlorenceBadge,
   Card as FlorenceCard,
@@ -140,8 +141,9 @@ export default function AcademyHome() {
 
       {status === "authenticated" && readiness && (
         <section className="border-b border-florence-line bg-florence-mist/60">
-          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+          <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:px-8">
             <ReadinessCard snapshot={readiness} />
+            <RemediationPanel />
           </div>
         </section>
       )}

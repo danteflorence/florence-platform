@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import QuizRunner from "../components/quiz/QuizRunner";
 import CaseRunner from "../components/quiz/CaseRunner";
 import LevelChooser from "../components/quiz/LevelChooser";
@@ -7,6 +8,9 @@ import {
   loadQuestionBank,
   loadedQuestionBank,
 } from "../data/questionBank";
+import { CLIENT_NEED_LABEL } from "../data/blueprint";
+import { CLIENT_NEEDS } from "../data/blueprint";
+import type { ClientNeed, Question } from "../types/question";
 import { CASE_COUNT, loadCaseBank, loadedCaseBank } from "../data/caseBank";
 import {
   applyLevel,
@@ -88,15 +92,47 @@ const SUBTITLE: Record<SessionKind, string> = {
     "Choose how hard the first unfolding case should be, or let Florence choose - either way it climbs as you go.",
 };
 
+const VALID_NEEDS = new Set(CLIENT_NEEDS.map((c) => c.key));
+
 export default function Practice() {
-  const [kind, setKind] = useState<SessionKind | null>(null);
-  const [level, setLevel] = useState<DifficultyLevel | null>(null);
+  const [params, setParams] = useSearchParams();
+  // Remediation deep-link: ?focus=<clientNeed> starts a focused adaptive drill
+  // on exactly that weak area; ?mode=cases jumps straight into unfolding cases.
+  const focus = params.get("focus");
+  const focusNeed = focus && VALID_NEEDS.has(focus as ClientNeed) ? (focus as ClientNeed) : null;
+  const deepCases = params.get("mode") === "cases";
+
+  const [kind, setKind] = useState<SessionKind | null>(deepCases ? "cases" : null);
+  // A focus drill auto-picks its difficulty (medium) so it starts in one tap.
+  const [level, setLevel] = useState<DifficultyLevel | null>(focusNeed ? "moderate" : null);
   const [runKey, setRunKey] = useState(0);
 
   const reset = () => {
     setKind(null);
     setLevel(null);
+    // Drop the deep-link params so "Start another session" returns to the menu.
+    if (focus || deepCases) setParams({}, { replace: true });
   };
+
+  // Remediation focus drill: a tutor set narrowed to ONE Client Need, launched
+  // straight from the learner's remediation plan. Reuses the exact CAT engine
+  // (selectNextItem is safe on a single-category pool - it just always picks
+  // from the one category present) so the drill is adaptive within the area.
+  if (focusNeed && kind !== "cases") {
+    return (
+      <SessionGate load={loadQuestionBank} cached={loadedQuestionBank} onExit={reset}>
+        {(pool) => (
+          <FocusDrill
+            key={runKey}
+            pool={pool}
+            need={focusNeed}
+            onExit={reset}
+            onRestart={() => setRunKey((k) => k + 1)}
+          />
+        )}
+      </SessionGate>
+    );
+  }
 
   // Step 2: a kind + a level are chosen → load the bank, then run the session.
   if (kind && level) {
@@ -291,6 +327,64 @@ function BankFallback({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-[60vh] place-items-center px-5">
       <div className="flex flex-col items-center text-center">{children}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Focus drill - a tutor set filtered to ONE Client Need, launched from the
+// learner's remediation plan (RemediationPanel deep-links here with ?focus=).
+// Same adaptive engine, narrowed pool + a banner naming the area being drilled.
+// ---------------------------------------------------------------------------
+function FocusDrill({
+  pool,
+  need,
+  onExit,
+  onRestart,
+}: {
+  pool: Question[];
+  need: ClientNeed;
+  onExit: () => void;
+  onRestart: () => void;
+}) {
+  const focused = useMemo(() => pool.filter((q) => q.clientNeed === need), [pool, need]);
+  const label = CLIENT_NEED_LABEL[need];
+
+  // Enough items to drill? (Guard the rare case an imported bank is thin here.)
+  if (focused.length < 3) {
+    return (
+      <BankFallback>
+        <p className="text-sm font-semibold text-florence-ink">Not enough {label} items yet</p>
+        <p className="mt-1 max-w-sm text-sm text-florence-slate">
+          Practice the full adaptive set instead - it still weights your weak areas.
+        </p>
+        <FlorenceButton onClick={onExit} variant="primary" className="mt-4">
+          ← Back to practice
+        </FlorenceButton>
+      </BankFallback>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mx-auto max-w-3xl px-4 pt-6">
+        <div className="rounded-2xl border border-florence-teal/30 bg-florence-teal-soft/30 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-florence-teal-dark">
+            Remediation drill
+          </p>
+          <p className="text-sm text-florence-ink">
+            Focused practice on <span className="font-semibold">{label}</span>. Rationale after
+            every item.
+          </p>
+        </div>
+      </div>
+      <QuizRunner
+        pool={focused}
+        config={applyLevel(CAT_MODES.tutor, "moderate")}
+        title={`Remediation · ${label}`}
+        onExit={onExit}
+        onRestart={onRestart}
+      />
     </div>
   );
 }
