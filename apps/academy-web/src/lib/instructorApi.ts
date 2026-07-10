@@ -184,6 +184,24 @@ export async function fetchCopilot(code: string): Promise<CohortCopilot> {
   return (await res.json()) as CohortCopilot;
 }
 
+/** Class-wide virtual-patient results - the projector view for the post-sim
+ *  classroom debrief (participation + where the class's reasoning broke down). */
+export interface CohortSimDebrief {
+  cohort: string;
+  enrolled: number;
+  participants: number;
+  runs: number;
+  by_cjmm: Record<string, number>;
+  by_client_need: Record<string, number>;
+  weakest_steps: { step: string; mean_score: number }[];
+}
+
+export async function fetchSimDebrief(code: string): Promise<CohortSimDebrief> {
+  const res = await authedFetch(`/v1/cohorts/${encodeURIComponent(code)}/sim-debrief`);
+  if (!res.ok) throw new InstructorError(res.status, "could not load the class sim debrief");
+  return (await res.json()) as CohortSimDebrief;
+}
+
 /**
  * Mark attendance for one candidate in a cohort on a given date.
  * - `status` matches the API enum: "present" | "absent" | "late".

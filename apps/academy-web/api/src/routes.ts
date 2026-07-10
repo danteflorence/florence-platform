@@ -3009,6 +3009,61 @@ async function getCohortCopilot(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, computeCohortCopilot(code, members));
 }
 
+// Class sim debrief - aggregates kind:"simulation" runs across a cohort into
+// the projector view for the post-sim classroom debrief: participation, the
+// class's NCJMM step mix (where the reasoning broke down), and Client-Need
+// means. Read-only; same scope as the copilot.
+async function getCohortSimDebrief(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const code = ctx.params["code"] ?? "";
+  ctx.resourceType = "cohort_sim_debrief";
+  ctx.resourceId = code;
+  const enrollments = await deps.store.enrollments.byCohort(code);
+  let participants = 0;
+  let runs = 0;
+  const cjmm = new Map<string, { sum: number; n: number }>();
+  const needs = new Map<string, { sum: number; n: number }>();
+  for (const e of enrollments) {
+    const results = (await allAssessments(deps, e.candidate_id)).filter(
+      (r) => r.kind === "simulation",
+    );
+    if (results.length === 0) continue;
+    participants += 1;
+    runs += results.length;
+    for (const r of results) {
+      for (const [k, v] of Object.entries(r.by_cjmm ?? {})) {
+        const acc = cjmm.get(k) ?? { sum: 0, n: 0 };
+        acc.sum += v;
+        acc.n += 1;
+        cjmm.set(k, acc);
+      }
+      for (const [k, v] of Object.entries(r.by_client_need ?? {})) {
+        const acc = needs.get(k) ?? { sum: 0, n: 0 };
+        acc.sum += v;
+        acc.n += 1;
+        needs.set(k, acc);
+      }
+    }
+  }
+  const round3 = (n: number) => Math.round(n * 1000) / 1000;
+  const by_cjmm: Record<string, number> = {};
+  for (const [k, v] of cjmm) by_cjmm[k] = round3(v.sum / v.n);
+  const by_client_need: Record<string, number> = {};
+  for (const [k, v] of needs) by_client_need[k] = round3(v.sum / v.n);
+  // Weakest NCJMM steps first - the debrief talks about these.
+  const weakest_steps = Object.entries(by_cjmm)
+    .sort((a, b) => a[1] - b[1])
+    .map(([step, mean_score]) => ({ step, mean_score }));
+  send(ctx, 200, {
+    cohort: code,
+    enrolled: enrollments.length,
+    participants,
+    runs,
+    by_cjmm,
+    by_client_need,
+    weakest_steps,
+  });
+}
+
 async function getCohortRoster(ctx: ReqCtx, deps: Deps): Promise<void> {
   const key = ctx.params["id"] ?? "";
   ctx.resourceType = "cohort";
@@ -4138,6 +4193,7 @@ export const routes: Route[] = [
   compile("PATCH", "/v1/cohorts/:id", "cohorts:write", true, patchCohort),
   compile("GET", "/v1/cohorts/:id/roster", "cohorts:read", true, getCohortRoster),
   compile("GET", "/v1/cohorts/:code/copilot", "cohorts:read", true, getCohortCopilot),
+  compile("GET", "/v1/cohorts/:code/sim-debrief", "cohorts:read", true, getCohortSimDebrief),
   compile("GET", "/v1/assessment-results", "performance:read", true, listAssessments),
   compile("POST", "/v1/assessment-results", "performance:write", true, createAssessment),
   compile("GET", "/v1/assessment-results/:id", "performance:read", true, getAssessment),

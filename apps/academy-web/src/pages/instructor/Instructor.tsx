@@ -10,11 +10,13 @@ import {
   instructorSession,
   InstructorError,
   recordAttendance,
+  fetchSimDebrief,
   type CohortCopilot,
+  type CohortSimDebrief,
   type InstructorCohort,
   type RosterMember,
 } from "../../lib/instructorApi";
-import { SECTIONS, CLIENT_NEED_LABEL } from "../../data/blueprint";
+import { SECTIONS, CLIENT_NEED_LABEL, CJMM_STEPS } from "../../data/blueprint";
 import type { ClientNeed } from "../../types/question";
 
 // ── Top-level page ──────────────────────────────────────────────────────────
@@ -379,6 +381,7 @@ function CohortConsole({
 }) {
   const [roster, setRoster] = useState<RosterMember[] | null>(null);
   const [copilot, setCopilot] = useState<CohortCopilot | null>(null);
+  const [simDebrief, setSimDebrief] = useState<CohortSimDebrief | null>(null);
   const [attendanceMarks, setAttendanceMarks] = useState<Record<string, "present" | "absent" | "late">>({});
   const [busyRows, setBusyRows] = useState<Record<string, boolean>>({});
   const [bumpBusy, setBumpBusy] = useState(false);
@@ -389,14 +392,20 @@ function CohortConsole({
   useEffect(() => {
     setRoster(null);
     setCopilot(null);
+    setSimDebrief(null);
     setAttendanceMarks({});
     setCopilotMemo(null);
     setChecklist(loadChecklist(cohort.code));
     void (async () => {
       try {
-        const [r, cp] = await Promise.all([fetchRoster(cohort.code), fetchCopilot(cohort.code).catch(() => null)]);
+        const [r, cp, sd] = await Promise.all([
+          fetchRoster(cohort.code),
+          fetchCopilot(cohort.code).catch(() => null),
+          fetchSimDebrief(cohort.code).catch(() => null),
+        ]);
         setRoster(r);
         setCopilot(cp);
+        setSimDebrief(sd);
       } catch {
         setRoster([]);
       }
@@ -509,6 +518,8 @@ function CohortConsole({
         <CopilotPane copilot={copilot} cohort={cohort} />
 
         <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
+
+        <ClassSimDebrief debrief={simDebrief} />
 
         <PostClassWrap
           cohort={cohort}
@@ -1045,6 +1056,80 @@ function TomorrowsPlan({
         </>
       )}
       <p className="mt-4 text-[11px] text-florence-slate/80">Cohort {copilot.cohort} · you can follow this line by line</p>
+    </div>
+  );
+}
+
+// ── Class sim debrief ───────────────────────────────────────────────────────
+/**
+ * The projector screen for the post-sim classroom debrief: who ran the
+ * virtual patient, and WHERE the class's clinical judgment broke down, by
+ * NCJMM step (weakest first). The evidence says the debrief - not the sim -
+ * is what moves pass rates, so this pane is what the instructor puts on
+ * screen and talks through.
+ */
+function ClassSimDebrief({ debrief }: { debrief: CohortSimDebrief | null }) {
+  if (!debrief) return null;
+  const stepLabel = (key: string) => CJMM_STEPS.find((s) => s.key === key)?.label ?? key;
+  if (debrief.runs === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-florence-line bg-white p-6">
+        <p className="text-sm font-medium">Class sim debrief</p>
+        <p className="mt-2 text-sm text-florence-slate">
+          No virtual-patient runs yet. Once students run the sim, this fills with the class's
+          clinical-judgment mix - project it and talk through the weakest step.
+        </p>
+      </div>
+    );
+  }
+  const weakest = debrief.weakest_steps[0];
+  return (
+    <div className="rounded-2xl border border-florence-line bg-white p-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Class sim debrief</p>
+        <span className="text-[11px] font-medium text-florence-slate">
+          {debrief.participants}/{debrief.enrolled} students · {debrief.runs}{" "}
+          {debrief.runs === 1 ? "run" : "runs"}
+        </span>
+      </div>
+
+      <p className="mt-1 text-xs text-florence-slate">
+        Where the class's clinical judgment broke down, weakest step first.
+      </p>
+      <div className="mt-3 space-y-2">
+        {debrief.weakest_steps.map((s) => (
+          <div key={s.step} className="flex items-center gap-3">
+            <span className="w-40 shrink-0 truncate text-sm text-florence-ink">{stepLabel(s.step)}</span>
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-florence-mist">
+              <span
+                className={`block h-full rounded-full ${s.mean_score < 0.5 ? "bg-vital-danger" : s.mean_score < 0.7 ? "bg-vital-warn" : "bg-vital-ok"}`}
+                style={{ width: `${Math.max(4, Math.round(s.mean_score * 100))}%` }}
+              />
+            </span>
+            <span className="w-10 shrink-0 text-right font-mono text-xs text-florence-slate">
+              {Math.round(s.mean_score * 100)}%
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {weakest && (
+        <div className="mt-4 rounded-xl bg-florence-mist/50 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-florence-slate">
+            Debrief script
+          </p>
+          <ol className="mt-1.5 space-y-1 text-sm text-florence-ink/90">
+            <li>1. Ask the room what they noticed first, and when. Let three students answer before you speak.</li>
+            <li>
+              2. Name the pattern: the class's weakest step was{" "}
+              <span className="font-semibold">{stepLabel(weakest.step)}</span> ({Math.round(weakest.mean_score * 100)}%).
+              Ask: "what cue should have triggered it, and what got in the way?"
+            </li>
+            <li>3. Replay the decision out loud as a room: cue → interpretation → action → reassessment.</li>
+            <li>4. Close with one commitment each: "next run, I will ___ by minute two."</li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

@@ -283,6 +283,24 @@ try {
   assert.equal(band.items_completed, 9 + 12 + 60 + 6); // polls still count toward volume
   ok("readiness band survives a later readiness-less live_poll result");
 
+  // 4d) Class sim debrief: aggregates ONLY simulation-kind runs across a
+  // cohort into the post-sim projector view (participation + NCJMM mix).
+  const enr4d = await fetch(`${base}/v1/enrollments`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ candidate_id: simCand.id, cohort: "SMOKE-SIM-1", status: "attending" }),
+  });
+  assert.equal(enr4d.status, 201);
+  const sdRes = await fetch(`${base}/v1/cohorts/SMOKE-SIM-1/sim-debrief`, { headers: bearer(T) });
+  const sd = (await sdRes.json()) as any;
+  assert.equal(sdRes.status, 200);
+  assert.equal(sd.participants, 1);
+  assert.equal(sd.runs, 1); // the timed + live_poll rows are excluded
+  assert.equal(sd.by_cjmm["take-actions"], 0.3);
+  assert.equal(sd.weakest_steps[0].step, "take-actions"); // weakest first
+  assert.equal(sd.by_client_need["management-of-care"], 0.4);
+  ok("cohort sim-debrief aggregates simulation runs only, weakest step first");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },
