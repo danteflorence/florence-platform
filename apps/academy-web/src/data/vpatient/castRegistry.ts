@@ -47,6 +47,9 @@ export interface Persona {
   /** Resting vitals for THIS person (age/comorbidity-adjusted). */
   baseline: VitalsNumeric;
   reserve: PhysioReserve;
+  /** Optional explicit ElevenLabs voice. Omitted → voiceForPersona() picks one
+   *  from the diverse cast by sex + a stable hash of the persona id. */
+  voiceId?: string;
 }
 
 // A deliberately broad roster: ages across the lifespan, both sexes, a range of
