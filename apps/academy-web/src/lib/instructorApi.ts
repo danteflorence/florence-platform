@@ -237,6 +237,23 @@ export interface AuthoredScenarioRow {
   updated_at: string;
 }
 
+export type AuthorSlot = "title" | "setting" | "patient" | "presentation" | "vitals" | "priority" | "escalation";
+export interface AuthorTurnReply {
+  reply: string;
+  draft: Record<string, unknown>;
+  filled: AuthorSlot[];
+  remaining: AuthorSlot[];
+  done: boolean;
+  source: "mock" | "model";
+}
+
+/** One conversational-authoring turn: instructor message + state → next question + updated draft. */
+export async function authorTurn(input: { message: string; filled: AuthorSlot[]; draft: Record<string, unknown> | null }): Promise<AuthorTurnReply> {
+  const res = await authedFetch(`/v1/sim/author-turn`, { method: "POST", body: JSON.stringify(input) });
+  if (!res.ok) throw new InstructorError(res.status, "the authoring assistant is unavailable");
+  return (await res.json()) as AuthorTurnReply;
+}
+
 /** Turn extracted document text into a draft scenario in our schema. */
 export async function ingestScenario(input: { text: string; title?: string; clientNeed?: string }): Promise<IngestResult> {
   const res = await authedFetch(`/v1/sim/ingest`, {

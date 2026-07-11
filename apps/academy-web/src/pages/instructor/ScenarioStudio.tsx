@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  authorTurn,
   ingestScenario,
   instructorConnect,
   instructorSession,
@@ -26,6 +27,7 @@ import {
   saveScenario,
   setScenarioStatus,
   type AuthoredScenarioRow,
+  type AuthorSlot,
 } from "../../lib/instructorApi";
 import { validateScenario } from "../../data/vpatient/validate";
 import { toUnrealManifest } from "../../lib/vpatient/unrealManifest";
@@ -94,6 +96,38 @@ function Studio() {
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [mine, setMine] = useState<AuthoredScenarioRow[]>([]);
+  const [mode, setMode] = useState<"document" | "converse">("document");
+  // Conversational authoring
+  const [chat, setChat] = useState<{ role: "you" | "assistant"; text: string }[]>([
+    { role: "assistant", text: "Let's build a scenario together. What should we call it - what's the condition or situation?" },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [filled, setFilled] = useState<AuthorSlot[]>([]);
+  const [talking, setTalking] = useState(false);
+
+  const sendTurn = async () => {
+    const msg = chatInput.trim();
+    if (!msg || talking) return;
+    setChatInput("");
+    setChat((c) => [...c, { role: "you", text: msg }]);
+    setTalking(true);
+    try {
+      let draftObj: Record<string, unknown> | null = null;
+      try {
+        draftObj = json.trim() ? (JSON.parse(json) as Record<string, unknown>) : null;
+      } catch {
+        draftObj = null;
+      }
+      const res = await authorTurn({ message: msg, filled, draft: draftObj });
+      setChat((c) => [...c, { role: "assistant", text: res.reply }]);
+      setFilled(res.filled);
+      setJson(JSON.stringify(res.draft, null, 2));
+    } catch (e) {
+      setChat((c) => [...c, { role: "assistant", text: e instanceof InstructorError ? e.message : "The assistant hit an error." }]);
+    } finally {
+      setTalking(false);
+    }
+  };
 
   const refreshMine = useCallback(async () => {
     try {
@@ -205,9 +239,63 @@ function Studio() {
         </div>
       </header>
 
+      {/* Mode toggle */}
+      <div className="mx-auto max-w-6xl px-5 pt-4">
+        <div className="inline-flex overflow-hidden rounded-lg border border-florence-line text-sm">
+          {(["document", "converse"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`px-4 py-1.5 font-semibold ${mode === m ? "bg-florence-teal text-white" : "bg-white text-florence-slate hover:bg-florence-mist"}`}
+            >
+              {m === "document" ? "From a document" : "Talk it through"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mx-auto grid max-w-6xl gap-5 p-5 lg:grid-cols-2">
-        {/* LEFT: source doc → draft */}
+        {/* LEFT: source doc → draft, OR conversational author */}
         <div className="space-y-4">
+          {mode === "converse" && (
+            <div className="rounded-2xl border border-florence-line bg-white p-4">
+              <p className="text-sm font-semibold">Talk it through</p>
+              <p className="mt-1 text-xs text-florence-slate">
+                Describe the scenario in plain language. I'll ask one thing at a time and build the
+                draft on the right as we go.
+              </p>
+              {/* Completeness checklist */}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(["title", "setting", "patient", "presentation", "vitals", "priority", "escalation"] as AuthorSlot[]).map((s) => (
+                  <span key={s} className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${filled.includes(s) ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>
+                    {filled.includes(s) ? "✓ " : ""}{s}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto rounded-lg bg-florence-mist/40 p-3">
+                {chat.map((m, i) => (
+                  <div key={i} className={m.role === "you" ? "text-right" : ""}>
+                    <span className={`inline-block max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${m.role === "you" ? "bg-florence-indigo text-white" : "bg-white text-florence-ink"}`}>
+                      {m.text}
+                    </span>
+                  </div>
+                ))}
+                {talking && <p className="text-xs italic text-florence-slate">thinking…</p>}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void sendTurn()}
+                  placeholder="Type your answer…"
+                  className="flex-1 rounded-md border border-florence-line px-3 py-2 text-sm"
+                />
+                <button onClick={sendTurn} disabled={talking} className="rounded-md bg-florence-teal px-4 py-2 text-sm font-semibold text-white hover:bg-florence-teal-dark disabled:opacity-50">Send</button>
+              </div>
+            </div>
+          )}
+
+          {mode === "document" && (
           <div className="rounded-2xl border border-florence-line bg-white p-4">
             <p className="text-sm font-semibold">1. Start from a document</p>
             <p className="mt-1 text-xs text-florence-slate">
@@ -250,6 +338,7 @@ function Studio() {
               </ul>
             )}
           </div>
+          )}
 
           {/* My scenarios */}
           <div className="rounded-2xl border border-florence-line bg-white p-4">

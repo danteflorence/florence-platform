@@ -481,6 +481,35 @@ try {
   assert.equal(rj.render_state, "queued");
   ok("render seam: blocked until approved, mock-queues without an Unreal service");
 
+  // 4l) Conversational authoring: a guided interview fills slots turn by turn.
+  let authorState: any = { message: "Sepsis recognition", filled: [], draft: null };
+  const answers = [
+    "Sepsis recognition",
+    "Med-surg unit, 0700, post-op day 2",
+    "Ana Cruz, 62, female, diabetes",
+    "She looks flushed and says she has chills",
+    "HR 118 BP 92/54 RR 24 SpO2 90",
+    "Recognize sepsis and escalate",
+    "Call the provider within 5 minutes or she decompensates",
+  ];
+  let last: any;
+  for (const a of answers) {
+    const r = await fetch(`${base}/v1/sim/author-turn`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...bearer(T) },
+      body: JSON.stringify({ message: a, filled: authorState.filled, draft: authorState.draft }),
+    });
+    last = (await r.json()) as any;
+    assert.equal(r.status, 200);
+    authorState = { filled: last.filled, draft: last.draft };
+  }
+  assert.equal(last.source, "mock");
+  assert.equal(last.done, true); // all 7 slots filled
+  assert.equal(last.draft.initialVitals.hr, 118); // vitals pulled from the chat
+  assert.equal(last.draft.initialVitals.sbp, 92);
+  assert.ok(last.draft.title.length > 0);
+  ok("conversational author fills all slots and pulls vitals from the chat");
+
   // 5) Purpose limitation: underwriting read needs explicit consent
   const blocked = await fetch(`${base}/v1/assessment-results?candidate_id=${candId}`, {
     headers: { ...bearer(T), "x-purpose": "underwriting" },

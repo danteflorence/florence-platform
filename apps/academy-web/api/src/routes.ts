@@ -36,6 +36,7 @@ import { buildPathwayIntake } from "./pathway.ts";
 import { computeCohortCopilot } from "./copilot.ts";
 import { patientVoiceReply, tutorHintReply, type NcjmmStep } from "./patientVoice.ts";
 import { ingestScenario } from "./scenarioIngest.ts";
+import { authorTurn, AUTHOR_SLOTS, type AuthorSlot } from "./scenarioAuthor.ts";
 import type { AuthoredScenarioStatus } from "./store.ts";
 import { renderMailpiece } from "./mailpiece.ts";
 import {
@@ -1234,6 +1235,18 @@ async function postScenarioIngest(ctx: ReqCtx, _deps: Deps): Promise<void> {
     ...(str(ctx.body, "clientNeed") ? { clientNeed: str(ctx.body, "clientNeed") } : {}),
   });
   send(ctx, 200, result);
+}
+
+// Conversational authoring: one interview turn → next question + updated draft.
+async function postAuthorTurn(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "scenario_author_turn";
+  const message = str(ctx.body, "message") ?? "";
+  if (message.length > 2000) return err(ctx, 400, "invalid_request", "message too long");
+  const filledRaw = (arr(ctx.body, "filled") ?? []) as unknown[];
+  const filled = filledRaw.filter((s): s is AuthorSlot => typeof s === "string" && AUTHOR_SLOTS.includes(s as AuthorSlot));
+  const draft = (obj(ctx.body, "draft") as Record<string, unknown> | undefined) ?? null;
+  const reply = await authorTurn({ message, filled, draft });
+  send(ctx, 200, reply);
 }
 
 // Save/update an authored scenario draft. The body is opaque here; the Studio
@@ -4416,6 +4429,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/sim/patient-voice", "candidates:read", true, postPatientVoice),
   compile("POST", "/v1/sim/tutor-hint", "candidates:read", true, postTutorHint),
   compile("POST", "/v1/sim/ingest", "cohorts:write", true, postScenarioIngest),
+  compile("POST", "/v1/sim/author-turn", "cohorts:write", true, postAuthorTurn),
   compile("POST", "/v1/sim/scenarios", "cohorts:write", true, postAuthoredScenario),
   compile("GET", "/v1/sim/scenarios", "candidates:read", true, listAuthoredScenarios),
   compile("POST", "/v1/sim/scenarios/:id/status", "cohorts:write", true, setAuthoredScenarioStatus),
