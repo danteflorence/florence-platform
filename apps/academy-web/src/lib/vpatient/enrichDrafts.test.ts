@@ -1,7 +1,7 @@
 // Unit tests for the draft→seed mapping - the part that must be RIGHT so the
 // batch enrichment doesn't mislabel scenarios.
 import { describe, expect, it } from "vitest";
-import { cleanStrings, draftToSeed, matchFirst, pickPersonaId, INSULT_MAP, INSULT_FALLBACK } from "./enrichDrafts";
+import { cleanStrings, draftToSeed, inferClientNeed, matchFirst, pickPersonaId, INSULT_MAP, INSULT_FALLBACK } from "./enrichDrafts";
 import { buildPlayableScenario } from "./scenarioGen";
 import { validateScenario } from "../../data/vpatient/validate";
 
@@ -46,5 +46,14 @@ describe("draftToSeed mapping", () => {
   it("helpers behave", () => {
     expect(matchFirst("nothing here", INSULT_MAP, "fb")).toBe("fb");
     expect(pickPersonaId(80, "F")).toBe("p-frail-f-82");
+  });
+
+  it("infers the NCLEX section from title keywords, else the insult category", () => {
+    expect(inferClientNeed("Insulin drip titration on the floor", "infection_sepsis")).toBe("pharmacological-therapies");
+    expect(inferClientNeed("Delegation and triage on a busy shift", "infection_sepsis")).toBe("management-of-care");
+    expect(inferClientNeed("Contact isolation for C. diff", "infection_sepsis")).toBe("safety-infection-control");
+    // No keyword → insult category default (acute deterioration = phys integrity).
+    expect(inferClientNeed("Acute Brain Attack", "tbi")).toBe("physiological-adaptation");
+    expect(inferClientNeed("Something", "pain")).toBe("pharmacological-therapies");
   });
 });

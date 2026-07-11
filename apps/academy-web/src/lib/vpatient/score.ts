@@ -152,6 +152,26 @@ const NCJMM_ORDER: CjmmStep[] = [
   "evaluate-outcomes",
 ];
 
+/** One row of the NCSBN Clinical Judgment Measurement Model scorecard: a layer-3
+ *  cognitive step and how the learner scored on it this run (null = the scenario
+ *  had no decision exercising that step). This is the "graded with the CJMM"
+ *  view the daily NCLEX review renders. */
+export interface CjmmScorecardRow {
+  step: CjmmStep;
+  order: number;
+  score: number | null;
+}
+
+/** The full 6-step CJMM scorecard from an evaluation, always in model order so
+ *  the six layers line up run-to-run even when a scenario skips a step. */
+export function cjmmScorecard(ev: SimEvaluation): CjmmScorecardRow[] {
+  return NCJMM_ORDER.map((step, i) => ({
+    step,
+    order: i + 1,
+    score: step in ev.byCjmm ? ev.byCjmm[step] : null,
+  }));
+}
+
 export interface CoachingFocus {
   /** The NCJMM step the tutor should nudge - the phase of thinking the
    *  learner is currently in but hasn't completed. */

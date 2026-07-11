@@ -65,6 +65,37 @@ export function matchFirst(text: string, table: [RegExp, string][], fallback: st
   return fallback;
 }
 
+// title/content → NCLEX-RN section (clientNeed). Title keywords win (they carry
+// the teaching intent); otherwise the insult's category picks the best-fit
+// section. Acute deterioration legitimately clusters in Physiological Integrity,
+// which is where the exam's weight is too.
+const CLIENT_NEED_MAP: [RegExp, ClientNeed][] = [
+  [/isolation|infection control|ppe|hand hygiene|sterile|contact precaution|c\.? ?diff|mrsa|tb\b/i, "safety-infection-control"],
+  [/delegation|triage|prioriti|hand-?off|sbar|scope of practice|assignment|charge nurse|incident/i, "management-of-care"],
+  [/insulin|anticoag|heparin|warfarin|opioid|analgesi|titrat|infusion|medication error|dosage|iv push|patient-controlled/i, "pharmacological-therapies"],
+  [/discharge teach|health teaching|immuniz|screening|nutrition|prenatal|newborn care|developmental|lifestyle/i, "health-promotion"],
+  [/anxiety|grief|coping|depression|suicid|abuse|substance|therapeutic communication|end of life|psychiatr|mental health/i, "psychosocial-integrity"],
+  [/pre-?op|post-?op|lab value|diagnostic|complication|potential|monitor for|risk for|therapeutic level/i, "reduction-of-risk"],
+  [/comfort|positioning|mobility|hygiene|rest|sleep|elimination|nutrition support/i, "basic-care-comfort"],
+];
+const INSULT_CLIENT_NEED: Record<string, ClientNeed> = {
+  pain: "pharmacological-therapies",
+  infection_sepsis: "physiological-adaptation",
+  hemorrhage: "physiological-adaptation",
+  tension_pneumothorax: "physiological-adaptation",
+  asthma_attack: "physiological-adaptation",
+  ards: "physiological-adaptation",
+  airway_obstruction: "reduction-of-risk",
+  cardiac_arrest: "physiological-adaptation",
+  tbi: "physiological-adaptation",
+  burn: "physiological-adaptation",
+};
+
+export function inferClientNeed(text: string, insultId: string): ClientNeed {
+  for (const [re, need] of CLIENT_NEED_MAP) if (re.test(text)) return need;
+  return INSULT_CLIENT_NEED[insultId] ?? "physiological-adaptation";
+}
+
 /** Closest persona by age within the draft's sex (falls back to any sex). */
 export function pickPersonaId(age: number, sex: string): string {
   const s = /^f/i.test(sex) ? "F" : /^m/i.test(sex) ? "M" : "";
@@ -84,13 +115,17 @@ export function draftToSeed(draft: RawDraft): ScenarioSeed {
   const blob = [draft.title, draft.setting, JSON.stringify(draft.patient), JSON.stringify(draft.chart)].join(" ");
   const age = Number(draft.patient?.age) || 55;
   const setting = typeof draft.setting === "string" && !/^edit[:\s]/i.test(draft.setting) ? draft.setting : undefined;
+  const insultId = matchFirst(blob, INSULT_MAP, INSULT_FALLBACK);
   return {
     id: draft.id,
     title: draft.title,
-    insultId: matchFirst(blob, INSULT_MAP, INSULT_FALLBACK),
+    insultId,
     careSettingId: matchFirst(blob, SETTING_MAP, SETTING_FALLBACK),
     personaId: pickPersonaId(age, typeof draft.patient?.sex === "string" ? draft.patient.sex : ""),
-    clientNeed: draft.clientNeed ?? "physiological-adaptation",
+    // Infer the NCLEX section from the TITLE (the one field that stays original
+    // across re-runs; the chart is regenerated) + the insult category. The
+    // drafts all defaulted to physiological-adaptation on conversion.
+    clientNeed: inferClientNeed(draft.title ?? "", insultId),
     severity: 0.85,
     setting,
     history: cleanStrings(draft.patient?.history),
