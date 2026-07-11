@@ -196,6 +196,18 @@ export interface ChartTab {
 
 export type ScenarioStatus = "draft" | "sme_reviewed" | "approved";
 
+/** Optional review-packet metadata (for the SME's human-readable one-pager and,
+ *  later, multi-role sims). None of it affects the runtime engine. */
+export interface TeamRole {
+  role: string; //          "Primary RN" | "Charge nurse" | "Provider" | "RT"
+  responsibility: string;
+}
+export interface EscalationStep {
+  trigger: string; //       "SBP < 90 or no improvement in 10 min"
+  contact: string; //       "Provider (Dr. on call)"
+  sbar: string; //          the expected SBAR summary
+}
+
 export interface VPatientScenario {
   id: string; //                "vp-sepsis-01"
   title: string;
@@ -222,4 +234,7 @@ export interface VPatientScenario {
   debrief: DebriefSpec;
   narration: NarrationClip[];
   patientResponses: PatientResponse[];
+  /** Review-packet extras (optional; never touch the engine). */
+  teamRoles?: TeamRole[];
+  escalationChain?: EscalationStep[];
 }

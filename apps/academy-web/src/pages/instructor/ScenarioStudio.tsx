@@ -31,6 +31,7 @@ import {
 } from "../../lib/instructorApi";
 import { validateScenario } from "../../data/vpatient/validate";
 import { toUnrealManifest } from "../../lib/vpatient/unrealManifest";
+import ReviewPacket from "../../components/vpatient/ReviewPacket";
 import type { VPatientScenario } from "../../data/vpatient/types";
 import { CLIENT_NEEDS } from "../../data/blueprint";
 import { SimRunner } from "../VPatientSim";
@@ -95,6 +96,7 @@ function Studio() {
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [mine, setMine] = useState<AuthoredScenarioRow[]>([]);
   const [mode, setMode] = useState<"document" | "converse">("document");
   // Conversational authoring
@@ -407,6 +409,9 @@ function Studio() {
               <button onClick={() => save()} disabled={!parsed} className="rounded-md border border-florence-line px-4 py-2 text-sm font-semibold text-florence-ink hover:bg-florence-mist disabled:opacity-50">
                 Save draft
               </button>
+              <button onClick={() => setReviewing(true)} disabled={!valid} className="rounded-md border border-florence-line px-4 py-2 text-sm font-semibold text-florence-ink hover:bg-florence-mist disabled:opacity-50">
+                Review packet
+              </button>
               <button onClick={() => save("sme_reviewed")} disabled={!valid} className="rounded-md border border-florence-line px-4 py-2 text-sm font-semibold text-florence-ink hover:bg-florence-mist disabled:opacity-50">
                 Submit for review
               </button>
@@ -417,6 +422,19 @@ function Studio() {
           </div>
         </div>
       </div>
+
+      {/* Review packet overlay - the human-readable SME one-pager */}
+      {reviewing && parsed && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+          <div className="mx-auto max-w-2xl rounded-2xl bg-white p-5 shadow-card-lg">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm font-semibold">Review packet — for the SME</span>
+              <button onClick={() => setReviewing(false)} className="rounded-md border border-florence-line px-3 py-1.5 text-sm font-semibold text-florence-ink hover:bg-florence-mist">Close</button>
+            </div>
+            <ReviewPacket scenario={parsed} />
+          </div>
+        </div>
+      )}
 
       {/* Play-test overlay - the pure engine on the edited scenario */}
       {playing && parsed && (
