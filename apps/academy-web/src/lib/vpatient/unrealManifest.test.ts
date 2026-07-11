@@ -45,4 +45,26 @@ describe("toUnrealManifest", () => {
   it("lists the outcome frames the render must support", () => {
     expect(m.outcomes.sort()).toEqual(["deteriorated", "stabilized", "time_end"]);
   });
+
+  it("defaults the environment + a single-patient cast when no unit/team is set", () => {
+    // sepsis01 has no careSettingId/team yet → falls back cleanly.
+    expect(m.environment.key.startsWith("env_")).toBe(true);
+    expect(m.cast).toHaveLength(1);
+    expect(m.cast[0]).toMatchObject({ kind: "patient", role: "patient" });
+  });
+
+  it("resolves the environment + interprofessional cast from care setting + team", () => {
+    const withTeam = toUnrealManifest({
+      ...SEPSIS_01,
+      careSettingId: "home_health",
+      team: [
+        { id: "md", role: "physician", name: "Dr. Okafor", reachableVia: "phone" },
+        { id: "rph", role: "pharmacist", name: "PharmD Lee", reachableVia: "phone" },
+      ],
+    });
+    expect(withTeam.environment.key).toBe("env_home_living_room");
+    expect(withTeam.environment.equipment.length).toBeGreaterThan(0);
+    expect(withTeam.cast).toHaveLength(3);
+    expect(withTeam.cast.filter((c) => c.kind === "team").map((c) => c.role).sort()).toEqual(["pharmacist", "physician"]);
+  });
 });

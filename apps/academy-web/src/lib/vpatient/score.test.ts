@@ -51,6 +51,13 @@ describe("evaluate", () => {
     expect(ev.missedCriticalCues).toEqual(["c-confusion"]);
   });
 
+  it("communication lens is null when no decision is flagged communication", () => {
+    // Sepsis has clinical decisions but none tagged communication:true, so the
+    // interprofessional lens simply doesn't apply - it must be null, not 0.
+    const ev = evaluate(runScript([[0, "check_vitals"]]), sc);
+    expect(ev.communication).toBeNull();
+  });
+
   it("total neglect: zero overall, deteriorated, the right error tags", () => {
     const ev = evaluate(runScript([]), sc);
     expect(ev.outcome).toBe("deteriorated");

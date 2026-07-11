@@ -64,10 +64,33 @@ export interface Cue {
 
 export type ActionCategory = "assess" | "intervene" | "med" | "communicate";
 
+/** Interprofessional roles a scenario's team can include - the people a nurse
+ *  transitioning to US practice must learn to work with and escalate to. */
+export type TeamRoleKind =
+  | "charge_nurse"
+  | "physician"
+  | "pharmacist"
+  | "respiratory_therapist"
+  | "rapid_response"
+  | "provider_on_call"
+  | "social_work"
+  | "case_manager";
+
+export interface TeamMember {
+  id: string;
+  role: TeamRoleKind;
+  name: string; //          "Dr. Patel (hospitalist)"
+  /** How the learner reaches them in this setting. */
+  reachableVia: "in_person" | "phone" | "page" | "secure_chat";
+}
+
 export interface ActionDef {
   id: string;
   label: string; //             "Draw blood cultures"
   category: ActionCategory;
+  /** For communicate-category actions: which team member this contacts. Drives
+   *  the interprofessional-communication scoring + the 3D cast. */
+  targetRole?: TeamRoleKind;
   /** Seconds the nurse is occupied; no other action can start meanwhile. */
   durationSec: number;
   /** Optional lockout before the same action can repeat (e.g. reassess). */
@@ -157,6 +180,10 @@ export interface RubricEntry {
   errorTypeIfMissed: ErrorType;
   errorTypeIfHarmful?: ErrorType;
   weight: number; //            relative weight within its dimensions
+  /** Marks a decision as an interprofessional-COMMUNICATION beat (SBAR,
+   *  right-person escalation, de-escalation) - rolled up as its own lens so
+   *  transition-to-US-practice communication is scored explicitly. */
+  communication?: boolean;
   /** Clinical source for the window/decision - shown to SMEs, kept honest. */
   citation?: string;
 }
@@ -234,6 +261,10 @@ export interface VPatientScenario {
   debrief: DebriefSpec;
   narration: NarrationClip[];
   patientResponses: PatientResponse[];
+  /** The care setting (unit) - organizes the library + selects the 3D env. */
+  careSettingId?: string;
+  /** The interprofessional team the learner works with in this scenario. */
+  team?: TeamMember[];
   /** Review-packet extras (optional; never touch the engine). */
   teamRoles?: TeamRole[];
   escalationChain?: EscalationStep[];

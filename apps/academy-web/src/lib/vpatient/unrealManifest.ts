@@ -13,6 +13,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 
 import type { VPatientScenario, VitalsNumeric } from "../../data/vpatient/types";
+import { CARE_SETTING_BY_ID } from "../../data/vpatient/careSettings";
 
 /** Category → a coarse animation clip the Unreal patient/actor plays. */
 const ACTION_ANIMATION: Record<string, string> = {
@@ -37,6 +38,8 @@ export interface VitalsKeyframe {
 export interface UnrealManifest {
   manifestVersion: 1;
   scene: { id: string; title: string; setting: string };
+  /** The 3D environment + props to load (from the care setting). */
+  environment: { key: string; label: string; equipment: string[] };
   patient: {
     name: string;
     age: number;
@@ -45,6 +48,8 @@ export interface UnrealManifest {
     modelHint: string;
     initialPose: "supine" | "semi_fowler" | "seated";
   };
+  /** Every character in the scene: the patient + the interprofessional team. */
+  cast: { id: string; kind: "patient" | "team"; role: string; name: string; modelHint: string }[];
   /** Vitals over the run - the Unreal monitor + patient animation interpolate. */
   vitalsTrack: VitalsKeyframe[];
   /** Every learner action → an animation clip + category. */
@@ -126,9 +131,26 @@ export function toUnrealManifest(sc: VPatientScenario): UnrealManifest {
     }
   }
 
+  const setting = sc.careSettingId ? CARE_SETTING_BY_ID.get(sc.careSettingId) : undefined;
+  const cast: UnrealManifest["cast"] = [
+    { id: "patient", kind: "patient", role: "patient", name: sc.patient.name, modelHint: modelHint(sc.patient.age, sc.patient.sex) },
+    ...(sc.team ?? []).map((m) => ({
+      id: m.id,
+      kind: "team" as const,
+      role: m.role,
+      name: m.name,
+      modelHint: `staff_${m.role}`,
+    })),
+  ];
+
   return {
     manifestVersion: 1,
     scene: { id: sc.id, title: sc.title, setting: sc.setting },
+    environment: {
+      key: setting?.unrealEnvironmentKey ?? "env_medsurg_room",
+      label: setting?.label ?? "Med-surg room",
+      equipment: setting?.typicalEquipment ?? [],
+    },
     patient: {
       name: sc.patient.name,
       age: sc.patient.age,
@@ -136,6 +158,7 @@ export function toUnrealManifest(sc: VPatientScenario): UnrealManifest {
       modelHint: modelHint(sc.patient.age, sc.patient.sex),
       initialPose: sc.initialVitals.loc === "unresponsive" ? "supine" : "semi_fowler",
     },
+    cast,
     vitalsTrack: track,
     actionCues: sc.actions.map((a) => ({
       id: a.id,

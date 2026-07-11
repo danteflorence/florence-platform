@@ -45,6 +45,9 @@ export interface SimEvaluation {
   overall: number;
   byClientNeed: Record<string, number>;
   byCjmm: Record<string, number>;
+  /** Interprofessional-communication score (0..1), null when the scenario has
+   *  no communication decisions. The transition-to-US-practice lens. */
+  communication: number | null;
   /** Reasoning-error tags earned this run (deduped, order of occurrence). */
   errorTags: string[];
   decisions: DecisionResult[];
@@ -205,6 +208,8 @@ export function evaluate(state: SimState, scenario: VPatientScenario): SimEvalua
   const cjmmAcc = new Map<string, { sum: number; weight: number }>();
   let sum = 0;
   let weightTotal = 0;
+  let commSum = 0;
+  let commWeight = 0;
   const errorTags: string[] = [];
   for (let i = 0; i < decisions.length; i++) {
     const d = decisions[i];
@@ -220,6 +225,10 @@ export function evaluate(state: SimState, scenario: VPatientScenario): SimEvalua
     cjmm.sum += d.score * entry.weight;
     cjmm.weight += entry.weight;
     cjmmAcc.set(entry.ncjmmStep, cjmm);
+    if (entry.communication) {
+      commSum += d.score * entry.weight;
+      commWeight += entry.weight;
+    }
     if (d.errorTag && !errorTags.includes(d.errorTag)) errorTags.push(d.errorTag);
   }
   const byClientNeed: Record<string, number> = {};
@@ -243,6 +252,7 @@ export function evaluate(state: SimState, scenario: VPatientScenario): SimEvalua
     overall: weightTotal > 0 ? round3(sum / weightTotal) : 0,
     byClientNeed,
     byCjmm,
+    communication: commWeight > 0 ? round3(commSum / commWeight) : null,
     errorTags,
     decisions,
     caughtCriticalCues,

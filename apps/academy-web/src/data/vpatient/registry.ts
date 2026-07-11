@@ -8,8 +8,9 @@ import { SEPSIS_01 } from "./scenarios/sepsis01";
 import { HF_01 } from "./scenarios/hf01";
 import { HEMORRHAGE_01 } from "./scenarios/hemorrhage01";
 import { HYPOVOLEMIC_01 } from "./scenarios/hypovolemic01";
+import { HOMEHEALTH_01 } from "./scenarios/homehealth01";
 
-const ALL: VPatientScenario[] = [SEPSIS_01, HF_01, HEMORRHAGE_01, HYPOVOLEMIC_01];
+const ALL: VPatientScenario[] = [SEPSIS_01, HF_01, HEMORRHAGE_01, HYPOVOLEMIC_01, HOMEHEALTH_01];
 
 /** Approved scenarios a learner may launch. */
 export function approvedScenarios(): VPatientScenario[] {
