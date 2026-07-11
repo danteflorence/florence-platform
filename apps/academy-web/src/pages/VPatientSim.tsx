@@ -34,6 +34,7 @@ import {
   type Difficulty,
 } from "../lib/vpatient/difficulty";
 import VitalsDisplay, { type VitalsSample } from "../components/vpatient/VitalsDisplay";
+import PatientPresence from "../components/vpatient/PatientPresence";
 import LabsPanel from "../components/vpatient/LabsPanel";
 import SimNarrationAudio from "../components/vpatient/SimNarrationAudio";
 import SimDebrief from "../components/vpatient/SimDebrief";
@@ -338,6 +339,8 @@ export function SimRunner({
 
       <main className="mx-auto max-w-2xl space-y-3 px-4 py-3">
         <VitalsDisplay vitals={state.vitals} clockSec={state.clockSec} history={started ? history : undefined} />
+
+        {started && <PatientPresence vitals={state.vitals} name={scenario.patient.name} />}
 
         {/* Chart drawer */}
         {chartOpen && (
