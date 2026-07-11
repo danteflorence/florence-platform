@@ -33,11 +33,12 @@ import {
   isDifficulty,
   type Difficulty,
 } from "../lib/vpatient/difficulty";
-import VitalsDisplay from "../components/vpatient/VitalsDisplay";
+import VitalsDisplay, { type VitalsSample } from "../components/vpatient/VitalsDisplay";
 import LabsPanel from "../components/vpatient/LabsPanel";
 import SimNarrationAudio from "../components/vpatient/SimNarrationAudio";
 import SimDebrief from "../components/vpatient/SimDebrief";
 import { speakText } from "../lib/audioManifest";
+import { useMonitorAudio } from "../lib/vpatient/monitorAudio";
 
 const CATEGORY_LABEL: Record<ActionCategory, string> = {
   assess: "Assess",
@@ -142,6 +143,31 @@ export function SimRunner({
   const [tutorHint, setTutorHint] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Vitals trend history for the tile sparklines: sample every 2s, keep the
+  // last 90 points (~a 3-minute rolling window). Plain state - 1 Hz is cheap.
+  const [history, setHistory] = useState<VitalsSample[]>([]);
+  useEffect(() => {
+    if (!started || state.clockSec % 2 !== 0) return;
+    setHistory((h) => {
+      const next = [
+        ...h,
+        {
+          atSec: state.clockSec,
+          hr: state.vitals.hr,
+          sbp: state.vitals.sbp,
+          spo2: state.vitals.spo2,
+          rr: state.vitals.rr,
+          tempC: state.vitals.tempC,
+        },
+      ];
+      return next.length > 90 ? next.slice(next.length - 90) : next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.clockSec, started]);
+
+  // The bedside soundscape: HR-synced pulse + two-tone critical alarm.
+  useMonitorAudio({ vitals: state.vitals, running, muted });
+
   // Re-arm the run whenever the difficulty changes before the shift starts
   // (locked once started - you can't change the clock mid-code).
   useEffect(() => {
@@ -170,6 +196,7 @@ export function SimRunner({
   const restart = useCallback(() => {
     dispatch({ type: "reset", scenario });
     setAskReply(null);
+    setHistory([]);
     setStarted(true);
     setRunning(true);
   }, [scenario]);
@@ -310,7 +337,7 @@ export function SimRunner({
       </header>
 
       <main className="mx-auto max-w-2xl space-y-3 px-4 py-3">
-        <VitalsDisplay vitals={state.vitals} clockSec={state.clockSec} />
+        <VitalsDisplay vitals={state.vitals} clockSec={state.clockSec} history={started ? history : undefined} />
 
         {/* Chart drawer */}
         {chartOpen && (

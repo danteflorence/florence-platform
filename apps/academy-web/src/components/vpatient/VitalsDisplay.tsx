@@ -3,8 +3,47 @@
 // engine's state each tick). Deliberately separate from VitalsMonitor.tsx,
 // which plays a pre-computed recharts trace; this one just shows the current
 // numbers, which is what a running sim needs on a phone.
+//
+// Trends: pass `history` (the player samples it) and each tile draws a tiny
+// hand-rolled SVG sparkline - a learner should SEE the BP drifting down, not
+// just notice a lower number. No chart library: a polyline is enough and it
+// stays cheap at 1 Hz on a low-end phone.
 
 import type { VitalsState } from "../../data/vpatient/types";
+
+/** One time-sample of the numeric vitals the sparklines trend. */
+export interface VitalsSample {
+  atSec: number;
+  hr: number;
+  sbp: number;
+  spo2: number;
+  rr: number;
+  tempC: number;
+}
+
+function Spark({ points, color }: { points: number[]; color: string }) {
+  if (points.length < 3) return null;
+  const w = 56;
+  const h = 12;
+  let min = Math.min(...points);
+  let max = Math.max(...points);
+  // Pad a near-flat series so noise doesn't render as a cliff.
+  const minSpan = Math.max(2, Math.abs(max) * 0.06);
+  if (max - min < minSpan) {
+    const mid = (max + min) / 2;
+    min = mid - minSpan / 2;
+    max = mid + minSpan / 2;
+  }
+  const step = w / (points.length - 1);
+  const path = points
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / (max - min)) * h).toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-1 h-3 w-full" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={path} fill="none" stroke={color} strokeOpacity="0.55" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 /** Alarm thresholds - a readout pulses red when its value leaves the safe band. */
 function isAlarming(key: keyof VitalsState, v: VitalsState): boolean {
@@ -30,12 +69,14 @@ function Readout({
   unit,
   color,
   alarm,
+  trend,
 }: {
   label: string;
   value: string;
   unit: string;
   color: string;
   alarm?: boolean;
+  trend?: number[];
 }) {
   return (
     <div
@@ -55,6 +96,7 @@ function Readout({
           {unit}
         </span>
       </p>
+      {trend && <Spark points={trend} color={color} />}
     </div>
   );
 }
@@ -62,10 +104,15 @@ function Readout({
 export default function VitalsDisplay({
   vitals,
   clockSec,
+  history,
 }: {
   vitals: VitalsState;
   clockSec?: number;
+  /** Optional trend samples (the sim player accumulates these). */
+  history?: VitalsSample[];
 }) {
+  const trendOf = (key: keyof Omit<VitalsSample, "atSec">): number[] | undefined =>
+    history && history.length >= 3 ? history.map((s) => s[key]) : undefined;
   return (
     <div className="rounded-2xl border border-florence-line bg-florence-ink/[0.03] p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -81,11 +128,11 @@ export default function VitalsDisplay({
         )}
       </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-        <Readout label="HR" value={String(Math.round(vitals.hr))} unit="bpm" color="#FF5C61" alarm={isAlarming("hr", vitals)} />
-        <Readout label="NIBP" value={`${Math.round(vitals.sbp)}/${Math.round(vitals.dbp)}`} unit="mmHg" color="#9D8BE6" alarm={isAlarming("sbp", vitals)} />
-        <Readout label="SpO₂" value={String(Math.round(vitals.spo2))} unit="%" color="#2EE0BD" alarm={isAlarming("spo2", vitals)} />
-        <Readout label="RR" value={String(Math.round(vitals.rr))} unit="/min" color="#6CC7FF" alarm={isAlarming("rr", vitals)} />
-        <Readout label="Temp" value={vitals.tempC.toFixed(1)} unit="°C" color="#FFB020" alarm={isAlarming("tempC", vitals)} />
+        <Readout label="HR" value={String(Math.round(vitals.hr))} unit="bpm" color="#FF5C61" alarm={isAlarming("hr", vitals)} trend={trendOf("hr")} />
+        <Readout label="NIBP" value={`${Math.round(vitals.sbp)}/${Math.round(vitals.dbp)}`} unit="mmHg" color="#9D8BE6" alarm={isAlarming("sbp", vitals)} trend={trendOf("sbp")} />
+        <Readout label="SpO₂" value={String(Math.round(vitals.spo2))} unit="%" color="#2EE0BD" alarm={isAlarming("spo2", vitals)} trend={trendOf("spo2")} />
+        <Readout label="RR" value={String(Math.round(vitals.rr))} unit="/min" color="#6CC7FF" alarm={isAlarming("rr", vitals)} trend={trendOf("rr")} />
+        <Readout label="Temp" value={vitals.tempC.toFixed(1)} unit="°C" color="#FFB020" alarm={isAlarming("tempC", vitals)} trend={trendOf("tempC")} />
         <Readout label="Pain" value={String(Math.round(vitals.pain))} unit="/10" color="#F0F4FF" />
       </div>
       {vitals.loc !== "alert" && (
