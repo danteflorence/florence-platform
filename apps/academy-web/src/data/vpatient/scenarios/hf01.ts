@@ -24,6 +24,7 @@ export const HF_01: VPatientScenario = {
   status: "approved",
   setting: "Med-surg, hospital day 2 of pneumonia treatment. 0600, night nurse mentions he 'slept sitting up'.",
   clientNeed: "physiological-adaptation",
+  careSettingId: "telemetry",
   patient: {
     name: "Ernesto Cruz",
     age: 71,

@@ -9,7 +9,7 @@ import { apiBaseUrl } from "./academyAuth";
 export interface AudioEntry {
   url: string;
   durationSec: number;
-  kind: "rationale" | "stem" | "lesson" | "walkthrough" | "coaching";
+  kind: "rationale" | "stem" | "lesson" | "walkthrough" | "coaching" | "sim";
 }
 
 let cache: Promise<Record<string, AudioEntry>> | null = null;
@@ -43,6 +43,9 @@ export const lessonIntroKey = (section: number) => `lesson-${section}-intro`;
 // Walkthrough audio keys (must match the api audioStore.ts builders).
 export const walkthroughKey = (questionId: string) => `wt-${questionId}`;
 export const coachingKey = (questionId: string, optionIndex: number) => `co-${questionId}-${optionIndex}`;
+// Sim narration clips (patient lines + narrate effects). Must match the api
+// audioStore.ts builder when these are generated. Null until generated.
+export const simNarrationKey = (scenarioId: string, audioId: string) => `sim-${scenarioId}-${audioId}`;
 
 export async function audioFor(key: string): Promise<AudioEntry | null> {
   const m = await loadAudioManifest();

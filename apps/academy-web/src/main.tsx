@@ -34,6 +34,7 @@ const EmployerPortal = lazy(() => import("./pages/partners/EmployerPortal"));
 const UniversityDashboard = lazy(() => import("./pages/partners/UniversityDashboard"));
 const DesignSystemPreviewPage = lazy(() => import("./pages/DesignSystemPreview"));
 const VPatientSim = lazy(() => import("./pages/VPatientSim"));
+const SimLibrary = lazy(() => import("./pages/SimLibrary"));
 
 function PageFallback() {
   return (
@@ -195,6 +196,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={
               <Suspense fallback={<PageFallback />}>
                 <Library />
+              </Suspense>
+            }
+          />
+          <Route
+            path="academy/sims"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <SimLibrary />
               </Suspense>
             }
           />

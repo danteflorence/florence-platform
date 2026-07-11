@@ -119,6 +119,12 @@ export default function AcademyHome() {
               Nightly practice · 150 adaptive →
             </Link>
             <Link
+              to="/academy/sims"
+              className={buttonClassName({ variant: "secondary", size: "lg" })}
+            >
+              Virtual patients →
+            </Link>
+            <Link
               to="/academy/tutor"
               className={buttonClassName({ variant: "secondary", size: "lg" })}
             >

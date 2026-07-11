@@ -35,6 +35,7 @@ import {
 } from "../lib/vpatient/difficulty";
 import VitalsDisplay from "../components/vpatient/VitalsDisplay";
 import LabsPanel from "../components/vpatient/LabsPanel";
+import SimNarrationAudio from "../components/vpatient/SimNarrationAudio";
 import SimDebrief from "../components/vpatient/SimDebrief";
 
 const CATEGORY_LABEL: Record<ActionCategory, string> = {
@@ -134,6 +135,7 @@ export function SimRunner({
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
   const [tutorHint, setTutorHint] = useState<string | null>(null);
@@ -257,18 +259,38 @@ export function SimRunner({
             <p className="truncate text-sm font-semibold text-florence-ink">{scenario.title}</p>
             <p className="truncate text-[11px] text-florence-slate">{scenario.setting}</p>
           </div>
-          <button
-            onClick={() => setChartOpen((o) => !o)}
-            className="relative shrink-0 rounded-lg border border-florence-line bg-white px-3 py-1.5 text-xs font-semibold text-florence-ink hover:bg-florence-mist"
-          >
-            {chartOpen ? "Close chart" : "Chart"}
-            {!chartOpen && resultedPanels.length > 0 && (
-              <span
-                className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-vital-danger ring-2 ring-white"
-                aria-label="New lab results"
-              />
-            )}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => setMuted((m) => !m)}
+              aria-label={muted ? "Unmute patient audio" : "Mute patient audio"}
+              aria-pressed={muted}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-florence-line bg-white text-florence-ink hover:bg-florence-mist"
+            >
+              {muted ? (
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M9 4 5.5 7H3v6h2.5L9 16V4Z" />
+                  <path d="M13 8l4 4m0-4-4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M9 4 5.5 7H3v6h2.5L9 16V4Z" />
+                  <path d="M12.5 7a4 4 0 0 1 0 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setChartOpen((o) => !o)}
+              className="relative rounded-lg border border-florence-line bg-white px-3 py-1.5 text-xs font-semibold text-florence-ink hover:bg-florence-mist"
+            >
+              {chartOpen ? "Close chart" : "Chart"}
+              {!chartOpen && resultedPanels.length > 0 && (
+                <span
+                  className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-vital-danger ring-2 ring-white"
+                  aria-label="New lab results"
+                />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -352,10 +374,18 @@ export function SimRunner({
             <div className="rounded-2xl border border-florence-line bg-white p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-florence-slate">What you notice</p>
               <div className="mt-2 space-y-2">
-                {state.narrationLog.slice(-4).map((n, i) => (
-                  <p key={`${n.atSec}-${i}`} className="text-sm italic leading-relaxed text-florence-ink/90">
-                    "{n.text}"
-                  </p>
+                {state.narrationLog.slice(-4).map((n, i, arr) => (
+                  <div key={`${n.atSec}-${i}`} className="flex items-start gap-2">
+                    {n.audioId && (
+                      <SimNarrationAudio
+                        scenarioId={scenario.id}
+                        audioId={n.audioId}
+                        muted={muted}
+                        autoPlay={!muted && i === arr.length - 1}
+                      />
+                    )}
+                    <p className="text-sm italic leading-relaxed text-florence-ink/90">"{n.text}"</p>
+                  </div>
                 ))}
                 {revealedCues.map((c) => (
                   <div key={c.id} className="flex items-start gap-2 rounded-lg bg-florence-mist/60 px-3 py-2">

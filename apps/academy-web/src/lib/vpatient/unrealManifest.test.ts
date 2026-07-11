@@ -47,10 +47,11 @@ describe("toUnrealManifest", () => {
   });
 
   it("defaults the environment + a single-patient cast when no unit/team is set", () => {
-    // sepsis01 has no careSettingId/team yet → falls back cleanly.
-    expect(m.environment.key.startsWith("env_")).toBe(true);
-    expect(m.cast).toHaveLength(1);
-    expect(m.cast[0]).toMatchObject({ kind: "patient", role: "patient" });
+    // Strip the unit/team to exercise the fallback explicitly.
+    const bare = toUnrealManifest({ ...SEPSIS_01, careSettingId: undefined, team: undefined });
+    expect(bare.environment.key).toBe("env_medsurg_room");
+    expect(bare.cast).toHaveLength(1);
+    expect(bare.cast[0]).toMatchObject({ kind: "patient", role: "patient" });
   });
 
   it("resolves the environment + interprofessional cast from care setting + team", () => {

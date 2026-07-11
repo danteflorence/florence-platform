@@ -27,6 +27,7 @@ export const HEMORRHAGE_01: VPatientScenario = {
   status: "approved",
   setting: "Ortho unit, 6 hours after a total hip replacement. 2200, lights low.",
   clientNeed: "reduction-of-risk",
+  careSettingId: "pacu",
   patient: {
     name: "Grace Mwangi",
     age: 64,

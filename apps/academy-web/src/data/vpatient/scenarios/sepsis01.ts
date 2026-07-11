@@ -23,6 +23,7 @@ export const SEPSIS_01: VPatientScenario = {
   status: "approved",
   setting: "Med-surg, post-op day 2 after an open appendectomy. 0700 handoff just ended.",
   clientNeed: "physiological-adaptation",
+  careSettingId: "med_surg",
   patient: {
     name: "Rosa Alvarez",
     age: 58,

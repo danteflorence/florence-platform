@@ -29,6 +29,7 @@ export const HYPOVOLEMIC_01: VPatientScenario = {
   status: "approved",
   setting: "Rural ER, 1400. A new patient was just wheeled in - weakness and vomiting for six hours.",
   clientNeed: "physiological-adaptation",
+  careSettingId: "med_surg",
   patient: {
     name: "Ray Delgado",
     age: 50,
