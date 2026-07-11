@@ -210,9 +210,16 @@ export async function readPassportView(store: Store, audit: Audit, inp: Passport
     }
   }
 
+  // C02 (BOLA): a candidate token is SELF only for the nurse it is actually bound to —
+  // its `cand` claim must equal the resolved nurse id or one of the nurse's linked app
+  // refs. An unbound or mismatched candidate token gets relationship "none", which the
+  // policy denies (fail-closed): candidates can never enumerate other nurses' Passports.
+  const candBoundToNurse =
+    inp.role === "candidate" &&
+    Boolean(inp.cand && (inp.cand === nurse.id || refs.some((r) => r.external_id === inp.cand)));
   const relationship: Relationship =
     inp.role === "candidate"
-      ? "self"
+      ? (candBoundToNurse ? "self" : "none")
       : inp.role === "employer" || inp.role === "university" || inp.role === "lender"
         ? (inp.orgId ? "org_matched" : "none")
         : "self";

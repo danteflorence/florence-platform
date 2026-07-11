@@ -108,6 +108,17 @@ async function main() {
   const un = await call("GET", `/v1/nurses/${nurseId}/passport?view=employer`);
   ok("gateway: no token ⇒ 401", un.status === 401);
 
+  // ── C02 (BOLA): a candidate token is SELF only for the nurse it is bound to ──
+  const candSelfTok = mintUserSession(keys, { id: "u-cand", email: "nurse@x.dev", status: "active", created_at: nowIso(), updated_at: nowIso(), cand_id: nurseId }, [grant("candidate")]).token;
+  const candOtherTok = mintUserSession(keys, { id: "u-cand2", email: "other@x.dev", status: "active", created_at: nowIso(), updated_at: nowIso(), cand_id: "cand-not-this-nurse" }, [grant("candidate")]).token;
+  const candSelf = await call("GET", `/v1/nurses/${nurseId}/passport?view=self`, candSelfTok);
+  ok("C02: candidate reads OWN passport (cand bound to nurse) ⇒ 200", candSelf.status === 200);
+  const candBola = await call("GET", `/v1/nurses/${nurseId}/passport?view=self`, candOtherTok);
+  ok("C02: candidate CANNOT read another nurse's passport (BOLA) ⇒ 403", candBola.status === 403);
+  // ── H07: /me must NOT echo the caller's bearer/cookie token in the body ──
+  const me = await call("GET", "/me", opsToken);
+  ok("H07: GET /me does NOT return the token in the body", me.status === 200 && !("token" in (me.body ?? {})));
+
   // ── OpenAPI contract (public) ─────────────────────────────────────────────
   const oa = await call("GET", "/v1/openapi.json");
   ok("gateway: /v1/openapi.json is PUBLIC + 3.1 + lists the nurses path", oa.status === 200 && oa.body.openapi === "3.1.0" && !!oa.body.paths?.["/v1/nurses/{id}/passport"]);

@@ -386,6 +386,8 @@ export function buildRoutes(deps: Deps): Route[] {
           sendJson(ctx.res, 401, { authenticated: false });
           return;
         }
+        // H07: never echo the credential back in the body — the caller already holds
+        // the cookie/bearer it authenticated with, and response bodies get logged/dumped.
         sendJson(ctx.res, 200, {
           authenticated: true,
           user: { id: claims.sub, email: claims.email ?? null, name: claims.name ?? null },
@@ -396,7 +398,6 @@ export function buildRoutes(deps: Deps): Route[] {
           territory: claims.territory ?? null,
           scope: claims.scope,
           exp: claims.exp,
-          token: bearerOrCookie(ctx) ?? null,
         });
       },
     },

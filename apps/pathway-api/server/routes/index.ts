@@ -80,11 +80,19 @@ api.get('/session', h(async (req, res) => {
   })
 }))
 
-// Candidate binding (defense-in-depth): a candidate-bound Core token may only touch
-// its OWN dossier/workflows; staff bypass; anonymous stays allowed for the open
-// copilot (interim — full lockdown lands with the candidate sign-in frontend).
+// Candidate binding (C01): a candidate-bound Core token may only touch its OWN
+// dossier/workflows; staff bypass. Anonymous access to these restricted immigration/
+// licensure routes is closed when PATHWAY_REQUIRE_AUTH=1 (401). It defaults OFF so the
+// open Candidate Copilot keeps working until the candidate sign-in frontend ships; flip
+// it ON in staging/production once sign-in exists (shadow-first, mirrors the readiness
+// gate). Non-production configs must not leave real candidate data reachable anonymously.
+const REQUIRE_AUTH = process.env.PATHWAY_REQUIRE_AUTH === '1'
 api.use('/candidates/:id', mw(async (req, res, next) => {
   const p = await principalFromRequest(req)
+  if (!p && REQUIRE_AUTH) {
+    res.status(401).json({ error: 'Sign in required.' })
+    return
+  }
   if (p && !isStaffPrincipal(p) && p.cand && p.cand !== req.params.id) {
     res.status(403).json({ error: 'You can only access your own records.' })
     return
@@ -93,6 +101,10 @@ api.use('/candidates/:id', mw(async (req, res, next) => {
 }))
 api.use('/workflows/:id', mw(async (req, res, next) => {
   const p = await principalFromRequest(req)
+  if (!p && REQUIRE_AUTH) {
+    res.status(401).json({ error: 'Sign in required.' })
+    return
+  }
   if (p && !isStaffPrincipal(p) && p.cand) {
     const w = await store.workflows.get(req.params.id)
     if (w && w.candidateId !== p.cand) {

@@ -48,9 +48,9 @@
 
 ### API Responses and Exports
 
-- Core `/me` returns the current bearer or cookie token in the JSON response.
-- ATS `/api/ops` read surfaces can expose employer packets, requisitions, ledger entries, and application data to employer users beyond their tenant.
-- Pathway internal candidate and workflow reads return broad dossiers and workflow state when unauthenticated.
+- ~~Core `/me` returns the current bearer or cookie token in the JSON response.~~ **Fixed 2026-07-11 (H07):** `/me` no longer echoes the token.
+- ATS `/api/ops` read surfaces can expose employer packets, requisitions, ledger entries, and application data to employer users beyond their tenant. *(C03 — partially mitigated; deny-by-default still open.)*
+- Pathway internal candidate and workflow reads return broad dossiers and workflow state when unauthenticated. *(C01 — closable via `PATHWAY_REQUIRE_AUTH=1`; default off pending candidate sign-in FE.)*
 - Consular payment CSV export includes candidate contact data and full SEVIS values.
 - Lender decision listing can return all credit decisions when no organization filter is applied.
 

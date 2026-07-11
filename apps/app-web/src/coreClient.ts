@@ -21,7 +21,6 @@ export interface SessionState {
   org_id?: string | null;
   cand?: string | null;
   scope?: string;
-  token?: string | null;
 }
 
 export interface PassportDocumentMap {

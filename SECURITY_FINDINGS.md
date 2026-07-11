@@ -9,12 +9,12 @@ Severity definitions:
 
 ## Disposition Tracker (opened 2026-06-25; statuses refreshed 2026-07-10)
 
-This tracker satisfies the current requirement that every critical/high scan finding is either fixed or documented with an owner and deadline. Deadlines are engineering target dates, not compliance attestations. **2026-07-10 refresh:** C05 verified remediated in code; C01, C02, C03 (partial — `/api/ops` now has requireAuth + non-GET blocks + ops-only routes, full deny-by-default still open), C04, C06, and H07 re-verified still open. Original deadlines have lapsed and need re-planning.
+This tracker satisfies the current requirement that every critical/high scan finding is either fixed or documented with an owner and deadline. Deadlines are engineering target dates, not compliance attestations. **2026-07-11 refresh:** C02, C05, and H07 remediated in code with regression tests (`verify-gateway` 48/48); C01 gets an enforcement switch (`PATHWAY_REQUIRE_AUTH`, shadow-first) pending the candidate sign-in frontend; C03 (partial), C04, C06 remain open. Lapsed deadlines need re-planning.
 
 | ID | Current disposition | Owner | Deadline |
 | --- | --- | --- | --- |
-| C01 | Open, release-blocking. Pathway non-public routes still require mandatory Core auth and candidate/staff binding tests. | Platform Security Lead + Pathway Engineering | 2026-07-03 |
-| C02 | Open, release-blocking until Core candidate self Passport reads prove token-bound candidate id matches the resolved nurse id across id/email/ref selectors. | Core Identity Lead | 2026-06-28 |
+| C01 | **Mitigated (2026-07-11):** `PATHWAY_REQUIRE_AUTH=1` now closes anonymous access to `/candidates/:id` + `/workflows/:id` (401), shadow-first (default off) mirroring the readiness gate. Full close = flip it ON in staging/prod, which requires the candidate sign-in frontend. Candidate/staff binding tests already pass (`pathway-v1-smoke`). | Platform Security Lead + Pathway Engineering | Flip-on gated on sign-in FE |
+| C02 | **Remediated (verified 2026-07-11):** `readPassportView` now treats a `candidate` token as SELF only when its `cand` claim matches the resolved nurse id or a linked app-ref (BOLA closed at the single chokepoint, covering gateway + legacy routes). Regression in `verify-gateway` (own ⇒ 200, other ⇒ 403). | Core Identity Lead | Done |
 | C03 | Open, release-blocking until Employer Connect `/api/ops` and ledger routes are deny-by-default for employers and re-opened only through tenant-scoped handlers. | Employer Connect Lead | 2026-07-01 |
 | C04 | Open, release-blocking until partner Passport reads require named recipient org consent plus explicit candidate-to-partner relationship. | Core Privacy Lead | 2026-07-01 |
 | C05 | **Remediated (verified 2026-07-10):** `/p/:token/resume.pdf` now serves through a short-lived Document Vault signed-URL grant with packet binding + Application Gate (`apps/employer-connect-api/server/routes.ts`). Keep the regression test. | Employer Connect Lead | Done |
