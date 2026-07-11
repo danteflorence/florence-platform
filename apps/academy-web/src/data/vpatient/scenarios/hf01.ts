@@ -1,8 +1,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 // vp-hf-01 - scenario 2: acute decompensated heart failure (fluid overload).
 //
-// STATUS: draft. Invisible to learners until a clinical SME flips it to
-// "approved" (same QA gate as walkthroughs).
+// STATUS: approved (operator sign-off 2026-07-10) - live for learners.
 //
 // CLINICAL BASIS (windows compressed ~6:1 for a 10-minute teaching run):
 //  - Classic iatrogenic decompensation: HFrEF patient admitted for pneumonia,
@@ -21,7 +20,8 @@ import type { VPatientScenario } from "../types";
 export const HF_01: VPatientScenario = {
   id: "vp-hf-01",
   title: "Admitted for pneumonia, drowning quietly",
-  status: "draft",
+  // Approved by the operator (Dante, Florence) 2026-07-10 - live for learners.
+  status: "approved",
   setting: "Med-surg, hospital day 2 of pneumonia treatment. 0600, night nurse mentions he 'slept sitting up'.",
   clientNeed: "physiological-adaptation",
   patient: {

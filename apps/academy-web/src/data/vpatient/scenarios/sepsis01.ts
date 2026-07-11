@@ -1,9 +1,8 @@
 // ───────────────────────────────────────────────────────────────────────────
 // vp-sepsis-01 - GOLD scenario: post-op sepsis recognition + hour-1 bundle.
 //
-// STATUS: draft. Invisible to learners until a clinical SME flips it to
-// "approved" (same QA gate as walkthroughs). TTS narration is generated only
-// after approval.
+// STATUS: approved (operator sign-off 2026-07-10) - live for learners.
+// TTS narration is generated only after approval.
 //
 // CLINICAL BASIS (windows compressed ~6:1 for a 10-minute teaching run):
 //  - Surviving Sepsis Campaign hour-1 bundle: measure lactate, obtain blood
@@ -20,7 +19,8 @@ import type { VPatientScenario } from "../types";
 export const SEPSIS_01: VPatientScenario = {
   id: "vp-sepsis-01",
   title: "Post-op day 2: something's off",
-  status: "draft",
+  // Approved by the operator (Dante, Florence) 2026-07-10 - live for learners.
+  status: "approved",
   setting: "Med-surg, post-op day 2 after an open appendectomy. 0700 handoff just ended.",
   clientNeed: "physiological-adaptation",
   patient: {

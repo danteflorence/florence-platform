@@ -1,8 +1,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 // vp-hemorrhage-01 - scenario 3: post-op hemorrhage (compensated → shock).
 //
-// STATUS: draft. Invisible to learners until a clinical SME flips it to
-// "approved" (same QA gate as walkthroughs).
+// STATUS: approved (operator sign-off 2026-07-10) - live for learners.
 //
 // CLINICAL BASIS (windows compressed ~6:1 for a 10-minute teaching run):
 //  - Parameterized from the BioGears Hemorrhage vocabulary (rate mL/min +
@@ -24,7 +23,8 @@ import type { VPatientScenario } from "../types";
 export const HEMORRHAGE_01: VPatientScenario = {
   id: "vp-hemorrhage-01",
   title: "Post-op hip, 'just a little dizzy'",
-  status: "draft",
+  // Approved by the operator (Dante, Florence) 2026-07-10 - live for learners.
+  status: "approved",
   setting: "Ortho unit, 6 hours after a total hip replacement. 2200, lights low.",
   clientNeed: "reduction-of-risk",
   patient: {

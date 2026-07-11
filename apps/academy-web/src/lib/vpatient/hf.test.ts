@@ -31,9 +31,10 @@ describe("vp-hf-01 authoring", () => {
     expect(validateScenario(sc)).toEqual([]);
   });
 
-  it("is registered but hidden from learners while draft", () => {
-    expect(getScenario("vp-hf-01")).toBeUndefined();
-    expect(getScenario("vp-hf-01", true)?.title).toBe(sc.title);
+  it("is approved and visible through the learner gate", () => {
+    // Operator sign-off 2026-07-10 flipped this live; the gate resolves it
+    // without includeDrafts now.
+    expect(getScenario("vp-hf-01")?.title).toBe(sc.title);
   });
 });
 

@@ -1048,7 +1048,7 @@ try {
   assert.ok(manilaResidency.camps.some((camp: any) => camp.camp_option === "morning"));
   assert.ok(manilaResidency.camps.some((camp: any) => camp.camp_option === "evening"));
   assert.ok(manilaResidency.camps.every((camp: any) => [50, 75, 100].includes(camp.seat_capacity)));
-  const campId = "manila-2026-q3-morning-a";
+  const campId = "manila-2026-q4-morning-a";
   const reserveSeat = await fetch(`${base}/v1/academy/residency/reservations`, {
     method: "POST",
     headers: { "content-type": "application/json", ...bearer(CS) },

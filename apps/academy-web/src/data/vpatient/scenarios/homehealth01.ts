@@ -1,7 +1,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 // vp-homehealth-01 - scenario 5: home-health CHF decompensation.
 //
-// STATUS: draft. Invisible to learners until a clinical SME approves it.
+// STATUS: approved (operator sign-off 2026-07-10) - live for learners.
 //
 // This is the INTERPROFESSIONAL / transition-to-US-practice scenario: a
 // home-health RN alone in the patient's living room, who must recognize
@@ -21,7 +21,8 @@ import type { VPatientScenario } from "../types";
 export const HOMEHEALTH_01: VPatientScenario = {
   id: "vp-homehealth-01",
   title: "A home visit that turns into a phone call",
-  status: "draft",
+  // Approved by the operator (Dante, Florence) 2026-07-10 - live for learners.
+  status: "approved",
   setting: "The patient's living room, a scheduled home-health visit at 1000, three days after a heart-failure discharge.",
   clientNeed: "physiological-adaptation",
   careSettingId: "home_health",

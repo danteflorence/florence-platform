@@ -24,7 +24,7 @@ export interface DripContext {
   schoolName?: string;
   /** True when the joined school is tier affiliate|lab_partner (partner). */
   isPartnerSchool: boolean;
-  /** e.g. "the Manila cohort on July 6". Omitted when no upcoming cohort. */
+  /** e.g. "the Manila cohort on October 5". Omitted when no upcoming cohort. */
   cohortLabel?: string;
   /** School-picker URL (captures school_slug + consent). */
   enrichUrl: string;
@@ -166,7 +166,7 @@ export function allDripCopyForLint(): string[] {
     firstname: "Ana",
     schoolName: "University of Santo Tomas",
     isPartnerSchool: true,
-    cohortLabel: "Manila cohort on July 6",
+    cohortLabel: "Manila cohort on October 5",
     enrichUrl: "https://app.florenceedu.com/x",
     learnUrl: "https://app.florenceedu.com/x",
     signupUrl: "https://app.florenceedu.com/x",

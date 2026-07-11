@@ -1,8 +1,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 // vp-hypovolemic-01 - scenario 4: hypovolemic shock from an upper GI bleed.
 //
-// STATUS: draft. Invisible to learners until a clinical SME flips it to
-// "approved".
+// STATUS: approved (operator sign-off 2026-07-10) - live for learners.
 //
 // PROVENANCE: the CLINICAL FACTS (presentation, vital-sign values, the
 // bundle) are adapted from a licensed instructor Scenario Information Form
@@ -26,7 +25,8 @@ import type { VPatientScenario } from "../types";
 export const HYPOVOLEMIC_01: VPatientScenario = {
   id: "vp-hypovolemic-01",
   title: "Weak, vomiting, and crashing",
-  status: "draft",
+  // Approved by the operator (Dante, Florence) 2026-07-10 - live for learners.
+  status: "approved",
   setting: "Rural ER, 1400. A new patient was just wheeled in - weakness and vomiting for six hours.",
   clientNeed: "physiological-adaptation",
   patient: {
