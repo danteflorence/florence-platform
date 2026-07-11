@@ -41,3 +41,6 @@ This register lists the open issues found during the final platform audit. These
 - Keep all staging smoke data synthetic.
 - Keep generated files, caches, local databases, Terraform state, and logs out of commits.
 - Keep AI output assistive and human-reviewed for high-stakes workflows.
+- The ISA / income-share financing module was **built then deliberately removed** (June 2026); only the `financing.repayment` ledger event remains. Do not treat archived build reports or the June strategy doc as evidence it exists — reintroduction is counsel-gated.
+- Pathway's NCLEX readiness gate runs **shadow-first**: `READINESS_GATE_ENFORCE` (see `apps/pathway-api/server/readinessGate.ts`) stays advisory until the cohort pass-rate data calibrates the threshold. Do not flip to hard-block without that data.
+- Academy landing-page **refund policy is still placeholder copy** — needs real wording before paid enrollment marketing (extracted from the June instructor-console session log).

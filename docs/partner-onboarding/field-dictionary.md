@@ -1,6 +1,6 @@
 # Field dictionary — Nurse Passport + lender data products
 
-Every field a partner can receive, its data class (`florence-core/src/classification.ts`), and — critically for
+Every field a partner can receive, its data class (`apps/core-api/src/classification.ts`), and — critically for
 lenders — whether it is a **prohibited-basis** field that is **excluded from the credit-decision package by
 default** (ECOA / Reg B). The credit-decision package = `CREDIT_DECISION_FIELDS ∩ consent.allowed_fields`, minus
 prohibited-basis. Counsel may clear additions via `CREDIT_DECISION_EXTRA_FIELDS` (never a prohibited-basis field).

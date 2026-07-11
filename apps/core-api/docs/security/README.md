@@ -1,10 +1,10 @@
-# FlorenceRN Security Program — engineering controls
+# Florence Education Security Program — engineering controls
 
 This directory documents the **code-enforced** security controls that live in
-`florence-core` (the security boundary) and the fleet. It is the engineering
-half of the program; the customer- and program-facing material (enterprise
-security packet, 30/60/90 plan, AI data-use policy) lives in
-`florence-work/docs/security/`.
+`apps/core-api` (the security boundary) and the fleet. It is the engineering
+half of the program; the customer- and program-facing material lives in the
+repo-root `SECURITY_*` docs (`SECURITY_OVERVIEW.md`, `SECURITY_REMEDIATION_PLAN.md`,
+`AI_SAFETY_POLICY.md`, `SOC2_READINESS_CHECKLIST.md`).
 
 > **Status legend:** ✅ implemented & verified · 🟡 partial / scaffolded · ⛔ user-owned (ops/cert, cannot be code-built)
 
@@ -12,12 +12,12 @@ security packet, 30/60/90 plan, AI data-use policy) lives in
 - **NIST CSF 2.0** — Govern, Identify, Protect, Detect, Respond, Recover. Used as the internal operating model.
 - **SOC 2 Trust Services Criteria** — Security, Availability, Processing Integrity, Confidentiality, Privacy. The diligence target (Type I → Type II).
 - **OWASP ASVS 5.0** — application-security verification standard for the apps.
-- **OWASP LLM Top 10** — for the AI subsystems (see `ai-data-use.md`).
+- **OWASP LLM Top 10** — for the AI subsystems (see the root `AI_SAFETY_POLICY.md`).
 
 ## The one-line directive
 **The Nurse Passport is a permissions-controlled VIEW, not a record everyone can read.**
 Identity, consent, classification, redaction, and audit are centralized in
-FlorenceRN Core; no product reads another product's sensitive data directly —
+Florence Core (`apps/core-api`); no product reads another product's sensitive data directly —
 every disclosure goes through Core's `passportView` redactor and is logged.
 
 ## Documents
@@ -40,6 +40,6 @@ every disclosure goes through Core's `passportView` redactor and is logged.
 ## What remains (tracked, not in this build)
 - 🟡 Migrate Academy partner routes (`api/src/partners.ts`) to call Core `getView` per-audience (SDK seam shipped; per-candidate call performance to be addressed).
 - 🟡 KMS-backed key wrapping + automated rotation (envelope + rotation status columns exist; KMS integration is ops).
-- ⛔ SOC 2 audit, external pen test, MFA rollout, BAAs/DPAs, vendor-risk program, SIEM/EDR procurement, IR tabletop — see `../../../docs/security/hardening-30-60-90.md`.
+- ⛔ SOC 2 audit, external pen test, MFA rollout, BAAs/DPAs, vendor-risk program, SIEM/EDR procurement, IR tabletop — see the root `SECURITY_REMEDIATION_PLAN.md` + `SOC2_READINESS_CHECKLIST.md`.
 
-> **Do not overclaim.** FlorenceRN does **not** currently hold SOC 2, HECVAT, or HITRUST. These docs describe the controls we have built and the roadmap to certification — they are not attestations.
+> **Do not overclaim.** Florence Education does **not** currently hold SOC 2, HECVAT, or HITRUST. These docs describe the controls we have built and the roadmap to certification — they are not attestations.

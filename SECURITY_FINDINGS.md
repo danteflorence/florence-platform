@@ -7,9 +7,9 @@ Severity definitions:
 - Medium: Weakens defense in depth, increases likelihood of leakage, or creates unsafe production configuration risk.
 - Low: Inventory, hardening, or monitoring gap with limited direct exposure.
 
-## 2026-06-25 Disposition Tracker
+## Disposition Tracker (opened 2026-06-25; statuses refreshed 2026-07-10)
 
-This tracker satisfies the current requirement that every critical/high scan finding is either fixed or documented with an owner and deadline. Deadlines are engineering target dates, not compliance attestations.
+This tracker satisfies the current requirement that every critical/high scan finding is either fixed or documented with an owner and deadline. Deadlines are engineering target dates, not compliance attestations. **2026-07-10 refresh:** C05 verified remediated in code; C01, C02, C03 (partial — `/api/ops` now has requireAuth + non-GET blocks + ops-only routes, full deny-by-default still open), C04, C06, and H07 re-verified still open. Original deadlines have lapsed and need re-planning.
 
 | ID | Current disposition | Owner | Deadline |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ This tracker satisfies the current requirement that every critical/high scan fin
 | C02 | Open, release-blocking until Core candidate self Passport reads prove token-bound candidate id matches the resolved nurse id across id/email/ref selectors. | Core Identity Lead | 2026-06-28 |
 | C03 | Open, release-blocking until Employer Connect `/api/ops` and ledger routes are deny-by-default for employers and re-opened only through tenant-scoped handlers. | Employer Connect Lead | 2026-07-01 |
 | C04 | Open, release-blocking until partner Passport reads require named recipient org consent plus explicit candidate-to-partner relationship. | Core Privacy Lead | 2026-07-01 |
-| C05 | Open, release-blocking until legacy public resume tokens are removed or bridged to restricted document signed URLs with recipient binding and revocation. | Employer Connect Lead | 2026-06-30 |
+| C05 | **Remediated (verified 2026-07-10):** `/p/:token/resume.pdf` now serves through a short-lived Document Vault signed-URL grant with packet binding + Application Gate (`apps/employer-connect-api/server/routes.ts`). Keep the regression test. | Employer Connect Lead | Done |
 | C06 | Open, release-blocking until lender credit-decision reads/writes require lender-specific consent and tenant relationship. | Core Lender Lead | 2026-07-02 |
 | H01 | Partially fixed in this pass for Pathway audit detail storage, Employer Connect audit redaction, and generic unexpected-error handling. Remaining support-export coverage stays open. | Platform Security Lead + Pathway Engineering | 2026-06-28 |
 | H02 | Open. Route live and mock AI workflows through central data-class/high-stakes controls before restricted provider use. | AI Safety Lead | 2026-07-05 |
@@ -135,13 +135,18 @@ Required fix:
 - Treat missing recipient org as deny for partner reads.
 - Add partner isolation and consent regression tests.
 
-### C05: ATS public resume token is unrestricted document access
+### C05: ATS public resume token is unrestricted document access — REMEDIATED
 
-Evidence:
+> **Remediated (verified in code 2026-07-10):** `apps/employer-connect-api/server/routes.ts`
+> now serves `/p/:token/resume.pdf` through a short-lived Document Vault signed-URL grant with
+> packet binding and an Application Gate check. Preserved below for the record — do not treat
+> this as an open vulnerability.
 
-- `florence-ats-connect/server/routes.ts` creates a public resume URL using a random token.
-- `/api/p/:token/resume.pdf` serves the resume without authentication.
-- The token has no visible expiry, no short-lived signed URL semantics, and no revocation or recipient binding in the route.
+Original evidence (2026-06-25):
+
+- `apps/employer-connect-api/server/routes.ts` (then `florence-ats-connect/server/routes.ts`) created a public resume URL using a random token.
+- `/api/p/:token/resume.pdf` served the resume without authentication.
+- The token had no visible expiry, no short-lived signed URL semantics, and no revocation or recipient binding in the route.
 
 Attack path:
 

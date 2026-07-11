@@ -1,5 +1,9 @@
 # Domain Migration Report
 
+> **📜 Historical record (executed).** The migration is complete: the canonical public
+> domain is `florenceedu.com` everywhere in code and docs. Kept as the record of what
+> changed; the companion plan is archived at `docs/archive/2026-07/DOMAIN_MIGRATION_PLAN.md`.
+
 Status: implementation pass for public domain and public brand migration.
 
 ## Summary

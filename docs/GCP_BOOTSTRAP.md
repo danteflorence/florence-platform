@@ -1,52 +1,48 @@
-# GCP bootstrap — copy-paste commands to stand up `florencern-staging`
+# GCP bootstrap — copy-paste commands to stand up `florenceedu-staging`
 
-Run these once to provision the **staging** environment, then a push to `main` deploys it
-(the same flow with `florencern-production` + the manual-approval gate gives production).
-Prereqs: `gcloud` installed + `gcloud auth login`; you know your **Org ID** and **Billing
-Account ID** (`gcloud organizations list`, `gcloud billing accounts list`). Architecture +
-rationale: [`GCP_STRUCTURE.md`](GCP_STRUCTURE.md). This is operator click-ops (it spends money
-and creates real infra), so it isn't run by the agent.
+Run these once to provision the **staging** environment. After bootstrap, CI
+(`.github/workflows/deploy.yml`, the `deploy-readiness` workflow) builds + pushes the
+service images and produces a **Terraform plan artifact only** — an authorized operator
+reviews the plan and runs `terraform apply` themselves. **There is no auto-apply and no
+production deploy in CI.** Architecture + rationale: [`GCP_STRUCTURE.md`](GCP_STRUCTURE.md);
+apply/rollback steps: [`runbooks/STAGING_DEPLOYMENT.md`](runbooks/STAGING_DEPLOYMENT.md).
 
-## Precursor — create the GCP account + billing (do this first if you have no GCP yet)
+Prereqs: `gcloud` installed + authenticated; you know your **Org ID** and **Billing Account
+ID**. This is operator click-ops (it spends money and creates real infra), so it isn't run
+by the agent.
 
-~10 minutes, mostly clicks. The billing step needs a payment method, so **you** do it (the
-agent never enters card details).
+## Precursor — create the GCP account + billing (if you have no GCP yet)
+
+~10 minutes, mostly clicks. The billing step needs a payment method, so **you** do it.
 
 1. **Sign in to the Cloud console** at <https://console.cloud.google.com> with a
-   `@florenceedu.com` **admin** account. Because you run Google Workspace on that domain,
-   a Cloud **Organization** already exists for it (that's your `ORG_ID`). Accept the terms on
-   first visit.
-2. **Create a Billing Account + add a payment method:** <https://console.cloud.google.com/billing>
-   → *Create account* → add a card. New accounts get **$300 free credit for 90 days** — staging
-   runs well within that.
-3. **Buy/point the domain:** make sure you control **`florenceedu.com`** DNS (any registrar). You
-   only need it at the DNS step after the first deploy, but line it up now.
-4. **Install the gcloud CLI (macOS)** and authenticate:
+   Workspace **admin** account — your Workspace domain gives you a Cloud **Organization**
+   (that's your `ORG_ID`). Accept the terms on first visit.
+2. **Create a Billing Account + add a payment method:** <https://console.cloud.google.com/billing>.
+   New accounts get $300 free credit for 90 days — staging runs well within that.
+3. **Domain:** make sure you control **`florenceedu.com`** DNS (needed at the post-apply DNS step).
+4. **Install + authenticate the gcloud CLI:**
    ```bash
-   brew install --cask google-cloud-sdk        # or https://cloud.google.com/sdk/docs/install
-   gcloud auth login                            # browser → your @florenceedu.com admin
-   gcloud auth application-default login         # lets Terraform use your credentials
+   brew install --cask google-cloud-sdk
+   gcloud auth login
+   gcloud auth application-default login
    ```
-5. **Grab the two IDs the bootstrap needs:**
-   ```bash
-   gcloud organizations list      # → ORG_ID  (the numeric ID)
-   gcloud billing accounts list   # → BILLING (ACCOUNT_ID, like XXXXXX-XXXXXX-XXXXXX)
-   ```
-   Paste those into step 0 below, then run the rest.
+5. **Grab the two IDs:** `gcloud organizations list` → `ORG_ID`; `gcloud billing accounts list` → `BILLING`.
 
-> **No org / not a Workspace super-admin?** You can still go: drop `--organization="$ORG_ID"`
-> from the `gcloud projects create` line in step 1 to make a **standalone** project. You lose
-> folder-level org policies (a nice-to-have) but staging works fine. You can adopt an org later.
+> **No org / not a Workspace admin?** Drop `--organization="$ORG_ID"` from the project-create
+> line to make a standalone project. You lose folder-level org policies; staging works fine.
+
+## Bootstrap commands
 
 ```bash
 # ── 0. Variables (edit these) ────────────────────────────────────────────────
 export ENV=staging
-export PROJECT=florencern-staging
+export PROJECT=florenceedu-staging
 export ORG_ID=000000000000              # gcloud organizations list
 export BILLING=XXXXXX-XXXXXX-XXXXXX     # gcloud billing accounts list
 export REGION=us-central1
-export GH_REPO=danteflorence/florence-platform
-export REGION_BUCKET=gs://${PROJECT}-tfstate
+export GH_REPO=<github-org>/<repo>      # the repo running the deploy-readiness workflow
+export STATE_BUCKET=gs://${PROJECT}-tfstate
 
 # ── 1. Project + billing ─────────────────────────────────────────────────────
 gcloud projects create "$PROJECT" --organization="$ORG_ID"
@@ -61,8 +57,8 @@ gcloud services enable \
   cloudresourcemanager.googleapis.com serviceusage.googleapis.com compute.googleapis.com
 
 # ── 3. Terraform remote state bucket ─────────────────────────────────────────
-gcloud storage buckets create "$REGION_BUCKET" --location="$REGION" --uniform-bucket-level-access
-gcloud storage buckets update "$REGION_BUCKET" --versioning
+gcloud storage buckets create "$STATE_BUCKET" --location="$REGION" --uniform-bucket-level-access
+gcloud storage buckets update "$STATE_BUCKET" --versioning
 
 # ── 4. Workload Identity Federation (keyless GitHub Actions → GCP) ────────────
 gcloud iam workload-identity-pools create github --location=global --display-name="GitHub"
@@ -83,39 +79,42 @@ for ROLE in run.admin iam.serviceAccountUser artifactregistry.writer \
   gcloud projects add-iam-policy-binding "$PROJECT" \
     --member="serviceAccount:${DEPLOYER}" --role="roles/${ROLE}" --condition=None
 done
-# Let the GitHub repo impersonate the deployer SA via WIF.
 gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER" \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/${WIF_PROVIDER%/providers/*}/attribute.repository/${GH_REPO}"
 
 # ── 6. Secrets — set the STABLE field-encryption passphrase (never rotate) ────
 printf '%s' "$(openssl rand -hex 32)" | \
-  gcloud secrets create "florencern-field-enc-${ENV}" --data-file=-
-# florencern-database-url-<env> is created + populated by Terraform — do NOT set it here.
-# Optional later (per docs/GCP_STRUCTURE.md §11): GOOGLE_CLIENT_*, STRIPE_*, AGORA_*, etc.
+  gcloud secrets create "florenceedu-field-enc-${ENV}" --data-file=-
+# The per-service DATABASE_URL secrets (florenceedu-<service>-database-url-<env>) are
+# created and populated by Terraform — do NOT create them here. Other application
+# secrets are operator-set out of band; see GCP_STRUCTURE.md "Secret Manager".
 
-# ── 7. Print the GitHub secrets to set ───────────────────────────────────────
-echo "Set these GitHub repo secrets (Settings → Secrets → Actions):"
-echo "  GCP_WIF_PROVIDER  = $WIF_PROVIDER"
-echo "  GCP_DEPLOYER_SA   = $DEPLOYER"
-echo "  GCP_PROJECT_STAGING = $PROJECT"
+# ── 7. Print the GitHub Environment secrets to set ───────────────────────────
+echo "In GitHub → Settings → Environments → ${ENV}, set:"
+echo "  GCP_WIF_PROVIDER = $WIF_PROVIDER"
+echo "  GCP_DEPLOYER_SA  = $DEPLOYER"
+echo "  GCP_PROJECT_ID   = $PROJECT"
 ```
 
 ## After the bootstrap
-1. Add the Terraform GCS backend (one-time): create `infra/backend.tf` with
-   `terraform { backend "gcs" { bucket = "<PROJECT>-tfstate" prefix = "staging" } }`
-   (or `terraform init -backend-config=...`).
-2. In GitHub: **Settings → Environments → `staging`** (and `production` with a required
-   reviewer). Set the secrets from step 7 (+ `GCP_PROJECT_PROD` when you bootstrap prod).
-3. **Deploy:** push to `main`. CI builds the 6 images, `terraform apply -var-file=envs/staging.tfvars`,
-   then runs the migrate Cloud Run Jobs.
-4. **DNS + TLS:** `cd infra && terraform output domain_mapping_records` → create those records at
-   your `florenceedu.com` DNS; Google-managed TLS provisions automatically once they resolve.
-5. **Open it:** `https://staging.app.florenceedu.com` → sign up / sign in as a learner.
-   Seed a staff admin with `florence-core npm run seed-admin` (or the seed Cloud Run Job).
 
-## Production
-Repeat steps 0–7 with `ENV=production PROJECT=florencern-production` (REGIONAL Cloud SQL/HA is
-already set by the IaC for `env=production`), add `GCP_PROJECT_PROD`, enable the production
-Environment's required-reviewer rule, and the manual-approval gate in `deploy.yml` governs go-live.
-Bring real nurse PII online only in production (sandbox/staging stay test data).
+1. Point Terraform at the state bucket (backend config for `infra/`), per `infra/README.md`.
+2. Push to `main` (or dispatch **deploy-readiness** for `staging`/`sandbox`): CI builds +
+   pushes the **7 service images** (`core-api`, `app-web`, `academy-api`, `academy-live`,
+   `pathway-api`, `employer-connect-api`, `economist-api`) to
+   `us-central1-docker.pkg.dev/$PROJECT/florenceedu/*` and uploads a **Terraform plan** artifact.
+3. **Operator applies:** review the plan, then `terraform apply` per
+   [`runbooks/STAGING_DEPLOYMENT.md`](runbooks/STAGING_DEPLOYMENT.md); execute the
+   `<service>-migrate-<env>` Cloud Run jobs before serving traffic.
+4. **DNS + TLS:** `terraform output domain_mapping_records` → create those records for the
+   `staging-*.florenceedu.com` hosts; Google-managed TLS provisions once they resolve.
+5. **Open it:** `https://staging.app.florenceedu.com` (shell) /
+   `https://staging-api.florenceedu.com/v1/health` (Core).
+
+## Sandbox / production
+
+Sandbox: repeat with `ENV=sandbox PROJECT=florenceedu-sandbox` (the workflow's sandbox
+dispatch covers it). Production (`florenceedu-prod`) is **deliberately not wired into CI**;
+it requires GitHub Environment reviewers and an explicit operator-run apply — see
+`GCP_STRUCTURE.md` "Deployment Boundary".

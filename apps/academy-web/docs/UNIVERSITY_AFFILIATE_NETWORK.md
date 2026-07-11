@@ -77,7 +77,7 @@ So the real new work is the **school directory + tiering + discount engine + K-a
 **Phase 3b — Tiered deposit + signup attestation**
 - Candidate signup gains a school picker (optional) + self-attestation checkbox.
 - New: `candidate_school_affiliations` (candidate × school × role[student|alumni] × verification × created_at).
-- Deposit amount derived server-side from the candidate's strongest affiliation (eligible-school student/alumni → $7 500, else $10 000). Mock + Stripe both honor it.
+- Deposit amount derived server-side from the candidate's strongest affiliation (eligible-school student/alumni → **$75**, else **$100** — i.e. 7 500 / 10 000 **cents**; see `DEPOSIT_AMOUNT_CENTS` in `api/src/config.ts`). Mock + Stripe both honor it.
 - Email-domain auto-upgrade when the verified email matches an `email_domains[]` entry.
 - Copy that is **"preferred access," not "discount"** everywhere it appears.
 

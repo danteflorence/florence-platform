@@ -39,8 +39,10 @@ GET  /v1/lender/events
 # 4) Warehouse pool performance (k-anonymized) + loan tape (no prohibited-basis):
 GET  /v1/lender/portfolio
 GET  /v1/lender/loan-tape
-# 5) Subscribe for push (consent-scoped to your org):
-POST /v1/webhooks                    { "url":"…","event_types":["*"],"org_id":"…","consent_purpose":"underwriting" }
+# 5) Push webhooks: NOT yet self-service for partner keys. Partner/lender keys do not
+#    carry the `webhooks:manage` scope (fail-closed), so `POST /v1/webhooks` returns 403.
+#    Ask Florence Education to register your endpoint (consent-scoped to your org), or
+#    poll `GET /v1/lender/events` (step 3) for the same events.
 ```
 Consent is the gate: no live `underwriting` consent for a nurse × your org ⇒ **403** (fail-closed). A candidate
 can revoke at any time, which immediately closes access (FCRA-aligned). Data accuracy is disputable via
@@ -48,7 +50,8 @@ can revoke at any time, which immediately closes access (FCRA-aligned). Data acc
 
 ## Integration checklist
 1. Get sandbox key → 2. Mint a token → 3. Read a sample credit-data package → 4. Record a sample decision →
-5. Pull the portfolio + loan tape → 6. Receive a webhook → 7. Validate with Florence Education → 8. Move to production.
+5. Pull the portfolio + loan tape → 6. Poll `GET /v1/lender/events` (webhooks are registered by Florence
+Education on request — not partner-self-service) → 7. Validate with Florence Education → 8. Move to production.
 
 ## Cross-cutting
 - **Versioning:** `/v1` is stable; breaking changes ship as `/v2` with a deprecation window.

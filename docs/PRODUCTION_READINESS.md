@@ -1,21 +1,23 @@
-# FlorenceRN Platform — production-readiness checklist
+# Florence Education Platform — production-readiness checklist
 
 The bar before AMN / Kaiser / lenders / universities / ATS partners touch the API. GitHub stores the
 product; Cloud Run (GCP) runs it; Core (RS256/JWKS + M2M) is the auth boundary; OpenAPI documents it.
 
 ## Environments
-- [ ] **local / staging / sandbox / production** all provisioned (`infra/envs/*.tfvars`); separate GCP projects.
+- [ ] **local / staging / sandbox / production** all provisioned (`infra/envs/*.tfvars`); separate GCP projects
+      (`florenceedu-staging` / `-sandbox` / `-prod` — see `GCP_STRUCTURE.md`).
 - [ ] Partners test in **sandbox** only (seeded fake data) — never production.
 
 ## Domain + transport
-- [ ] `florenceedu.com` DNS on Cloud DNS/registrar; Cloud Run domain mappings for `id. api. ats. pathway.
-      api.academy. developers. partners.` resolve + serve managed TLS.
+- [ ] `florenceedu.com` DNS; Cloud Run domain mappings (production: `auth. app. api. partners. developers.`;
+      staging/sandbox: the `staging-*`/`sandbox-*` hosts in `infra/envs/*.tfvars`) resolve + serve managed TLS.
 - [ ] Cookie domain `.florenceedu.com`; issuer `https://auth.florenceedu.com`; CORS allowlist set per env.
 
 ## Data + secrets
 - [ ] Cloud SQL Postgres per env; **automated backups + PITR** on; production = REGIONAL HA.
 - [ ] Document vault = GCS + **CMEK**; signed URLs only; no public objects.
-- [ ] Secret Manager holds `florencern-field-enc-<env>` (stable Core key-wrap passphrase) + `…-database-url-<env>`.
+- [ ] Secret Manager holds `florenceedu-field-enc-<env>` (stable Core key-wrap passphrase; operator-set) +
+      the Terraform-managed per-service `florenceedu-<service>-database-url-<env>` secrets.
 - [ ] **No PII in URLs/UTMs** (CI gate: `pii-url-smoke`).
 - [ ] Data-retention + deletion policy written; consent revocation propagates (fail-closed verified).
 
@@ -33,9 +35,11 @@ product; Cloud Run (GCP) runs it; Core (RS256/JWKS + M2M) is the auth boundary; 
 - [ ] Status page; incident-response plan; on-call.
 
 ## Release
-- [ ] CI green (typecheck + ALL smokes both backends + `terraform validate` + dep audit) gates deploy.
-- [ ] `main` → staging auto; production behind a **manual approval** (GitHub Environment protection); never hand-copied.
-- [ ] Rollback path (previous image tag) documented.
+- [ ] CI green (typecheck + tests + secret/dep/static scans + `terraform validate`) gates the pipeline.
+- [ ] `deploy-readiness` builds + pushes images and produces a **Terraform plan artifact only**; an
+      authorized operator reviews the plan and applies (`docs/runbooks/STAGING_DEPLOYMENT.md`). Production
+      is not wired into CI and requires GitHub Environment reviewers before any future prod workflow.
+- [ ] Rollback path (previous image tag) documented (`docs/runbooks/ROLLBACK.md`).
 
 ## Lending-specific (before any underwriting use — COUNSEL-GATED)
 - [ ] Fair-lending review of the credit-decision field set (the `CREDIT_DECISION_FIELDS` allowlist) signed off;

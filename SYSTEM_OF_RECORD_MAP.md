@@ -15,7 +15,7 @@ This map defines which service owns each sensitive platform domain today and whe
 | Nurse Passport | Core | Core | `nurses`, `nurse_refs`, `nurse_events`, `/v1/nurse/passport`. | Partially ready |
 | Consent | Core | Core | Consent grant/revoke APIs and downstream consent mirrors. | Partially ready |
 | Document Vault | Core | Core | `/v1/document-vault/*`, signed URL routes, downstream document-vault bridge. | Partially ready |
-| Application Gate | Core | Core | `/v1/applications/gate` and `/v1/applications/submit`; Employer Connect Core gate client. | Partially ready |
+| Application Gate | Core | Core | `/v1/applications/gate-check` and `/v1/applications/submit`; Employer Connect Core gate client. | Partially ready |
 | Audit | Core for platform audit; modules retain local audit logs | Core canonical plus module-local operational audit | Core `audit_log`; Academy, Pathway, and Employer local audit tables. | Partially ready |
 | Production Ledger | Core target; Employer Connect can be local canonical unless configured | Core | Core `/v1/events` and `/v1/ledger`; Employer `LEDGER_CANONICAL=core` mode. | Blocked until enforced |
 | Academy learning records | Academy | Academy operational, Core readiness events | Academy API schema and event writer. | Partially ready |

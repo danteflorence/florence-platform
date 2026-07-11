@@ -1,5 +1,11 @@
 # Execution Sequence
 
+> **⚠️ Partially executed (status as of 2026-07-10).** Phase 2 (monorepo `apps/`+`packages/`
+> layout) and Phase 4 (domain migration to `florenceedu.com`) have **landed** — the code wins
+> over any "future work" framing below. "ATS Connect" is now `apps/employer-connect-api`.
+> For live status use `OPEN_ISSUES.md` + `PLATFORM_READINESS_REPORT.md`; the per-phase
+> acceptance gates and test lists below remain the reusable part.
+
 Last reviewed: 2026-06-25
 
 ## Current State

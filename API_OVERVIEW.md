@@ -29,7 +29,7 @@ Key current endpoints:
 | Auth | `/login`, `/auth/google/start`, `/auth/google/callback`, `/auth/password`, `/auth/refresh`, `/logout`, `/me`, `/.well-known/jwks.json`, `/.well-known/openid-configuration`, `/oauth/token` |
 | Nurse Passport | `/v1/nurse/resolve`, `/v1/nurse/event`, `/v1/nurse/passport`, `/v1/nurse/events`, `/v1/nurses/:id/passport` |
 | Consent | `/v1/consent/grant`, `/v1/consent/revoke`, `/v1/consent` |
-| Application Gate | `/v1/applications/gate`, `/v1/applications/submit`, `/v1/opportunities/:id/interest` |
+| Application Gate | `/v1/applications/gate-check` (alias `/v1/application-gate/check`), `/v1/applications/submit`, `/v1/opportunities/:id/interest` |
 | Document Vault | `/v1/document-vault/documents`, `/v1/document-vault/documents/:id/signed-url`, `/v1/document-vault/signed/:token` |
 | Events and ledger | `/v1/events`, `/v1/ledger` |
 | Lender | `/v1/nurses/:id/credit-data`, `/v1/credit-decisions`, adverse action, disputes, lender events, portfolio, loan tape |

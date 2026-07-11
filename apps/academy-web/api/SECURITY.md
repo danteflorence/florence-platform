@@ -123,7 +123,9 @@ silently changed.
 ## 8. Consent & purpose limitation
 
 - Each candidate carries a **consent record** with explicit, separately-toggled
-  purposes: `service` (run the Academy), `crm_sync`, and **`underwriting`**.
+  purposes: `service` (run the Academy), `crm_sync`, **`underwriting`**, `pathway`,
+  `financing`, and `employer_sharing` (the authoritative set is the `Consent` type
+  in `src/types.ts`).
 - **Using performance/financial data for underwriting requires the
   `underwriting` consent to be present** - it is a distinct secondary purpose,
   not covered by a blanket signup checkbox. Handlers check it; the check is

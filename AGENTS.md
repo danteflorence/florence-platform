@@ -1,12 +1,12 @@
-# FlorenceRN Codex Operating Rules
+# Florence Education (Florence OS) Agent Operating Rules
 
-FlorenceRN is a high-sensitivity healthcare, education, immigration, financing, and workforce platform. Treat every change as bank-grade and healthcare-grade work.
+Florence Education / Florence OS is a high-sensitivity healthcare, education, immigration, financing, and workforce platform. Treat every change as bank-grade and healthcare-grade work. ("FlorenceRN" in older docs is legacy branding for the same platform.)
 
-These rules apply to every future Codex task in this repository and all FlorenceRN subprojects unless a stricter project-specific rule applies. When instructions conflict, preserve the stronger security control.
+These rules apply to every future agent task in this repository and all Florence subprojects unless a stricter project-specific rule applies. When instructions conflict, preserve the stronger security control.
 
 ## Sensitive Data
 
-FlorenceRN may handle passports, dates of birth, addresses, transcripts, I-20s, SEVIS IDs, DS-160 data, visa status, NCLEX and licensure records, financing packets, credit and underwriting signals, lender handoffs, employer packets, ATS/VMS submissions, Academy learning data, audio/tutor interactions, and Production Ledger events.
+The platform may handle passports, dates of birth, addresses, transcripts, I-20s, SEVIS IDs, DS-160 data, visa status, NCLEX and licensure records, financing packets, credit and underwriting signals, lender handoffs, employer packets, ATS/VMS submissions, Academy learning data, audio/tutor interactions, and Production Ledger events.
 
 Treat all of the above as restricted unless explicitly documented otherwise.
 
@@ -15,7 +15,7 @@ Treat all of the above as restricted unless explicitly documented otherwise.
 1. No PII, passport numbers, SEVIS IDs, DS-160 data, visa status, credit data, loan data, employer packets, or secrets may appear in logs, URLs, analytics events, error traces, prompts, UTM parameters, telemetry, or test fixtures.
 2. Every sensitive read, write, share, export, packet view, document view, and document download must be audit logged.
 3. Every partner, employer, lender, university, agency, vendor, and integration must be tenant-scoped.
-4. Every external data share requires purpose-specific consent before any data leaves FlorenceRN.
+4. Every external data share requires purpose-specific consent before any data leaves the platform.
 5. Employers may see only employer-safe packets approved for employer review.
 6. Lenders may see only consented lender-safe packets approved for lender review.
 7. Universities must see aggregate or anonymized views by default. Identifiable student-level data requires explicit authorization and consent.
@@ -63,7 +63,7 @@ Treat all of the above as restricted unless explicitly documented otherwise.
 - Required gates include authorization, tenant scope, consent, QA status, license status, visa/work authorization status where applicable, and workflow state.
 - Do not bypass gates for demos, tests, seeds, or local development. Use synthetic test paths that preserve the controls.
 
-## Codex Work Rules
+## Agent Work Rules
 
 1. Start with read-only review unless the user explicitly asks to patch or the task clearly requires implementation.
 2. Make narrow PR-sized changes. Avoid unrelated refactors, formatting churn, and broad rewrites.

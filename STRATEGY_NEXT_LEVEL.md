@@ -1,5 +1,11 @@
 # FlorenceRN — The Next Level: NCLEX Parity & Maximizing Successful US Placements
 
+> **📜 Historical strategy artifact (June 2026).** Much of the roadmap below has since been
+> executed (mastery gates, remediation, shadow readiness gate, cohort data asset, retention
+> engine, demand reservations); Initiative 7 (ISA financing) was **built then removed** and
+> its reintroduction is counsel-gated. "FlorenceRN" is legacy branding — the platform is
+> Florence Education / Florence OS on `florenceedu.com`. Do not treat this as current scope.
+
 *Board & Founder Strategic Report — Chief Strategy Officer | June 2026*
 
 ---

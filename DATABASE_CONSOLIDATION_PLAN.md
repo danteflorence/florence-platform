@@ -1,15 +1,15 @@
 # Database Consolidation Plan
 
-Last reviewed: 2026-06-25
+Last reviewed: 2026-07-10
 
 ## Current State
 
-Persistence is split by service:
+Persistence is Postgres-first in every deployed environment; local-only stores remain for dev/test:
 
-- Core uses an in-memory/local state store for dev and Postgres when `DATABASE_URL` is set. Core schema includes users, orgs, partner orgs, tenant/program scopes, role grants, API clients, signing keys, sessions, audit log, nurses, application submission locks, nurse refs, nurse events, consents, restricted documents, document access grants, idempotency keys, webhooks, credit decisions, and data disputes.
-- Academy API uses `MemoryStore` for dev and Postgres when configured. Its schema includes candidates, enrollments, cohorts, assessments, payments, sponsors, access passes, library resources, credentials, progress, remediations, question responses, verifications, outcomes, attendance, schools, pathway task events, idempotency keys, audit log, webhooks, leads, outreach, and mail pieces.
-- ATS Connect supports node sqlite by default, embedded PGlite/Postgres for verification, and networked Postgres when configured. It owns employers, requisitions, candidates, consents, packets, applications, submission locks, ledger events, sync events, audit, restricted documents, document access grants, connections, demand jobs, tracking, interests, programs, reservations, hiring signals, claims, and market interest.
-- Pathway uses node sqlite with JSON-backed tables for candidate profiles, identity documents, education, employment, licenses, visa history, travel, school programs, employer offers, financing, exams, documents, workflows, form drafts, QA reviews, attestations, submissions, appointments, deficiencies, audit, ledger milestones, consular payment orders, handoffs, receipts, and payment events.
+- Core (`apps/core-api`) uses an in-memory/local state store for dev and Postgres when `DATABASE_URL` is set. Core schema includes users, orgs, partner orgs, tenant/program scopes, role grants, API clients, signing keys, sessions, audit log, nurses, application submission locks, nurse refs, nurse events, consents, restricted documents, document access grants, idempotency keys, webhooks, credit decisions, and data disputes.
+- Academy API (`apps/academy-web/api`) uses `MemoryStore` for dev and Postgres when configured (schema per `api/db/schema.sql`).
+- Employer Connect (`apps/employer-connect-api`) defaults to node sqlite only for local dev; compose and all `infra/envs/*.tfvars` run it on Postgres (`ATS_DB=postgres`, database `florence_employer`).
+- Pathway (`apps/pathway-api`) runs Postgres in compose and all deployed envs (`PATHWAY_DB=postgres`, database `florence_pathway`); node:sqlite remains the local-dev default only.
 
 ## Desired State
 
@@ -36,14 +36,14 @@ Target ownership:
 
 1. Build a data ownership map by table and field class.
 2. Mark every sensitive field with owner, classification, tenant scope, consent purpose, audit action, retention rule, and allowed projections.
-3. Split production Postgres into env-scoped logical databases or schemas:
-   - `core`
-   - `academy`
-   - `ats`
-   - `pathway`
-   - `analytics_public` or `workforce_intelligence` for non-sensitive aggregates only.
-4. Move Pathway off sqlite before production use with real candidate data.
-5. Make ATS networked Postgres the production default and keep sqlite/PGlite only for local and tests.
+3. ✅ Done — per-service databases are provisioned per env (`infra/envs/*.tfvars`):
+   - `florence_core`
+   - `florence_academy`
+   - `florence_employer`
+   - `florence_pathway`
+   - (an `analytics_public` / `workforce_intelligence` database for non-sensitive aggregates remains open.)
+4. ✅ Done — Pathway runs Postgres (`PATHWAY_DB=postgres`) in compose and all deployed envs; sqlite is local-dev only.
+5. ✅ Done — Employer Connect runs Postgres (`ATS_DB=postgres`) in compose and all deployed envs; sqlite/PGlite are local/test only. (Enforcement check that production-like envs cannot boot on local stores is still open — see `OPEN_ISSUES.md` P1.)
 6. Replace local sensitive records with Core references where Core is canonical.
 7. Add idempotent migrations and rollback/restore runbooks for each service.
 8. Add projection-sync jobs or event consumers where apps need local read models.

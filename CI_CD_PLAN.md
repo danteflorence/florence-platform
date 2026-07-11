@@ -20,7 +20,7 @@ The root repo has an npm-based CI contract:
 GitHub Actions include:
 
 - `ci.yml` with install, CI contract, typecheck, test, lint, build, secret scan, dependency scan, static analysis, CodeQL, and Terraform validation.
-- `deploy.yml` with Cloud Run image builds, Artifact Registry pushes, Terraform apply, staging auto-deploy on `main`, production environment gate, and migration Cloud Run jobs.
+- `deploy.yml` (the `deploy-readiness` workflow) with Cloud Run image builds and Artifact Registry pushes for staging/sandbox, followed by a **Terraform plan only** (uploaded as an artifact). There is **no `terraform apply`, no auto-deploy, and no production job in CI** — an authorized operator reviews the plan and applies per `docs/runbooks/STAGING_DEPLOYMENT.md`. Migration Cloud Run jobs are created by Terraform and executed by the operator after apply.
 
 Current root CI orchestrates app-local npm installs and scripts. The target plan is pnpm, but that is future work and must not be changed in this docs-only pass.
 

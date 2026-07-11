@@ -112,7 +112,7 @@ see the contract).
      "candidate": { "id": "cand_…", "full_name": "…", "email": "…", "country": "…" },
      "readiness": { "band": "green", "route": "interview_ready", "readiness": 0.86,
                     "focus_areas": ["…"], "sections_completed": 14, "sections_total": 20 },
-     "consent": { "service": true, "crm_sync": false, "underwriting": false },
+     "consent": { "service": true, "crm_sync": false, "underwriting": false, "pathway": true, "financing": false, "employer_sharing": false },
      "occurred_at": "…"
    }
    ```

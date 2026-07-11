@@ -23,9 +23,6 @@ This register lists current known security gaps for enterprise diligence. It sep
 | Medium | Manual access review process needs evidence | Privileged and partner access controls require recurring operational proof | Quarterly review export, reviewer signoff, removal actions |
 | Medium | Retention/deletion schedules need production configuration | Document deletion hooks exist, but legal-hold and retention operations need approval evidence | Approved retention schedule, legal-hold process, deletion run evidence |
 | Medium | Live AI provider adapter requires vendor and policy approval | Model Gateway controls exist, but live provider use must be reviewed before restricted data use | Provider DPA/security review, approved data classes, gateway config evidence |
-| Medium | Full repository test run is blocked in this sandbox by local listener restrictions | Some HTTP smoke tests cannot complete here because `127.0.0.1` listening returns `EPERM` | Run full test suite in CI or local environment where loopback listeners are allowed |
-| Medium | Build is blocked locally by Rolldown native binding signature | Local macOS native binding prevents Vite build completion for ATS Connect | Reinstall dependencies in clean runner, or use CI runner evidence |
-| Medium | Dependency audit is blocked locally by restricted network | `npm audit` cannot reach the registry in this sandbox | Run `npm run security:audit` in CI with registry access |
 | Low | Evidence package needs owner review cadence | Diligence docs can drift from implementation | Assign owners and quarterly review dates |
 | Low | Some production screenshots/config exports are not attached | Diligence reviewer may need external screenshots or exports | Store sanitized evidence artifacts in controlled evidence folder |
 

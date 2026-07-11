@@ -2,7 +2,7 @@
 
 For partners on Workday / Taleo / iCIMS / UKG / SuccessFactors who can't integrate natively yet. Two flows;
 the SFTP/GCS transport is operator-provisioned (a per-partner bucket/drop), the parse/format is in
-`florence-ats-connect/server/csvBridge.ts` (idempotent; no PII in exports).
+`apps/employer-connect-api/server/csvBridge.ts` (idempotent; no PII in exports).
 
 ## Jobs in (partner → Florence Education), idempotent by `external_req_id`
 CSV header:
@@ -24,4 +24,4 @@ REQ-1,app_abc,started,started,2026-06-15
 - Stages mirror the Production Ledger funnel (matched → … → started → retained → …).
 
 ## Verify
-`npm run csv-bridge-smoke` (in `florence-ats-connect`) proves parse/validate + the no-PII export.
+`npm run csv-bridge-smoke` (in `apps/employer-connect-api`) proves parse/validate + the no-PII export.

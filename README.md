@@ -5,6 +5,7 @@ Florence Education / Florence OS is being consolidated into one production-grade
 ## Current Layout
 
 - `apps/core-api` - Core identity, SSO, Platform API, Passport, consent, audit, Document Vault, Application Gate, partner scopes, Model Gateway, and ledger controls.
+- `apps/app-web` - The unified user-facing app shell (shared navigation + role-aware surfaces across the product apps).
 - `apps/academy-web` - Academy learner web app. It still contains the existing Academy API and live classroom code while the split is staged.
 - `apps/academy-api` - Compatibility symlink to `apps/academy-web/api`; future home of the Academy API package.
 - `apps/academy-live` - Compatibility symlink to `apps/academy-web`; future home of the live classroom service.

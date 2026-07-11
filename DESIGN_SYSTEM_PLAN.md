@@ -1,5 +1,10 @@
 # Design System Plan
 
+> **⚠️ Largely executed (status as of 2026-07-10).** `packages/design-system` exists and
+> Academy already imports it — see `DESIGN_SYSTEM_USAGE.md` (current) and the per-app
+> `DESIGN_SYSTEM_TODO.md` checklists for what migration remains. The code wins over any
+> "future package" framing below.
+
 Last reviewed: 2026-06-25
 
 ## Current State

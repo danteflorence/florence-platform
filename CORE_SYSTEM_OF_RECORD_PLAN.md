@@ -1,6 +1,6 @@
 # Core System Of Record Plan
 
-Last reviewed: 2026-06-25
+Last reviewed: 2026-07-10
 
 ## Current State
 
@@ -38,16 +38,16 @@ Product apps remain purpose-built surfaces and workflow engines. They may own lo
 
 ## Affected Files And Repos
 
-- `florence-core/src/*`, `florence-core/db/schema.sql`, and Core scripts.
+- `apps/core-api/src/*`, `apps/core-api/db/schema.sql`, and Core scripts.
 - Academy API auth, passport, audit, payments, library, outreach, and partner routes.
-- ATS Connect packet, document, application gate, VMS, ATS, ledger, and connector flows.
+- Employer Connect (`apps/employer-connect-api`) packet, document, application gate, VMS, ATS, ledger, and connector flows.
 - Pathway workflow, document, QA, visa/licensure, consular payment, and submission flows.
 - SDKs and shared packages.
 - Docs, OpenAPI contracts, and developer portal copy.
 
 ## Migration Steps
 
-1. Publish a Core ownership matrix for identity, Passport, consent, document, audit, ledger, partner, AI, and gate records.
+1. ✅ Done — the ownership matrix is published as `SYSTEM_OF_RECORD_MAP.md`.
 2. Add a service-by-service record classification:
    - Core canonical record.
    - Product-owned local workflow state.
