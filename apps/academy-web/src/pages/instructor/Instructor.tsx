@@ -24,6 +24,8 @@ import type { Question } from "../../types/question";
 import { SECTIONS, CLIENT_NEED_LABEL, CJMM_STEPS } from "../../data/blueprint";
 import { GENERIC_NOTES, SECTION_NOTES, SESSION_FRAME } from "../../data/teachingRunbook";
 import type { ClientNeed } from "../../types/question";
+import { approvedScenarios } from "../../data/vpatient/registry";
+import { buildReviewPlan, groupByNclexSection } from "../../lib/vpatient/nclexReviewPlan";
 
 // ── Top-level page ──────────────────────────────────────────────────────────
 /**
@@ -528,6 +530,8 @@ function CohortConsole({
         <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
 
         <ClassSimDebrief debrief={simDebrief} />
+
+        <ReviewPlannerPane />
 
         <TopMissedPane />
 
@@ -1328,6 +1332,76 @@ function ClassSimDebrief({ debrief }: { debrief: CohortSimDebrief | null }) {
           </ol>
         </div>
       )}
+    </div>
+  );
+}
+
+function ReviewPlannerPane() {
+  const [days, setDays] = useState(20); // a 4-week residency ≈ 20 weekdays
+  const scenarios = useMemo(() => approvedScenarios(), []);
+  const sections = useMemo(() => groupByNclexSection(scenarios).filter((s) => s.scenarioIds.length > 0), [scenarios]);
+  const plan = useMemo(() => buildReviewPlan(scenarios, days), [scenarios, days]);
+
+  if (scenarios.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-florence-line bg-white p-6">
+        <p className="text-sm font-medium">Sim-of-the-day planner</p>
+        <p className="mt-2 text-sm text-florence-slate">
+          No approved scenarios yet. Once scenarios are approved they'll lay out across your review
+          block here, weighted by the NCLEX test plan.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-florence-line bg-white p-6">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">Sim-of-the-day planner</p>
+        <label className="flex items-center gap-1.5 text-[11px] text-florence-slate">
+          Review days
+          <input
+            type="number"
+            min={1}
+            max={40}
+            value={days}
+            onChange={(e) => setDays(Math.max(1, Math.min(40, Number(e.target.value) || 1)))}
+            className="w-14 rounded-lg border border-florence-line px-2 py-1 text-right text-xs text-florence-ink"
+          />
+        </label>
+      </div>
+      <p className="mt-1 text-xs text-florence-slate">
+        Each review day gets one scored sim, apportioned by the NCLEX-RN test plan (heavier sections
+        get more days). Pair it with MCQ sets for the lighter sections.
+      </p>
+
+      {/* Section coverage */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {sections.map((s) => {
+          const n = plan.filter((d) => d.clientNeed === s.clientNeed).length;
+          return (
+            <span
+              key={s.clientNeed}
+              className="rounded-full border border-florence-line bg-florence-mist/50 px-2.5 py-1 text-[11px] text-florence-ink"
+            >
+              {CLIENT_NEED_LABEL[s.clientNeed]} · {n}d
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Day-by-day */}
+      <ol className="mt-3 max-h-64 space-y-1 overflow-y-auto">
+        {plan.map((d) => (
+          <li key={d.day} className="flex items-center gap-2 rounded-lg bg-florence-mist/40 px-3 py-1.5">
+            <span className="w-12 shrink-0 text-[11px] font-semibold text-florence-slate">Day {d.day}</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-florence-ink">{d.simTitle ?? "—"}</span>
+            <span className="shrink-0 text-[10px] uppercase tracking-wide text-florence-slate">
+              {CLIENT_NEED_LABEL[d.clientNeed]}
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

@@ -16,8 +16,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import type { VPatientScenario } from "../../data/vpatient/types";
-import type { SimState } from "../../lib/vpatient/engine";
+import { resultedLabPanels, type SimState } from "../../lib/vpatient/engine";
 import { evaluate, toAssessmentSummary, type DecisionVerdict } from "../../lib/vpatient/score";
+import LabsPanel, { panelsWithCritical } from "./LabsPanel";
 import { ERROR_TYPE_LABEL, type ErrorType } from "../../lib/walkthrough";
 import { useCandidate } from "../../lib/CandidateContext";
 import {
@@ -68,6 +69,11 @@ export default function SimDebrief({
 
   const optimal = scenario.debrief.optimalTimeline;
   const yourTimeline = state.actionLog;
+  const resultedPanels = resultedLabPanels(state, scenario);
+  // Panels the scenario offered that hold a critical value but were never ordered.
+  const missedLabPanels = panelsWithCritical(scenario.labPanels ?? []).filter(
+    (p) => !state.resultedLabPanelIds.includes(p.id),
+  );
 
   return (
     <div className="min-h-screen bg-florence-mist">
@@ -177,6 +183,30 @@ export default function SimDebrief({
             <p className="mt-2 text-xs text-red-900/70">
               Assessment-channel cues only appear when you go looking. Next run, assess earlier.
             </p>
+          </div>
+        )}
+
+        {/* Labs the learner saw - the biology behind the picture */}
+        {resultedPanels.length > 0 && (
+          <div className="mt-5">
+            <h2 className="text-lg font-semibold text-florence-ink">Labs you ordered</h2>
+            <div className="mt-2">
+              <LabsPanel panels={resultedPanels} />
+            </div>
+          </div>
+        )}
+
+        {/* Labs with a critical value the learner never sent */}
+        {missedLabPanels.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-vital-warn/40 bg-amber-50/60 p-4">
+            <p className="text-sm font-semibold text-amber-900">Labs you didn't send</p>
+            <ul className="mt-1.5 space-y-1">
+              {missedLabPanels.map((p) => (
+                <li key={p.id} className="text-sm text-amber-900/90">
+                  • {p.label} — it would have shown a critical value. Sending it earlier sharpens the picture.
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

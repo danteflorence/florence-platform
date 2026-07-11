@@ -18,6 +18,7 @@ import {
   availableActions,
   dispatch as engineDispatch,
   init,
+  resultedLabPanels,
   tick,
   type SimState,
 } from "../lib/vpatient/engine";
@@ -33,6 +34,7 @@ import {
   type Difficulty,
 } from "../lib/vpatient/difficulty";
 import VitalsDisplay from "../components/vpatient/VitalsDisplay";
+import LabsPanel from "../components/vpatient/LabsPanel";
 import SimDebrief from "../components/vpatient/SimDebrief";
 
 const CATEGORY_LABEL: Record<ActionCategory, string> = {
@@ -170,6 +172,7 @@ export function SimRunner({
   }, [scenario]);
 
   const actions = availableActions(state, scenario);
+  const resultedPanels = resultedLabPanels(state, scenario);
   const revealedCues = scenario.phases
     .flatMap((p) => p.cues ?? [])
     .filter((c) => state.revealedCueIds.includes(c.id));
@@ -256,9 +259,15 @@ export function SimRunner({
           </div>
           <button
             onClick={() => setChartOpen((o) => !o)}
-            className="shrink-0 rounded-lg border border-florence-line bg-white px-3 py-1.5 text-xs font-semibold text-florence-ink hover:bg-florence-mist"
+            className="relative shrink-0 rounded-lg border border-florence-line bg-white px-3 py-1.5 text-xs font-semibold text-florence-ink hover:bg-florence-mist"
           >
             {chartOpen ? "Close chart" : "Chart"}
+            {!chartOpen && resultedPanels.length > 0 && (
+              <span
+                className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-vital-danger ring-2 ring-white"
+                aria-label="New lab results"
+              />
+            )}
           </button>
         </div>
       </header>
@@ -284,6 +293,19 @@ export function SimRunner({
                 </details>
               ))}
             </div>
+
+            {/* Resulted labs - the biology behind the picture */}
+            {resultedPanels.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-florence-slate">Labs</p>
+                <LabsPanel panels={resultedPanels} />
+              </div>
+            )}
+            {(scenario.labPanels?.length ?? 0) > 0 && resultedPanels.length === 0 && (
+              <p className="mt-3 rounded-lg bg-florence-mist/60 px-3 py-2 text-xs text-florence-slate">
+                No labs back yet. Order a panel from the action menu and results post after the turnaround.
+              </p>
+            )}
           </div>
         )}
 
