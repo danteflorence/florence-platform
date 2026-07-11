@@ -8,11 +8,13 @@
 
 const API = "https://api.elevenlabs.io";
 const API_KEY = process.env["ELEVENLABS_API_KEY"] ?? "";
+// Use `||` (not `??`) so an EMPTY env line - which .env templates ship with -
+// falls back to the default instead of sending an empty id to the API.
 // Prebuilt default voice "Rachel"; override per-brand with ELEVENLABS_VOICE_ID.
-const VOICE_ID = process.env["ELEVENLABS_VOICE_ID"] ?? "21m00Tcm4TlvDq8ikWAM";
+const VOICE_ID = process.env["ELEVENLABS_VOICE_ID"] || "21m00Tcm4TlvDq8ikWAM";
 // multilingual_v2 = high quality across the languages our global nurses speak.
-const MODEL_ID = process.env["ELEVENLABS_MODEL_ID"] ?? "eleven_multilingual_v2";
-const OUTPUT_FORMAT = process.env["ELEVENLABS_OUTPUT_FORMAT"] ?? "mp3_44100_128";
+const MODEL_ID = process.env["ELEVENLABS_MODEL_ID"] || "eleven_multilingual_v2";
+const OUTPUT_FORMAT = process.env["ELEVENLABS_OUTPUT_FORMAT"] || "mp3_44100_128";
 // Pronunciation dictionary locator (created by scripts/setup-pronunciation.ts).
 const DICT_ID = process.env["ELEVENLABS_DICTIONARY_ID"] ?? "";
 const DICT_VERSION_ID = process.env["ELEVENLABS_DICTIONARY_VERSION_ID"] ?? "";
