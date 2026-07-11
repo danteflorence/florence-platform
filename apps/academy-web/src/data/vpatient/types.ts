@@ -263,6 +263,10 @@ export interface VPatientScenario {
   patientResponses: PatientResponse[];
   /** The care setting (unit) - organizes the library + selects the 3D env. */
   careSettingId?: string;
+  /** Optional cast-registry persona this patient is played by. Drives the
+   *  swappable MetaHuman on screen and (for generated scenarios) the physiology
+   *  projection. Recasting = changing this id. */
+  personaId?: string;
   /** The interprofessional team the learner works with in this scenario. */
   team?: TeamMember[];
   /** Review-packet extras (optional; never touch the engine). */

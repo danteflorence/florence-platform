@@ -14,6 +14,7 @@
 
 import type { VPatientScenario, VitalsNumeric } from "../../data/vpatient/types";
 import { CARE_SETTING_BY_ID } from "../../data/vpatient/careSettings";
+import { PERSONA_BY_ID } from "../../data/vpatient/castRegistry";
 
 /** Category → a coarse animation clip the Unreal patient/actor plays. */
 const ACTION_ANIMATION: Record<string, string> = {
@@ -132,8 +133,12 @@ export function toUnrealManifest(sc: VPatientScenario): UnrealManifest {
   }
 
   const setting = sc.careSettingId ? CARE_SETTING_BY_ID.get(sc.careSettingId) : undefined;
+  // A cast-registry persona, if set, names the exact swappable MetaHuman;
+  // otherwise fall back to the coarse age/sex model hint.
+  const persona = sc.personaId ? PERSONA_BY_ID.get(sc.personaId) : undefined;
+  const patientModelHint = persona?.metaHumanId ?? modelHint(sc.patient.age, sc.patient.sex);
   const cast: UnrealManifest["cast"] = [
-    { id: "patient", kind: "patient", role: "patient", name: sc.patient.name, modelHint: modelHint(sc.patient.age, sc.patient.sex) },
+    { id: "patient", kind: "patient", role: "patient", name: sc.patient.name, modelHint: patientModelHint },
     ...(sc.team ?? []).map((m) => ({
       id: m.id,
       kind: "team" as const,

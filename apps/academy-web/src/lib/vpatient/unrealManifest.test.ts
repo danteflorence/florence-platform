@@ -67,4 +67,10 @@ describe("toUnrealManifest", () => {
     expect(withTeam.cast).toHaveLength(3);
     expect(withTeam.cast.filter((c) => c.kind === "team").map((c) => c.role).sort()).toEqual(["pharmacist", "physician"]);
   });
+
+  it("a cast-registry persona selects the exact swappable MetaHuman", () => {
+    const recast = toUnrealManifest({ ...SEPSIS_01, personaId: "p-frail-f-82" });
+    const patient = recast.cast.find((c) => c.kind === "patient")!;
+    expect(patient.modelHint).toBe("mh_frail_f_82_01"); // the persona's MetaHuman, not the coarse hint
+  });
 });
