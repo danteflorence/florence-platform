@@ -419,6 +419,36 @@ try {
   assert.equal(thBad.status, 400);
   ok("sim tutor-hint coaches the NCJMM step in mock mode; bad step rejected");
 
+  // 4i-bis) Spoken tutor: /v1/audio/speak returns a playable cached clip.
+  // Mock mode renders a silent mp3, so the shape + caching are fully testable.
+  const sp1 = await fetch(`${base}/v1/audio/speak`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ text: "Look at the whole picture before you act." }),
+  });
+  const sp1j = (await sp1.json()) as any;
+  assert.equal(sp1.status, 200);
+  assert.ok(typeof sp1j.url === "string" && sp1j.url.includes("/v1/audio/file/"));
+  assert.equal(sp1j.cached, false);
+  const sp2 = await fetch(`${base}/v1/audio/speak`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ text: "Look at the whole picture before you act." }),
+  });
+  const sp2j = (await sp2.json()) as any;
+  assert.equal(sp2j.cached, true); // identical text → cache hit, no re-render
+  assert.equal(sp2j.url, sp1j.url);
+  const spFile = await fetch(`${base}${sp1j.url}`);
+  assert.equal(spFile.status, 200);
+  assert.equal(spFile.headers.get("content-type"), "audio/mpeg");
+  const spBad = await fetch(`${base}/v1/audio/speak`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ text: "" }),
+  });
+  assert.equal(spBad.status, 400);
+  ok("spoken tutor: /v1/audio/speak renders, caches by content, serves audio/mpeg");
+
   // 4j) Scenario Studio: ingest a doc → draft skeleton; save → list → approve.
   const ing = await fetch(`${base}/v1/sim/ingest`, {
     method: "POST",

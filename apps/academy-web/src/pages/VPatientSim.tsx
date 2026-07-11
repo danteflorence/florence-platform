@@ -37,6 +37,7 @@ import VitalsDisplay from "../components/vpatient/VitalsDisplay";
 import LabsPanel from "../components/vpatient/LabsPanel";
 import SimNarrationAudio from "../components/vpatient/SimNarrationAudio";
 import SimDebrief from "../components/vpatient/SimDebrief";
+import { speakText } from "../lib/audioManifest";
 
 const CATEGORY_LABEL: Record<ActionCategory, string> = {
   assess: "Assess",
@@ -226,6 +227,18 @@ export function SimRunner({
   // learner is stuck on; the server never learns the correct action, so it
   // can't hand over the answer. Using a hint flags the run (down-weighted,
   // not reported) - the price of a hint is an honest score.
+  // The spoken tutor: say the hint aloud in the narrator voice (server-cached
+  // TTS). Best-effort - the text hint always renders; audio only when signed
+  // in, unmuted, and the API answers.
+  const speakHint = async (text: string) => {
+    if (muted) return;
+    const url = await speakText(text, storedToken());
+    if (!url || muted) return;
+    const el = new Audio(url);
+    el.preload = "none";
+    void el.play().catch(() => undefined);
+  };
+
   const askTutor = async () => {
     const focus = coachingFocus(state, scenario);
     dispatch({ type: "hint" });
@@ -238,12 +251,14 @@ export function SimRunner({
           body: { step: focus.step, criticalCuesRemaining: focus.criticalCuesRemaining, situation },
         });
         setTutorHint(reply.text);
+        void speakHint(reply.text);
         return;
       }
     } catch {
       /* fall through to the offline nudge */
     }
     setTutorHint(fallback);
+    void speakHint(fallback);
   };
 
   if (state.ended) {

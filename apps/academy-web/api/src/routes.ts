@@ -24,8 +24,8 @@ import { isStaff as coreIsStaff } from "./coreAuth.ts";
 import { agoraAppId, agoraConfigured, buildRtcToken } from "./agora.ts";
 import { recordingConfigured, recordingPublicBase, startRecording, stopRecording, type RecordingHandle } from "./agoraRecording.ts";
 import { listRecordings, saveRecording } from "./recordingsStore.ts";
-import { publicManifest, assetFilePath } from "./audioStore.ts";
-import { tutorConfigured, tutorSignedUrl } from "./elevenlabs.ts";
+import { publicManifest, assetFilePath, loadManifest, saveManifest, writeAsset, publicUrl } from "./audioStore.ts";
+import { tutorConfigured, tutorSignedUrl, ttsToMp3, elevenlabsConfigured, voiceConfig, outputBitrateKbps } from "./elevenlabs.ts";
 import { emitPassport, passportEnabled } from "./passport.ts";
 import { readFileSync } from "node:fs";
 import { validate, type Schema } from "./validate.ts";
@@ -46,7 +46,7 @@ import {
   verifyLobSignature,
 } from "./outreach.ts";
 import { lobCreate, LobError, priceDollarsToCents, type LobAddress } from "./lob_client.ts";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createHash } from "node:crypto";
 import {
   DRIP_MAX_STEP,
   renderDripStage,
@@ -1219,6 +1219,44 @@ async function postTutorHint(ctx: ReqCtx, _deps: Deps): Promise<void> {
   const criticalCuesRemaining = Math.max(0, Math.min(50, Math.floor(num(ctx.body, "criticalCuesRemaining") ?? 0)));
   const reply = await tutorHintReply({ step: step as NcjmmStep, situation, criticalCuesRemaining });
   send(ctx, 200, reply);
+}
+
+// Speak short dynamic text (tutor replies, coaching lines) in the product's
+// narrator voice - the "spoken tutor". Clips are cached by content hash so an
+// identical line renders (and bills the grant) exactly once; repeat requests
+// return the cached URL. Mock mode (no ELEVENLABS_API_KEY) returns a silent
+// clip so the UX is testable without spend. Auth'd like every learner route.
+async function postSpeak(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "audio_speak";
+  const text = (str(ctx.body, "text") ?? "").trim().slice(0, 600);
+  if (text.length < 2) return err(ctx, 400, "invalid_request", "text is required");
+
+  const textHash = createHash("sha256").update(`speak|${text}`).digest("hex");
+  const key = `speak-${textHash.slice(0, 16)}`;
+  const manifest = loadManifest();
+  const hit = manifest[key];
+  if (hit) {
+    return send(ctx, 200, { url: publicUrl(hit.file), duration_sec: hit.durationSec, cached: true, mock: !elevenlabsConfigured() });
+  }
+
+  const bytes = await ttsToMp3(text); // narrator voice; silent mp3 in mock mode
+  const durationSec = Math.round(((bytes.length * 8) / (outputBitrateKbps() * 1000)) * 10) / 10;
+  const cfg = voiceConfig();
+  const asset = writeAsset({
+    key,
+    kind: "speak",
+    refId: key,
+    bytes,
+    textHash,
+    durationSec,
+    chars: text.length,
+    voiceId: cfg.voiceId,
+    modelId: cfg.modelId,
+    generatedAt: new Date().toISOString(),
+  });
+  manifest[key] = asset;
+  saveManifest(manifest);
+  send(ctx, 200, { url: publicUrl(asset.file), duration_sec: durationSec, cached: false, mock: !elevenlabsConfigured() });
 }
 
 // ── Scenario Studio: authored virtual-patient scenarios ─────────────────────
@@ -4428,6 +4466,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/candidates/:id/remediations", "performance:read", true, listRemediations),
   compile("POST", "/v1/sim/patient-voice", "candidates:read", true, postPatientVoice),
   compile("POST", "/v1/sim/tutor-hint", "candidates:read", true, postTutorHint),
+  compile("POST", "/v1/audio/speak", "candidates:read", true, postSpeak),
   compile("POST", "/v1/sim/ingest", "cohorts:write", true, postScenarioIngest),
   compile("POST", "/v1/sim/author-turn", "cohorts:write", true, postAuthorTurn),
   compile("POST", "/v1/sim/scenarios", "cohorts:write", true, postAuthoredScenario),

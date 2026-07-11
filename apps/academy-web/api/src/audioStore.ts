@@ -18,7 +18,7 @@ export const AUDIO_DIR = process.env["AUDIO_DIR"] ?? join(HERE, "..", "data", "a
 const MANIFEST = join(AUDIO_DIR, "manifest.json");
 const PUBLIC_BASE = (process.env["AUDIO_PUBLIC_BASE"] ?? "").replace(/\/$/, "");
 
-export type AudioKind = "rationale" | "stem" | "lesson" | "walkthrough" | "coaching";
+export type AudioKind = "rationale" | "stem" | "lesson" | "walkthrough" | "coaching" | "sim" | "speak";
 
 /** Audio content keys (must match the frontend audioManifest.ts key builders). */
 export const walkthroughKey = (questionId: string): string => `wt-${questionId}`;

@@ -51,3 +51,28 @@ export async function audioFor(key: string): Promise<AudioEntry | null> {
   const m = await loadAudioManifest();
   return m[key] ?? null;
 }
+
+/**
+ * The spoken tutor: render short dynamic text (a tutor hint, a coaching line)
+ * in the product's narrator voice via POST /v1/audio/speak. Server-cached by
+ * content hash, so repeats are free. Returns a playable URL, or null when the
+ * caller isn't signed in / the API is unreachable - audio stays a progressive
+ * enhancement, the text is always shown regardless.
+ */
+export async function speakText(text: string, token: string | null): Promise<string | null> {
+  const base = apiBaseUrl();
+  if (!base || !token || !text.trim()) return null;
+  try {
+    const res = await fetch(`${base}/v1/audio/speak`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ text: text.slice(0, 600) }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { url?: string };
+    if (!data.url) return null;
+    return data.url.startsWith("/") ? `${base}${data.url}` : data.url;
+  } catch {
+    return null;
+  }
+}

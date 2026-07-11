@@ -53,6 +53,24 @@ export const CAST: VoiceCastEntry[] = [
   { id: "0rEo3eAjssGDUCXHYENf", label: "US Southern elder (F)", gender: "female", age: "old", heritage: "US Southern", roleHints: ["patient"] },
   { id: "Cb8NLd0sUB8jI4MW2f9M", label: "US Southern (M)", gender: "male", age: "middle", heritage: "US Southern", roleHints: ["patient"] },
   { id: "DLsHlh26Ugcm6ELvS0qi", label: "US Southern, reassuring (F)", gender: "female", age: "middle", heritage: "US Southern", roleHints: ["charge_nurse", "patient"] },
+  // Wave 2 (2026-07): East/Southeast Asia, Middle East, Caribbean, regional US,
+  // elders, and pediatric voices.
+  { id: "wstmCVSVzHzNM3bbwPQw", label: "Korean, professor (M)", gender: "male", age: "middle", heritage: "Korean", roleHints: ["physician", "provider_on_call"] },
+  { id: "Zjb2Dbq5IbWDKpVOllIo", label: "Korean, calm (F)", gender: "female", age: "young", heritage: "Korean", roleHints: ["patient", "charge_nurse"] },
+  { id: "zmcVlqmyk3Jpn5AVYcAL", label: "Chinese, clear (F)", gender: "female", age: "young", heritage: "Chinese", roleHints: ["patient", "pharmacist"] },
+  { id: "DkVHY251JcjFstLRlihO", label: "Chinese, energetic (M)", gender: "male", age: "young", heritage: "Chinese", roleHints: ["patient"] },
+  { id: "aCChyB4P5WEomwRsOKRh", label: "Arab-American, polished (F)", gender: "female", age: "young", heritage: "Arab-American", roleHints: ["physician", "patient"] },
+  { id: "Os2frcqCuUz8b9F93RuI", label: "Arab-American, warm (M)", gender: "male", age: "young", heritage: "Arab-American", roleHints: ["patient", "physician"] },
+  { id: "mrDMz4sYNCz18XYFpmyV", label: "Jamaican, expressive (F)", gender: "female", age: "middle", heritage: "Jamaican", roleHints: ["patient", "charge_nurse"] },
+  { id: "eRcsJdPMOM0mtGC03ul7", label: "Jamaican, calm (M)", gender: "male", age: "young", heritage: "Jamaican", roleHints: ["patient", "respiratory_therapist"] },
+  { id: "Gvx1qZk9R4BUiBfsNPBU", label: "New York (F)", gender: "female", age: "middle", heritage: "New York", roleHints: ["patient", "case_manager"] },
+  { id: "Q7yjSu9pVI6fMxiCGwMo", label: "US Midwest, warm (F)", gender: "female", age: "middle", heritage: "US Midwest", roleHints: ["charge_nurse", "patient", "social_work"] },
+  { id: "lh03wW2cCRf05ksqPizq", label: "US Midwest (M)", gender: "male", age: "middle", heritage: "US Midwest", roleHints: ["physician", "patient"] },
+  { id: "NOpBlnGInO9m6vDvFkFC", label: "American elder, wise (M)", gender: "male", age: "old", heritage: "American elder", roleHints: ["patient"] },
+  { id: "qAZH0aMXY8tw1QufPN0D", label: "American elder, raspy (M)", gender: "male", age: "old", heritage: "American elder", roleHints: ["patient"] },
+  { id: "s2wvuS7SwITYg8dqsJdn", label: "Italian-American elder (M)", gender: "male", age: "old", heritage: "Italian-American", roleHints: ["patient"] },
+  { id: "XJ2fW4ybq7HouelYYGcL", label: "Teen (F)", gender: "female", age: "young", heritage: "American teen", roleHints: ["patient"] },
+  { id: "UI9arZeSp7bIUhGbx36K", label: "Child (M)", gender: "male", age: "young", heritage: "American child", roleHints: ["patient"] },
 ];
 
 export const CAST_BY_ID = new Map(CAST.map((v) => [v.id, v]));
