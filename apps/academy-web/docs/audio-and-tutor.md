@@ -1,5 +1,14 @@
 # Always-on audio + voice tutor (ElevenLabs)
 
+> **Status (2026-07-11): LIVE.** The grant is claimed (33M chars ≈ 600h),
+> the key is in `api/.env`, the narrator is locked (**Matilda**,
+> `XrExE9yKIg1WjnnlVkGX`), the 161-rule clinical pronunciation dictionary is
+> created and wired, a 29-voice diverse cast is in the account (see
+> `src/data/vpatient/voiceCast.ts` — the source of truth for voice ids), the
+> 5 approved sim scenarios are voiced, and the spoken tutor
+> (`POST /v1/audio/speak`) ships. Remaining: the bulk lesson/rationale
+> generation run (`AUDIO_RUNBOOK.md`).
+
 Two features, one grant:
 
 1. **Narrated rationales + lesson audio** — a generated MP3 for every question
@@ -60,24 +69,25 @@ Files land in `api/data/audio/` (`manifest.json` + MP3s). In production, mount a
 there (compose already does: `academy-audio`) or front it with a CDN via
 `AUDIO_PUBLIC_BASE`.
 
-## 4. Voice tutor (one-time)
+## 4. Voice tutor
 
-```bash
-npm run audio:tutor       # creates the NCLEX tutor agent; prints agent_id
-export ELEVENLABS_AGENT_ID=agent_...
-```
+**Shipped today — the spoken tutor:** `POST /v1/audio/speak {text}` renders any
+short dynamic line (tutor hints, coaching) in the narrator voice, cached by
+content hash so an identical line bills once. The sim speaks tutor hints aloud
+through it.
 
-Restart the API → the "Ask the tutor" button appears for signed-in learners. The API
-mints a short-lived **signed URL** per session (`POST /v1/tutor/session`, gated to
-signed-in users because it consumes grant minutes); the browser opens the realtime
-conversation via `@elevenlabs/react`.
+**Deferred — the realtime conversational agent** (`npm run audio:tutor`,
+`ELEVENLABS_AGENT_ID`, `POST /v1/tutor/session`): direct conversational AI is
+**disabled by policy** — tutor reasoning must route through Core's Model
+Gateway (see `api/src/elevenlabs.ts`). The realtime mic-in/stream-out loop is
+the next audio slice, built on that gateway with the same narrator voice.
 
 ## Environment variables
 
 | Var | Purpose |
 |---|---|
 | `ELEVENLABS_API_KEY` | Enables live TTS + tutor. Blank = mock / hidden. |
-| `ELEVENLABS_VOICE_ID` | Brand voice (default: Rachel `21m00Tcm4TlvDq8ikWAM`). |
+| `ELEVENLABS_VOICE_ID` | The NARRATOR (set: Matilda `XrExE9yKIg1WjnnlVkGX`; code fallback: Rachel). Cast voices live in `src/data/vpatient/voiceCast.ts`. |
 | `ELEVENLABS_MODEL_ID` | Default `eleven_multilingual_v2` (global languages). |
 | `ELEVENLABS_DICTIONARY_ID` / `…_VERSION_ID` | Clinical pronunciation locator. |
 | `ELEVENLABS_AGENT_ID` | Conversational tutor agent → shows the tutor button. |
@@ -88,8 +98,9 @@ conversation via `@elevenlabs/react`.
 
 - `GET /v1/audio/manifest` — content key → `{ url, durationSec, kind }` (public, cached)
 - `GET /v1/audio/file/:name` — serves a clip (when no CDN); immutable cache, traversal-guarded
+- `POST /v1/audio/speak` — auth'd; renders short dynamic text in the narrator voice, content-hash cached (the spoken tutor)
 - `GET /v1/tutor/config` — `{ configured }` (public; SPA shows/hides the button)
-- `POST /v1/tutor/session` — `{ signedUrl }` (auth-gated; consumes minutes)
+- `POST /v1/tutor/session` — `{ signedUrl }` (auth-gated; agent path currently disabled by policy — see §4)
 
 ## Roadmap
 

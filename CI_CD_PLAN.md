@@ -1,5 +1,7 @@
 # CI/CD Plan
 
+> **📜 Executed plan (bannered 2026-07-11).** .github/workflows/ci.yml and render.yaml exist; docs/runbooks/CI_CD.md is the live runbook. Read that, not this; this file is kept as the decision record.
+
 Last reviewed: 2026-06-25
 
 ## Current State

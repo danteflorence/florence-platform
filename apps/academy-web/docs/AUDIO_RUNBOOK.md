@@ -6,6 +6,11 @@ is verifiable offline. The 600h StoryHouse grant is a **generation** budget, not
 streaming one — content-addressable `textHash` dedup means editing one item re-renders
 only that clip, and millions of plays after generation cost nothing.
 
+> **Live state (2026-07-11):** key set, dictionary created (161 rules, ids in
+> `api/.env`), narrator locked (Matilda). Sim narration for the 5 approved
+> scenarios is GENERATED. Voice ids come from `src/data/vpatient/voiceCast.ts`.
+> The bulk lesson/rationale run below is the remaining step.
+
 ## Audio categories
 | Kind | Source | Layer |
 |---|---|---|
@@ -13,6 +18,16 @@ only that clip, and millions of plays after generation cost nothing.
 | `walkthrough` | approved walkthrough (full NCJMM) | 2–4 min "how to think" |
 | `coaching` | approved walkthrough, per distractor | 30–90s, played to the option the learner chose |
 | `lesson` | `hour1..20.ts` segments | e-book / lesson chapter narration |
+| `sim` | approved sim scenarios' narration lines | patient lines (diverse cast voice) + clinical narration (narrator) |
+| `speak` | dynamic text via `POST /v1/audio/speak` | the spoken tutor - content-hash cached at request time |
+
+### Sim narration flow (separate from the bulk generator)
+```bash
+# 1) export lines + voice casting from the SPA graph (vitest-hosted bridge)
+EXPORT_SIM_AUDIO=1 npx vitest run src/lib/vpatient/exportSimNarration.run.test.ts
+# 2) render (patient lines in cast voices, narration in the narrator; cached)
+cd api && node --env-file=.env scripts/generate-sim-audio.ts
+```
 
 Walkthrough + coaching audio is emitted **only for `status='approved'` walkthroughs**
 (`scripts/verify-walkthroughs.ts` enforces this as a build invariant).

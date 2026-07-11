@@ -1,5 +1,7 @@
 # Scenario batch conversion
 
+> **📜 Superseded by `SCENARIO_ENRICHMENT.md`.** The skeleton drafts this describes have since been enriched into PLAYABLE scenarios (persona + physiology + rubric + inferred NCLEX section). This file remains as the record of the original conversion run.
+
 The purchased/licensed clinical-simulation pack (~130 documents across 14
 clinical categories) run through the Scenario Studio's own ingest pipeline.
 

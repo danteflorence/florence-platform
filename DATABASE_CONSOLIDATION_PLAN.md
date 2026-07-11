@@ -1,5 +1,7 @@
 # Database Consolidation Plan
 
+> **📜 Executed plan (bannered 2026-07-11).** docs/architecture/DATABASE_STANDARD.md is the live standard. Read that, not this; this file is kept as the decision record.
+
 Last reviewed: 2026-07-10
 
 ## Current State

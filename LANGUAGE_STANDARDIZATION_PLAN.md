@@ -1,5 +1,7 @@
 # Language Standardization Plan
 
+> **📜 Executed plan (bannered 2026-07-11).** docs/architecture/LANGUAGE_STANDARD.md is the live standard. Read that, not this; this file is kept as the decision record.
+
 Last reviewed: 2026-06-25
 
 ## Current State
