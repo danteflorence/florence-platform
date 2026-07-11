@@ -29,6 +29,7 @@ describe("evaluate", () => {
   it("optimal run: everything met, prevention makes crash decisions n/a", () => {
     const state = runScript([
       [0, "check_vitals"],
+      [20, "send_labs"], // a textbook run sends a lactate - it results by t=80
       [40, "assess_wound"],
       [90, "review_labs"],
       [120, "check_urine"],

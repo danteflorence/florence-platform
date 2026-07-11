@@ -104,6 +104,41 @@ export interface ActionDef {
   repeatable?: boolean;
 }
 
+// ── Labs (the biology the learner has to interpret) ──────────────────────────
+
+/** How a resulted value compares to its reference range. */
+export type LabFlag = "normal" | "high" | "low" | "critical-high" | "critical-low" | "abnormal";
+
+/** One resulted analyte. Numeric values are flagged against the reference +
+ *  critical thresholds; string values (e.g. a culture result) carry an explicit
+ *  `flag`. These are exactly the numbers a physiology engine like Pulse would
+ *  produce offline - see docs/PULSE_INTEGRATION.md. */
+export interface LabValue {
+  id: string;
+  label: string; //             "Lactate", "WBC", "pH"
+  value: number | string;
+  unit?: string; //             "mmol/L"
+  refLow?: number;
+  refHigh?: number;
+  criticalLow?: number;
+  criticalHigh?: number;
+  /** Force a flag for qualitative / author-specified results. */
+  flag?: LabFlag;
+}
+
+/** A panel the learner can ORDER; results land after `resultDelaySec` (labs
+ *  take time - part of the teaching). */
+export interface LabPanel {
+  id: string;
+  label: string; //             "VBG + lactate", "CBC", "BMP"
+  /** The action id whose dispatch orders this panel. */
+  orderActionId: string;
+  resultDelaySec: number; //    turnaround before results post
+  values: LabValue[];
+  /** Optional cue revealed + narrated when the results land. */
+  resultCueId?: string;
+}
+
 // ── Phases (the clock-driven baseline story) ─────────────────────────────────
 
 export interface PatientLine {
@@ -261,6 +296,8 @@ export interface VPatientScenario {
   debrief: DebriefSpec;
   narration: NarrationClip[];
   patientResponses: PatientResponse[];
+  /** Lab panels the learner can order + interpret during the run. */
+  labPanels?: LabPanel[];
   /** The care setting (unit) - organizes the library + selects the 3D env. */
   careSettingId?: string;
   /** Optional cast-registry persona this patient is played by. Drives the

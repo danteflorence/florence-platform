@@ -74,6 +74,8 @@ export const SEPSIS_01: VPatientScenario = {
         { id: "c-lungs", text: "Lungs clear bilaterally, no adventitious sounds.", channel: "assessment" },
         { id: "c-perfusion", text: "Skin warm and flushed, cap refill 3 seconds.", channel: "assessment" },
         { id: "c-confusion", text: "Rosa answers slowly and asks where she is.", channel: "assessment", critical: true },
+        // Revealed when the ordered VBG + lactate + CBC results post.
+        { id: "c-lab-lactate", text: "VBG/lactate resulted: lactate 4.6 mmol/L, pH 7.30, WBC 15.1 with left shift - the numbers behind the picture.", channel: "assessment", critical: true },
       ],
       patientLine: { text: "Morning... I don't feel right today. Cold, mostly.", audioId: "a-p0-line" },
     },
@@ -99,6 +101,7 @@ export const SEPSIS_01: VPatientScenario = {
     { id: "check_vitals", label: "Take a full set of vitals", category: "assess", durationSec: 10, cooldownSec: 30, repeatable: true },
     { id: "assess_wound", label: "Assess the surgical site", category: "assess", durationSec: 20, reveals: ["c-wound"] },
     { id: "review_labs", label: "Review this morning's labs", category: "assess", durationSec: 10, reveals: ["c-wbc"] },
+    { id: "send_labs", label: "Send a VBG + lactate + CBC now", category: "assess", durationSec: 10 },
     { id: "check_urine", label: "Check urine output", category: "assess", durationSec: 10, reveals: ["c-urine"] },
     { id: "auscultate", label: "Auscultate lungs", category: "assess", durationSec: 15, reveals: ["c-lungs"] },
     { id: "assess_perfusion", label: "Assess skin and perfusion", category: "assess", durationSec: 10, reveals: ["c-perfusion"] },
@@ -304,6 +307,26 @@ export const SEPSIS_01: VPatientScenario = {
       errorTypeIfMissed: "missed_cue",
       weight: 1,
       citation: "Evaluate response to resuscitation - repeat focused assessment after intervention.",
+    },
+  ],
+  // The biology behind the picture: order a VBG + lactate + CBC and, after a
+  // short turnaround, read the numbers. Lactate 4.6 is a critical sepsis cue.
+  // (These are authored today; Pulse will generate them offline - see
+  // docs/PULSE_INTEGRATION.md.)
+  labPanels: [
+    {
+      id: "vbg-lactate-cbc",
+      label: "VBG + lactate + CBC",
+      orderActionId: "send_labs",
+      resultDelaySec: 60,
+      resultCueId: "c-lab-lactate",
+      values: [
+        { id: "lactate", label: "Lactate", value: 4.6, unit: "mmol/L", refLow: 0.5, refHigh: 2.0, criticalHigh: 4.0 },
+        { id: "ph", label: "pH", value: 7.3, refLow: 7.35, refHigh: 7.45 },
+        { id: "wbc", label: "WBC", value: 15.1, unit: "10^9/L", refLow: 4.0, refHigh: 11.0 },
+        { id: "hco3", label: "HCO3", value: 18, unit: "mmol/L", refLow: 22, refHigh: 26 },
+        { id: "gluc", label: "Glucose", value: 148, unit: "mg/dL", refLow: 70, refHigh: 110 },
+      ],
     },
   ],
   debrief: {

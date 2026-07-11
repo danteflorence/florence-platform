@@ -47,6 +47,10 @@ export interface SimState {
   /** The nurse is occupied until this clock value (null = free). */
   busyUntilSec: number | null;
   narrationLog: { text: string; audioId?: string; atSec: number }[];
+  /** Lab panels ordered but not yet resulted (results post at resultsAtSec). */
+  orderedLabs: { panelId: string; orderedAtSec: number; resultsAtSec: number }[];
+  /** Panel ids whose results have posted (viewable in the labs/chart). */
+  resultedLabPanelIds: string[];
   ended: { outcome: RunOutcome; atSec: number } | null;
   /** Set by the player when hints were used - down-weighted downstream. */
   hinted: boolean;
@@ -83,6 +87,8 @@ export function init(scenario: VPatientScenario): SimState {
     actionCooldowns: {},
     busyUntilSec: null,
     narrationLog: [],
+    orderedLabs: [],
+    resultedLabPanelIds: [],
     ended: null,
     hinted: false,
   };
@@ -105,10 +111,13 @@ export function tick(state: SimState, scenario: VPatientScenario): SimState {
     firedRuleIds: [...state.firedRuleIds],
     unlockedActionIds: [...state.unlockedActionIds],
     flagsSetAt: { ...state.flagsSetAt },
+    orderedLabs: [...state.orderedLabs],
+    resultedLabPanelIds: [...state.resultedLabPanelIds],
   };
   if (s.busyUntilSec !== null && s.clockSec >= s.busyUntilSec) s.busyUntilSec = null;
   enterPhases(s, scenario);
   applyRamps(s);
+  resultDueLabs(s, scenario);
   evaluateRules(s, scenario, null);
   if (!s.ended && s.clockSec >= scenario.durationSec) {
     s.ended = { outcome: "time_end", atSec: s.clockSec };
@@ -149,12 +158,23 @@ export function dispatch(
     activeRamps: [...state.activeRamps],
     narrationLog: [...state.narrationLog],
     flagsSetAt: { ...state.flagsSetAt },
+    orderedLabs: [...state.orderedLabs],
+    resultedLabPanelIds: [...state.resultedLabPanelIds],
     busyUntilSec: state.clockSec + Math.max(0, action.durationSec),
   };
   if (action.cooldownSec) s.actionCooldowns[actionId] = s.clockSec + action.cooldownSec;
   for (const cueId of action.reveals ?? []) revealCue(s, cueId);
+  orderLabsFor(s, scenario, actionId);
   evaluateRules(s, scenario, actionId);
   return { state: s, ok: true };
+}
+
+/** Panels whose results have posted, in result order - what the labs view and
+ *  the debrief render (each caller flags values via labs.ts). */
+export function resultedLabPanels(state: SimState, scenario: VPatientScenario) {
+  return state.resultedLabPanelIds
+    .map((id) => (scenario.labPanels ?? []).find((p) => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
 }
 
 /** Convenience for the player + tests: which actions are tappable right now. */
@@ -227,6 +247,34 @@ function applyRamps(s: SimState): void {
 
 function revealCue(s: SimState, cueId: string): void {
   if (!s.revealedCueIds.includes(cueId)) s.revealedCueIds.push(cueId);
+}
+
+/** When the ordering action fires, schedule any panel it orders to result after
+ *  its turnaround. Ordering the same panel twice is a no-op. */
+function orderLabsFor(s: SimState, scenario: VPatientScenario, actionId: string): void {
+  for (const panel of scenario.labPanels ?? []) {
+    if (panel.orderActionId !== actionId) continue;
+    if (s.orderedLabs.some((o) => o.panelId === panel.id)) continue;
+    if (s.resultedLabPanelIds.includes(panel.id)) continue;
+    s.orderedLabs.push({
+      panelId: panel.id,
+      orderedAtSec: s.clockSec,
+      resultsAtSec: s.clockSec + Math.max(0, panel.resultDelaySec),
+    });
+  }
+}
+
+/** Post any labs whose turnaround has elapsed; reveal the result cue + narrate. */
+function resultDueLabs(s: SimState, scenario: VPatientScenario): void {
+  for (const order of s.orderedLabs) {
+    if (s.clockSec < order.resultsAtSec) continue;
+    if (s.resultedLabPanelIds.includes(order.panelId)) continue;
+    s.resultedLabPanelIds.push(order.panelId);
+    const panel = (scenario.labPanels ?? []).find((p) => p.id === order.panelId);
+    if (!panel) continue;
+    if (panel.resultCueId) revealCue(s, panel.resultCueId);
+    s.narrationLog.push({ text: `Labs resulted: ${panel.label}.`, atSec: s.clockSec });
+  }
 }
 
 /**

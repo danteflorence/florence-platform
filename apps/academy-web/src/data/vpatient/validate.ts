@@ -64,6 +64,8 @@ export function validateScenario(sc: VPatientScenario): string[] {
     ...sc.rules.flatMap((r) =>
       r.effects.flatMap((e) => (e.kind === "revealCue" ? [e.cueId] : [])),
     ),
+    // A lab panel's result cue is revealed when its results post.
+    ...(sc.labPanels ?? []).flatMap((p) => (p.resultCueId ? [p.resultCueId] : [])),
   ]);
   for (const c of cues) {
     if (c.channel === "assessment" && !revealed.has(c.id))
@@ -138,6 +140,22 @@ export function validateScenario(sc: VPatientScenario): string[] {
   }
   for (const p of sc.patientResponses) {
     if (p.match.length === 0) err("a patientResponse has an empty match list");
+  }
+
+  // Labs: each panel is ordered by a real action, has values, and sane ranges.
+  const panelIds = new Set<string>();
+  for (const panel of sc.labPanels ?? []) {
+    if (panelIds.has(panel.id)) err(`duplicate lab panel id "${panel.id}"`);
+    panelIds.add(panel.id);
+    if (!actionIds.has(panel.orderActionId))
+      err(`lab panel "${panel.id}" ordered by unknown action "${panel.orderActionId}"`);
+    if (panel.values.length === 0) err(`lab panel "${panel.id}" has no values`);
+    if (panel.resultCueId && !cueIds.has(panel.resultCueId))
+      err(`lab panel "${panel.id}" resultCueId "${panel.resultCueId}" is not a defined cue`);
+    for (const v of panel.values) {
+      if (v.refLow !== undefined && v.refHigh !== undefined && v.refLow > v.refHigh)
+        err(`lab value "${v.id}" has refLow > refHigh`);
+    }
   }
 
   return errors;
