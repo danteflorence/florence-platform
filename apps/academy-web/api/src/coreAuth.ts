@@ -1,13 +1,20 @@
 // ════════════════════════════════════════════════════════════════════════════
-// Florence Core - shared verification SDK (VENDORED)
+// FlorenceRN Core — shared verification SDK (VENDORED)
 //
-// Canonical source: florence-core/sdk/coreAuth.ts. This file is COPIED into each
-// Node app (academy/api/src, pathway/server, ats/server). Edit it HERE and
-// re-copy - do not diverge the copies.
+// Canonical source: packages/auth-sdk/src/coreAuth.ts. `npm run sync:auth-sdk`
+// copies it byte-for-byte into each consuming app:
+//   apps/core-api/sdk/coreAuth.ts
+//   apps/pathway-api/server/coreAuth.ts
+//   apps/employer-connect-api/server/coreAuth.ts
+//   apps/academy-web/api/src/coreAuth.ts
+// Edit the canonical file and re-run the sync — never edit a copy. CI runs
+// `npm run check:auth-sdk`, which fails the build if any copy drifts.
+// The copies stay vendored because core-api and academy-api build their Docker
+// images from their own app directory and cannot reach packages/ at build time.
 //
 // Verifies the RS256 session/M2M token Core mints, by fetching Core's JWKS and
 // caching public keys by `kid` (ports extracted/florenceos OidcJwtVerifier.php +
-// JwksCache.php). Pure node:crypto + global fetch - no npm deps, so even the
+// JwksCache.php). Pure node:crypto + global fetch — no npm deps, so even the
 // zero-dependency Academy API can use it unchanged.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -26,10 +33,10 @@ export interface CorePrincipal {
   roles: Role[];
   /** Org scope (employer/university). */
   orgId?: string;
-  /** Candidate binding - token may only touch this candidate. */
+  /** Candidate binding — token may only touch this candidate. */
   cand?: string;
   territory?: string;
-  /** Derived scopes - lets Academy reuse its scope checks unchanged. */
+  /** Derived scopes — lets Academy reuse its scope checks unchanged. */
   scopes: Set<string>;
   jti?: string;
   exp: number;
@@ -212,7 +219,7 @@ export function hasScope(p: CorePrincipal, scope: string): boolean {
   return p.scopes.has(scope);
 }
 
-/** Map a Core principal to florence-ats-connect's two-role model. */
+/** Map a Core principal to Employer Connect's two-role model. */
 export function atsRole(p: CorePrincipal): "ops" | "employer" | null {
   if (hasRole(p, "super_admin", "ops")) return "ops";
   if (hasRole(p, "employer")) return "employer";
@@ -233,7 +240,7 @@ export function loginUrl(returnTo: string): string {
   return `${c.issuerUrl}/login?redirect=${encodeURIComponent(returnTo)}`;
 }
 
-/** Core's refresh endpoint - POST to it with credentials to slide the session
+/** Core's refresh endpoint — POST to it with credentials to slide the session
  *  (mint a fresh access cookie from the long-lived refresh cookie). */
 export function refreshUrl(): string {
   const c = requireCfg();
