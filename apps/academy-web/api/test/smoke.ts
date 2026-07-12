@@ -1021,6 +1021,27 @@ try {
   assert.ok(typeof sbj.my_runs === "number");
   ok("sim benchmark: K-anonymity gate holds below 5 participants");
 
+  // Field signal: employer feedback aggregates per competency at K>=3.
+  for (const rating of [2, 3, 2]) {
+    const fb = await fetch(`${base}/v1/outcomes`, {
+      method: "POST",
+      headers: { ...bearer(T), "content-type": "application/json" },
+      body: JSON.stringify({
+        candidate_id: meId,
+        kind: "employer_feedback",
+        detail: { competency: "delegation", rating },
+      }),
+    });
+    assert.equal(fb.status, 201);
+  }
+  const fs1 = await fetch(`${base}/v1/curriculum/field-signal`, { headers: bearer(T) });
+  const fs1j = (await fs1.json()) as any;
+  assert.equal(fs1.status, 200);
+  const deleg = fs1j.by_competency.find((r: any) => r.competency === "delegation");
+  assert.ok(deleg && deleg.n === 3);
+  assert.ok(Math.abs(deleg.mean_rating - 2.33) < 0.01);
+  ok("field signal: employer_feedback events aggregate to per-competency means (K>=3)");
+
   // 5g) Auth hardening: weak-password rejection + failed-login lockout
   const weak = await fetch(`${base}/v1/auth/signup`, {
     method: "POST",
