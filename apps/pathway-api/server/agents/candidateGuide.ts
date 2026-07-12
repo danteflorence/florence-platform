@@ -1,5 +1,6 @@
 import type { CandidateDossier, ConsistencyFlag, WorkflowInstance } from '../../shared/types'
 import { getRule } from '../../shared/rules'
+import { getLanguage } from '../../shared/languages'
 import { getLlm } from '../llm/provider'
 import type { NextAction } from './workflow'
 import { daysUntil } from './util'
@@ -42,7 +43,33 @@ export function buildBriefing(d: CandidateDossier, actions: NextAction[], flags:
   return lines.join('\n')
 }
 
+/** Official-source citations for the candidate's ACTIVE workflows — every
+ *  copilot answer is grounded in the same sources the requirements ledger uses. */
+export function groundingSources(d: CandidateDossier): { label: string; url: string }[] {
+  const seen = new Set<string>()
+  const out: { label: string; url: string }[] = []
+  for (const w of d.workflows) {
+    if (['submitted', 'completed'].includes(w.status)) continue
+    for (const r of getRule(w.type).officialResources.slice(0, 2)) {
+      if (seen.has(r.url)) continue
+      seen.add(r.url)
+      out.push({ label: r.label, url: r.url })
+    }
+  }
+  return out.slice(0, 5)
+}
+
 export async function copilotReply(d: CandidateDossier, question: string, actions: NextAction[], flags: ConsistencyFlag[]): Promise<string> {
   const context = buildBriefing(d, actions, flags)
-  return getLlm().chat({ candidateName: d.profile.legalFirstName, question, context })
+  const lang = getLanguage(d.profile.preferredLanguage)
+  const reply = await getLlm().chat({ candidateName: d.profile.legalFirstName, question, context, language: lang.code })
+  // Localized frame + grounded citations (deterministic — not model output).
+  const sources = groundingSources(d)
+  const parts = [
+    `${lang.greeting(d.profile.legalFirstName)} —`,
+    reply,
+    ...(sources.length ? [`\n${lang.sourcesHeader}:`, ...sources.map((s) => `• ${s.label} — ${s.url}`)] : []),
+    ...(lang.code !== 'en' && lang.translationNote && getLlm().mode === 'heuristic' ? [`\n${lang.translationNote}`] : []),
+  ]
+  return parts.join('\n')
 }

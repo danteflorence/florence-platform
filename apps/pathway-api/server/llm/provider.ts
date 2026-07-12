@@ -28,6 +28,9 @@ export interface ChatInput {
   question: string
   /** A compiled briefing of the candidate's current state and next actions. */
   context: string
+  /** ISO 639-1 reply language (shared/languages.ts). Heuristic mode frames the
+   *  answer in this language; gateway mode translates the full reply. */
+  language?: string
 }
 
 export interface ExtractDocumentInput {

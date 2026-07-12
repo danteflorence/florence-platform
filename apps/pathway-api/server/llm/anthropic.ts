@@ -118,6 +118,7 @@ export function createModelGatewayProvider(): LlmProvider {
         input: {
           question: i.question,
           context: i.context,
+          ...(i.language && i.language !== 'en' ? { reply_language: i.language } : {}),
         },
       })
       if (needsHumanReview(result)) return humanReviewMessage()

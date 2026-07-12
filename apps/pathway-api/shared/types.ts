@@ -162,6 +162,9 @@ export interface CandidateProfile {
    *  labels only; makes re-syncs idempotent. */
   externalStatuses?: Record<string, { value: string; at: string; source: string }>
 
+  /** Copilot language (ISO 639-1 from shared/languages.ts). Default 'en'. */
+  preferredLanguage?: string
+
   createdAt: string
   updatedAt: string
 }

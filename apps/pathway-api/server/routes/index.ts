@@ -13,6 +13,7 @@ import { emitForCandidate, provisionCandidateUser } from '../passport'
 import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
 import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
 import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
+import { SUPPORTED_LANGUAGE_CODES } from '../../shared/languages'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -179,10 +180,16 @@ api.post('/candidates/:id/notification-prefs', h(async (req, res) => {
     }
   }
   c.notificationPrefs = { ...(c.notificationPrefs ?? {}), ...prefs }
+  // Copilot language preference rides the same prefs endpoint (allowlisted code).
+  if ('language' in (req.body ?? {})) {
+    const lang = String(req.body.language ?? '').toLowerCase()
+    if (!SUPPORTED_LANGUAGE_CODES.includes(lang)) return res.status(400).json({ error: 'unsupported language', allowed: SUPPORTED_LANGUAGE_CODES })
+    c.preferredLanguage = lang
+  }
   c.updatedAt = now()
   await store.candidates.update(c)
   await audit('candidate', 'notification_prefs', 'candidate', c.id, c.id, Object.entries(prefs).map(([k, v]) => `${k}=${v}`).join(','))
-  res.json({ ok: true, prefs: c.notificationPrefs })
+  res.json({ ok: true, prefs: c.notificationPrefs, language: c.preferredLanguage ?? 'en' })
 }))
 
 api.get('/candidates/:id/view', h(async (req, res) => {
