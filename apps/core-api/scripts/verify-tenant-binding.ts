@@ -150,6 +150,16 @@ async function main() {
   const aAfter = await call("GET", `/v1/nurses/${nurseId}/passport?view=employer&programId=prog-amn&jobRequisitionId=prog-amn`, partnerAToken);
   ok("partner(A): after consent revoke ⇒ employer read 403 (fail-closed)", aAfter.status === 403);
 
+  // ── C04: named-recipient consent is REQUIRED for external partner disclosure ─
+  // (a) The grant path refuses a category-wide (no named org) consent for an
+  //     org-scoped recipient — the "broad consent" the finding feared is un-creatable.
+  const categoryGrant = await call("POST", "/v1/consent/grant", opsToken, { nurseId, purpose: "employer_share", recipientCategory: "employer", consentTextVersion: "v1", allowedFields: ["readinessBand"] });
+  ok("C04: category-wide employer consent (no recipientOrgId) is REJECTED at grant ⇒ 400", categoryGrant.status === 400 && categoryGrant.body?.error === "recipient_org_required");
+  // (b) Consent is per-named-org: revoking A's consent left B's independent named
+  //     grant intact, so B still reads — one partner's revoke cannot deny another.
+  const bStillOk = await call("GET", `/v1/nurses/${nurseId}/passport?view=employer&programId=prog-kaiser&jobRequisitionId=prog-kaiser`, partnerBToken);
+  ok("C04: per-org consent isolation — B's named consent survives A's revoke ⇒ 200", bStillOk.status === 200);
+
   server.close();
   console.log(`\n${fail ? "TENANT-BINDING SMOKE FAILED" : "TENANT-BINDING SMOKE PASSED"} — ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

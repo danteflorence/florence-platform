@@ -217,11 +217,21 @@ export async function readPassportView(store: Store, audit: Audit, inp: Passport
   const candBoundToNurse =
     inp.role === "candidate" &&
     Boolean(inp.cand && (inp.cand === nurse.id || refs.some((r) => r.external_id === inp.cand)));
+  // C04: an external partner is "org_matched" ONLY with a bound org AND a live
+  // named-recipient consent for that org. `consentOk` was computed via
+  // consentAllows(purpose, inp.orgId), which requires an exact recipient_org_id
+  // match — a category-wide (unnamed) grant never satisfies it, and grants for
+  // org-scoped recipients require a named recipientOrgId at write time
+  // (routes.ts). The tenant-access gate above already enforces this for packet
+  // resources; pinning it into the ABAC relationship keeps org_matched honest and
+  // fail-closed even if a future audience skips that gate. (university consent is
+  // null-gated → aggregate/anon only, so consentOk is true there by design.)
+  const externalPartner = inp.role === "employer" || inp.role === "university" || inp.role === "lender";
   const relationship: Relationship =
     inp.role === "candidate"
       ? (candBoundToNurse ? "self" : "none")
-      : inp.role === "employer" || inp.role === "university" || inp.role === "lender"
-        ? (inp.orgId ? "org_matched" : "none")
+      : externalPartner
+        ? (inp.orgId && consentOk ? "org_matched" : "none")
         : "self";
   const decision = evaluatePolicy({
     role: inp.role,
