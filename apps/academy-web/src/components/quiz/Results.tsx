@@ -23,6 +23,8 @@ import {
   saveQueue,
 } from "../../lib/spacedQueue";
 import { pushSpacedQueue } from "../../lib/spacedSync";
+import { recordPaceSamples } from "../../lib/pacing";
+import PaceCard from "../PaceCard";
 import ReadinessCard from "../ReadinessCard";
 import { CLIENT_NEED_LABEL } from "../../data/blueprint";
 import { QUESTION_TYPE_LABELS, type ClientNeed } from "../../types/question";
@@ -93,6 +95,12 @@ export default function Results({
     saveQueue(candId, next);
     // Mirror to the server so other devices see the updated queue.
     if (candId) void pushSpacedQueue(candId);
+    // Feed the reading-pace profile (device-local rolling window).
+    recordPaceSamples(
+      graded
+        .filter((h) => typeof h.spentMs === "number")
+        .map((h) => ({ spentMs: h.spentMs!, correct: h.grade!.score > 0.999 })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Report this finished session to the Data API using the signed-in candidate's
@@ -183,6 +191,12 @@ export default function Results({
           sub
         />
         <Metric value={String(markedCount)} label="Flagged for review" sub />
+      </div>
+
+      {/* Reading pace: median vs the 90s exam budget, from the device's rolling
+          window (this session's items were just added). */}
+      <div className="mt-5">
+        <PaceCard />
       </div>
 
       {/* Overall readiness (signed-in learners): band + the engine's next study
