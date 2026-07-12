@@ -81,7 +81,7 @@ function Readout({
   return (
     <div
       className={`rounded-xl border border-florence-line bg-florence-ink px-2 py-2 sm:px-3 sm:py-2.5 ${
-        alarm ? "animate-pulse-dot ring-1 ring-vital-danger/60" : ""
+        alarm ? "animate-pulse-dot motion-reduce:animate-none ring-1 ring-vital-danger/60" : ""
       }`}
     >
       <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55">
@@ -117,7 +117,7 @@ export default function VitalsDisplay({
     <div className="rounded-2xl border border-florence-line bg-florence-ink/[0.03] p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-florence-ink px-2.5 py-1 text-[11px] font-medium text-white/80">
-          <span className="h-2 w-2 rounded-full bg-vital-ok animate-pulse-dot" />
+          <span className="h-2 w-2 rounded-full bg-vital-ok animate-pulse-dot motion-reduce:animate-none" />
           {vitals.rhythm}
         </span>
         {clockSec !== undefined && (

@@ -17,7 +17,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import type { VPatientScenario } from "../../data/vpatient/types";
 import { resultedLabPanels, type SimState } from "../../lib/vpatient/engine";
-import { evaluate, toAssessmentSummary, type DecisionVerdict } from "../../lib/vpatient/score";
+import { cjmmScorecard, evaluate, toAssessmentSummary, type DecisionVerdict } from "../../lib/vpatient/score";
+import { CJMM_STEPS } from "../../data/blueprint";
 import LabsPanel, { panelsWithCritical } from "./LabsPanel";
 import { ERROR_TYPE_LABEL, type ErrorType } from "../../lib/walkthrough";
 import { useCandidate } from "../../lib/CandidateContext";
@@ -102,6 +103,36 @@ export default function SimDebrief({
           </div>
         </div>
 
+        {/* NCSBN Clinical Judgment scorecard - the 6 cognitive layers, graded */}
+        <h2 className="mt-6 text-lg font-semibold text-florence-ink">Clinical Judgment scorecard</h2>
+        <p className="mt-0.5 text-xs text-florence-slate">
+          The six NCSBN Clinical Judgment layers, scored from your decisions this run.
+        </p>
+        <div className="mt-3 space-y-2 rounded-2xl border border-florence-line bg-white p-4">
+          {cjmmScorecard(ev).map((row) => {
+            const label = CJMM_STEPS.find((s) => s.key === row.step)?.label ?? row.step;
+            return (
+              <div key={row.step} className="flex items-center gap-3">
+                <span className="w-7 shrink-0 text-center font-mono text-[11px] text-florence-slate">{row.order}</span>
+                <span className="w-40 shrink-0 truncate text-sm text-florence-ink">{label}</span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-florence-mist">
+                  {row.score !== null && (
+                    <span
+                      className={`block h-full rounded-full ${
+                        row.score < 0.5 ? "bg-vital-danger" : row.score < 0.8 ? "bg-vital-warn" : "bg-vital-ok"
+                      }`}
+                      style={{ width: `${Math.max(4, Math.round(row.score * 100))}%` }}
+                    />
+                  )}
+                </span>
+                <span className="w-10 shrink-0 text-right font-mono text-xs text-florence-slate">
+                  {row.score === null ? "—" : `${Math.round(row.score * 100)}%`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Timeline: yours vs optimal */}
         <h2 className="mt-6 text-lg font-semibold text-florence-ink">Your timeline vs the optimal path</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -142,6 +173,15 @@ export default function SimDebrief({
           {ev.decisions.map((d) => {
             const v = VERDICT_STYLE[d.verdict];
             const err = d.errorTag ? ERROR_TYPE_LABEL[d.errorTag as ErrorType] : undefined;
+            // Compare your timing to the optimal timeline for this decision.
+            const rubricEntry = scenario.rubric.find((r) => r.decisionId === d.decisionId);
+            const optimalEntry = rubricEntry
+              ? optimal.find((t) => t.actionId && rubricEntry.correctActions.includes(t.actionId))
+              : undefined;
+            const delta =
+              d.atSec !== undefined && optimalEntry && d.verdict !== "harmful"
+                ? d.atSec - optimalEntry.atSec
+                : undefined;
             return (
               <div key={d.decisionId} className="rounded-xl border border-florence-line bg-white p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -150,6 +190,13 @@ export default function SimDebrief({
                     {v.label}
                   </span>
                 </div>
+                {delta !== undefined && optimalEntry && (
+                  <p className="mt-1 font-mono text-[11px] text-florence-slate">
+                    you {mmss(d.atSec!)} · optimal {mmss(optimalEntry.atSec)}
+                    {delta > 15 && <span className="ml-1 font-sans font-semibold text-amber-700">({Math.round(delta)}s behind)</span>}
+                    {delta <= 15 && <span className="ml-1 font-sans font-semibold text-emerald-700">(on pace)</span>}
+                  </p>
+                )}
                 {err && (
                   <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                     <span className="rounded bg-vital-danger/10 px-2 py-0.5 text-[11px] font-semibold text-red-800">

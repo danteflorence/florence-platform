@@ -143,6 +143,9 @@ export function SimRunner({
   // Escalation-as-a-phone-call: a communicate action with a targetRole opens
   // the SBAR call overlay instead of firing instantly (the clock keeps running).
   const [callAction, setCallAction] = useState<ActionDef | null>(null);
+  // Micro-feedback: the last action taken, shown as a transient chip so a tap
+  // always visibly REGISTERS even when its effects are subtle.
+  const [lastAction, setLastAction] = useState<{ label: string; atSec: number } | null>(null);
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
   const [tutorHint, setTutorHint] = useState<string | null>(null);
@@ -205,6 +208,12 @@ export function SimRunner({
     setStarted(true);
     setRunning(true);
   }, [scenario]);
+
+  // Dispatch + register the tap for the micro-feedback chip.
+  const fire = (a: ActionDef) => {
+    dispatch({ type: "dispatch", scenario, actionId: a.id });
+    setLastAction({ label: a.label, atSec: state.clockSec });
+  };
 
   const actions = availableActions(state, scenario);
   const resultedPanels = resultedLabPanels(state, scenario);
@@ -393,7 +402,8 @@ export function SimRunner({
           <>
             <div className="rounded-2xl border border-florence-line bg-white p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-florence-slate">What you notice</p>
-              <div className="mt-2 space-y-2">
+              {/* aria-live: screen readers hear new findings as they land. */}
+              <div className="mt-2 space-y-2" aria-live="polite">
                 {state.narrationLog.slice(-4).map((n, i, arr) => (
                   <div key={`${n.atSec}-${i}`} className="flex items-start gap-2">
                     {n.audioId && (
@@ -468,7 +478,7 @@ export function SimRunner({
           member={scenario.team?.find((m) => m.role === callAction.targetRole)}
           clockSec={state.clockSec}
           onDeliver={() => {
-            dispatch({ type: "dispatch", scenario, actionId: callAction.id });
+            fire(callAction);
             setCallAction(null);
           }}
           onHangUp={() => setCallAction(null)}
@@ -478,7 +488,12 @@ export function SimRunner({
       {/* Bottom action sheet */}
       {started && !state.ended && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-florence-line bg-white/97 px-3 pb-4 pt-2.5 backdrop-blur">
-          <div className="mx-auto max-w-2xl">
+          <div className="relative mx-auto max-w-2xl">
+            {lastAction && state.clockSec - lastAction.atSec < 4 && (
+              <p className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-florence-ink px-3 py-1 text-[11px] font-semibold text-white/95 shadow-card">
+                ✓ {lastAction.label}
+              </p>
+            )}
             {state.busyUntilSec !== null && state.clockSec < state.busyUntilSec ? (
               <p className="pb-2 text-center text-xs font-medium text-florence-slate">
                 In progress… ({state.busyUntilSec - state.clockSec}s)
@@ -500,9 +515,7 @@ export function SimRunner({
                         <button
                           key={a.id}
                           onClick={() =>
-                            a.category === "communicate" && a.targetRole
-                              ? setCallAction(a)
-                              : dispatch({ type: "dispatch", scenario, actionId: a.id })
+                            a.category === "communicate" && a.targetRole ? setCallAction(a) : fire(a)
                           }
                           disabled={state.busyUntilSec !== null && state.clockSec < state.busyUntilSec}
                           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${CATEGORY_TONE[a.category]}`}

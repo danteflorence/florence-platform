@@ -91,14 +91,14 @@ export default function PatientPresence({
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-florence-line bg-florence-ink px-3 py-2.5">
-      <style>{`@keyframes fl-breathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(${breathScale}); } }`}</style>
+      <style>{`@keyframes fl-breathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(${breathScale}); } } @media (prefers-reduced-motion: reduce) { .fl-breathe-g { animation: none !important; } }`}</style>
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/5">
         {portraitUrl ? (
           <img src={portraitUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <svg viewBox="0 0 72 72" className="h-full w-full" aria-hidden="true">
             {/* shoulders breathe */}
-            <g style={{ animation: `fl-breathe ${breathSec}s ease-in-out infinite`, transformOrigin: "36px 72px" }}>
+            <g className="fl-breathe-g" style={{ animation: `fl-breathe ${breathSec}s ease-in-out infinite`, transformOrigin: "36px 72px" }}>
               <path d="M12 72 q0 -18 24 -18 q24 0 24 18 Z" fill="#5B6675" />
               <path d="M12 72 q0 -18 24 -18 q24 0 24 18 Z" fill={skin.face} opacity="0.15" />
             </g>
@@ -117,7 +117,7 @@ export default function PatientPresence({
       </div>
       <span
         className={`ml-auto h-2.5 w-2.5 shrink-0 rounded-full ${
-          state === "alert" ? "bg-vital-ok" : state === "anxious" ? "bg-vital-warn" : "bg-vital-danger animate-pulse-dot"
+          state === "alert" ? "bg-vital-ok" : state === "anxious" ? "bg-vital-warn" : "bg-vital-danger animate-pulse-dot motion-reduce:animate-none"
         }`}
         aria-label={`Patient state: ${state}`}
       />
