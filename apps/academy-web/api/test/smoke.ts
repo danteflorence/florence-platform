@@ -100,7 +100,7 @@ try {
   ok("wrong client secret → 401");
 
   const full = await token(
-    "candidates:read candidates:write enrollment:read enrollment:write performance:read performance:write payments:read outcomes:read outcomes:write employer:read university:read schools:read schools:write academy:sponsors:read academy:sponsors:write pathway:write clients:manage tokens:mint cohorts:read cohorts:write library:read library:write",
+    "candidates:read candidates:write enrollment:read enrollment:write performance:read performance:write payments:read outcomes:read outcomes:write employer:read employer:write university:read schools:read schools:write academy:sponsors:read academy:sponsors:write pathway:write clients:manage tokens:mint cohorts:read cohorts:write library:read library:write",
   );
   assert.equal(full.status, 200);
   assert.ok(full.json.access_token);
@@ -989,6 +989,30 @@ try {
   assert.equal(ctj.nudged, 0);
   ok("daily coach: plan derives streak/readiness; tick guards secret + skips active learners");
 
+  // NCLEX self-report: validated, once-only, lands in the outcomes ledger.
+  const srBad = await fetch(`${base}/v1/me/nclex-outcome`, {
+    method: "POST",
+    headers: { ...bearer(CS), "content-type": "application/json" },
+    body: JSON.stringify({ status: "maybe" }),
+  });
+  assert.equal(srBad.status, 400);
+  const sr1 = await fetch(`${base}/v1/me/nclex-outcome`, {
+    method: "POST",
+    headers: { ...bearer(CS), "content-type": "application/json" },
+    body: JSON.stringify({ status: "pass", tested_on: "2026-07-01" }),
+  });
+  const sr1j = (await sr1.json()) as any;
+  assert.equal(sr1.status, 201);
+  assert.equal(sr1j.kind, "nclex_result");
+  assert.equal(sr1j.status, "pass");
+  const sr2 = await fetch(`${base}/v1/me/nclex-outcome`, {
+    method: "POST",
+    headers: { ...bearer(CS), "content-type": "application/json" },
+    body: JSON.stringify({ status: "fail" }),
+  });
+  assert.equal(sr2.status, 409); // one self-report; corrections go through ops
+  ok("nclex self-report: validates status, writes the ledger once, 409 on retell");
+
   // 5g) Auth hardening: weak-password rejection + failed-login lockout
   const weak = await fetch(`${base}/v1/auth/signup`, {
     method: "POST",
@@ -1514,6 +1538,70 @@ try {
   assert.ok(Array.isArray(uni.top_gaps) && !("expected_arr" in uni)); // education only
   ok("university overview: readiness distribution + gaps (no financials)");
 
+  // 5m-H03) Employer TENANT isolation: an org-bound Core partner token sees a
+  // candidate only when the candidate NAMED its org in consent — the bare boolean
+  // no longer exposes candidates category-wide to org-bound partners. Org-less
+  // internal tokens (like T above) keep the boolean behavior.
+  {
+    const { generateKeyPairSync, createSign } = await import("node:crypto");
+    const { configureCoreAuth } = await import("../src/coreAuth.ts");
+    const { createServer: createHttp } = await import("node:http");
+    const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const kid = "smoke-h03";
+    const jwk = { ...(publicKey.export({ format: "jwk" }) as Record<string, unknown>), kid, use: "sig", alg: "RS256" };
+    const b64u = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const mintCore = (claims: Record<string, unknown>) => {
+      const t = Math.floor(Date.now() / 1000);
+      const input = `${b64u({ alg: "RS256", typ: "JWT", kid })}.${b64u({ iss: "florence-auth", aud: "florence", sub: "svc-emp", iat: t, exp: t + 3600, ...claims })}`;
+      return `${input}.${createSign("RSA-SHA256").update(input).end().sign(privateKey).toString("base64url")}`;
+    };
+    const jwks = createHttp((req2, res2) => {
+      if (req2.url?.startsWith("/.well-known/jwks.json")) { res2.setHeader("content-type", "application/json"); res2.end(JSON.stringify({ keys: [jwk] })); }
+      else { res2.statusCode = 404; res2.end("{}"); }
+    });
+    await new Promise<void>((r) => jwks.listen(0, "127.0.0.1", () => r()));
+    configureCoreAuth({ issuerUrl: `http://127.0.0.1:${(jwks.address() as { port: number }).port}`, issuer: "florence-auth", audience: "florence" });
+    const orgA = mintCore({ role: "employer", org_id: "org-a", scope: "employer:read employer:write" });
+    const orgB = mintCore({ role: "employer", org_id: "org-b", scope: "employer:read employer:write" });
+
+    // The green candidate has boolean consent only → invisible to org-bound callers.
+    const aBefore = (await (await fetch(`${base}/v1/employer/candidates`, { headers: { authorization: `Bearer ${orgA}` } })).json()) as any;
+    assert.ok(!aBefore.data.some((p: any) => p.candidate_id === green.id));
+    const aOfferBefore = await fetch(`${base}/v1/employer/offers`, {
+      method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${orgA}` },
+      body: JSON.stringify({ candidate_id: green.id, status: "offered" }),
+    });
+    assert.equal(aOfferBefore.status, 403);
+    ok("H03: boolean-only consent does NOT expose the candidate to an org-bound partner");
+
+    // Name org-a in consent → visible to A, still invisible to B; offers follow.
+    await fetch(`${base}/v1/candidates/${green.id}`, {
+      method: "PATCH", headers: { "content-type": "application/json", ...bearer(T) },
+      body: JSON.stringify({ consent: { employer_sharing: true, employer_org_ids: ["org-a"] } }),
+    });
+    const aAfter = (await (await fetch(`${base}/v1/employer/candidates`, { headers: { authorization: `Bearer ${orgA}` } })).json()) as any;
+    assert.ok(aAfter.data.some((p: any) => p.candidate_id === green.id));
+    const bAfter = (await (await fetch(`${base}/v1/employer/candidates`, { headers: { authorization: `Bearer ${orgB}` } })).json()) as any;
+    assert.ok(!bAfter.data.some((p: any) => p.candidate_id === green.id));
+    const bOffer = await fetch(`${base}/v1/employer/offers`, {
+      method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${orgB}` },
+      body: JSON.stringify({ candidate_id: green.id, status: "offered" }),
+    });
+    assert.equal(bOffer.status, 403);
+    const aOffer = await fetch(`${base}/v1/employer/offers`, {
+      method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${orgA}` },
+      body: JSON.stringify({ candidate_id: green.id, status: "offered" }),
+    });
+    assert.equal(aOffer.status, 201);
+    ok("H03: named-org consent — visible + offerable ONLY to the named tenant (A yes, B 403)");
+
+    // Internal org-less token keeps the boolean behavior (trusted proxy).
+    const internalStill = (await (await fetch(`${base}/v1/employer/candidates`, { headers: bearer(T) })).json()) as any;
+    assert.ok(internalStill.data.some((p: any) => p.candidate_id === green.id));
+    ok("H03: internal org-less token unchanged (boolean consent honored)");
+    jwks.close();
+  }
+
   // 5n) Live Lab attendance (append-only) + rollup
   const recAtt = (cid: string, st: string, location?: string) =>
     fetch(`${base}/v1/attendance`, {
@@ -1762,7 +1850,7 @@ try {
   ok("drip copy brand lint → no forbidden terms / em-dashes / italics");
 
   // 6) Audit trail
-  const audits = deps.audit.recent();
+  const audits = deps.audit.recent(2000); // full trail — the H03 section adds requests past the 50-entry default
   assert.ok(audits.length >= 6);
   assert.ok(audits.some((a) => a.action.includes("assessment-results") && a.outcome === 201));
   assert.ok(audits.every((a) => typeof a.request_id === "string"));

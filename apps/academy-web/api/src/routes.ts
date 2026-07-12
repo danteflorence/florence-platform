@@ -541,6 +541,8 @@ function toConsent(o: Record<string, unknown> | undefined): Consent | undefined 
   if (typeof o["pathway"] === "boolean") c.pathway = o["pathway"];
   if (typeof o["financing"] === "boolean") c.financing = o["financing"];
   if (typeof o["employer_sharing"] === "boolean") c.employer_sharing = o["employer_sharing"];
+  if (Array.isArray(o["employer_org_ids"]))
+    c.employer_org_ids = (o["employer_org_ids"] as unknown[]).filter((x): x is string => typeof x === "string");
   return c;
 }
 
@@ -3089,14 +3091,26 @@ async function publishCohortReport(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, report);
 }
 
+/** H03: does this candidate's consent expose them to THIS caller? An org-bound
+ *  employer caller needs the candidate to have NAMED its org; the bare boolean is
+ *  honored only for org-less internal tokens (trusted proxies, e.g. the ops console). */
+function employerConsentAllows(consent: { employer_sharing?: boolean; employer_org_ids?: string[] }, callerOrgId?: string): boolean {
+  if (consent.employer_sharing !== true) return false;
+  if (!callerOrgId) return true; // internal (org-less) caller — boolean consent suffices
+  return Array.isArray(consent.employer_org_ids) && consent.employer_org_ids.includes(callerOrgId);
+}
+
 async function getEmployerCandidates(ctx: ReqCtx, deps: Deps): Promise<void> {
   const all = await allCandidateSnapshots(deps);
   // Only readiness-cleared candidates who have ALSO consented to employer sharing
-  // appear in the partner-facing packet list. Consent revocation removes them.
+  // appear in the partner-facing packet list — and an org-bound partner sees ONLY
+  // candidates who named its org (H03 tenant isolation). Revocation removes them.
+  const callerOrg = ctx.auth?.orgId;
   const data = all
-    .filter((x) => isReadinessCleared(x.snapshot) && x.candidate.consent.employer_sharing === true)
+    .filter((x) => isReadinessCleared(x.snapshot) && employerConsentAllows(x.candidate.consent, callerOrg))
     .map((x) => buildInterviewPacket(x.candidate, x.snapshot));
   ctx.resourceType = "employer_candidates";
+  ctx.resourceId = callerOrg ?? "internal";
   send(ctx, 200, { data });
 }
 
@@ -3107,8 +3121,8 @@ async function postEmployerOffer(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!candidate_id) return err(ctx, 400, "invalid_request", "candidate_id is required");
   const cand = await deps.store.candidates.get(candidate_id);
   if (!cand) return err(ctx, 404, "not_found", "candidate not found");
-  if (cand.consent.employer_sharing !== true)
-    return err(ctx, 403, "employer_consent_required", "candidate has not consented to employer sharing");
+  if (!employerConsentAllows(cand.consent, ctx.auth?.orgId))
+    return err(ctx, 403, "employer_consent_required", "candidate has not consented to employer sharing with this organization");
   const status = str(ctx.body, "status") ?? "offered";
   const o = await deps.store.outcomes.create({ candidate_id, kind: "employer_offer", status });
   ctx.resourceType = "employer_offer";
@@ -4634,7 +4648,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/attendance", "enrollment:write", true, createAttendance),
   compile("GET", "/v1/attendance", "enrollment:read", true, listAttendance),
   compile("GET", "/v1/employer/candidates", "employer:read", true, getEmployerCandidates),
-  compile("POST", "/v1/employer/offers", "employer:read", true, postEmployerOffer),
+  compile("POST", "/v1/employer/offers", "employer:write", true, postEmployerOffer),
   compile("GET", "/v1/university/overview", "university:read", true, getUniversityOverview),
   // Schools directory: public list (no auth) for the signup picker; admin CRUD.
   compile("GET", "/v1/schools", null, false, listSchoolsPublic),

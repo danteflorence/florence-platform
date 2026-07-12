@@ -9,7 +9,7 @@
 // visa/immigration detail is INTERNAL-only (Title VII / IRCA). Built deterministically.
 // ============================================================================
 import { Router, type Request, type Response } from 'express'
-import { getDossier } from '../../db'
+import { audit, getDossier } from '../../db'
 import { principalFromRequest, isStaff, type CorePrincipal } from '../../coreAuth'
 import { nextActions } from '../../agents/workflow'
 import { checkReadinessGate } from '../../readinessGate'
@@ -134,19 +134,29 @@ apiV1.get('/pathway/qa/queues', h(async (req, res) => {
 }))
 
 // --- Consular Payments: I-901 SEVIS fee -----------------------------------
+// H05: every sensitive read/export on this surface is audit-logged, and the CSV
+// export writes a MANIFEST row (row count + exact fields) so each disclosure to
+// the payment partner is reconstructable. Actor follows the Owner role-class
+// design (identities are never stored raw in audit — the H01 posture).
+
 apiV1.get('/consular/payments/dashboard', h(async (req, res) => {
   const p = await authStaff(req, res); if (!p) return
+  await audit('qa', 'i901_dashboard_viewed', 'consular_payments', 'dashboard', undefined)
   res.json(await consularPaymentsDashboard())
 }))
 
 apiV1.get('/consular/payments/reconciliation', h(async (req, res) => {
   const p = await authStaff(req, res); if (!p) return
+  await audit('qa', 'i901_reconciliation_viewed', 'consular_payments', 'reconciliation', undefined)
   res.json(await consularPaymentsReconciliation())
 }))
 
 apiV1.get('/consular/payments/i901/handoff/sevismate.csv', h(async (req, res) => {
   const p = await authStaff(req, res); if (!p) return
-  res.type('text/csv').send(await sevismateCsv())
+  const { csv, manifest } = await sevismateCsv()
+  // The export manifest: how many rows and exactly which fields left the platform.
+  await audit('qa', 'i901_csv_exported', 'consular_payments', 'sevismate_csv', undefined, `rows=${manifest.rows} fields=${manifest.fields.join('|')}`)
+  res.type('text/csv').send(csv)
 }))
 
 apiV1.post('/consular/payments/i901/orders', h(async (req, res) => {
@@ -161,6 +171,7 @@ apiV1.get('/consular/payments/i901/orders/:orderId', h(async (req, res) => {
   const p = await authForOrder(req, res, req.params.orderId); if (!p) return
   const order = await store.consularPaymentOrders.get(req.params.orderId)
   if (!order) return res.status(404).json({ error: 'payment order not found' })
+  await audit(isStaff(p) ? 'qa' : 'candidate', 'i901_order_viewed', 'consular_payment_order', order.id, order.candidateId)
   res.json(await detailForOrder(order))
 }))
 

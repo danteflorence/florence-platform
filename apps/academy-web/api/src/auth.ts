@@ -85,6 +85,10 @@ export interface AuthContext {
   scopes: Set<Scope>;
   /** Subject-binding from a session token - restricts access to this candidate. */
   candidateId?: string;
+  /** Tenant binding from a Core partner token (org_id claim). Org-bound callers are
+   *  restricted to candidates who consented to THEIR org (H03); org-less tokens are
+   *  internal trusted proxies. */
+  orgId?: string;
   /** Token id + expiry - used for revocation (denylist). */
   jti: string;
   exp: number;
@@ -255,6 +259,7 @@ export async function authenticate(authHeader?: string, cookieHeader?: string): 
         exp: p.exp,
       };
       if (p.cand) ctx.candidateId = p.cand;
+      if (p.orgId) ctx.orgId = p.orgId;
       return { ok: true, ctx };
     }
   }

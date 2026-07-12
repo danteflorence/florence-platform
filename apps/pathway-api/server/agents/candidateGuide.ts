@@ -26,8 +26,11 @@ export function buildBriefing(d: CandidateDossier, actions: NextAction[], flags:
   const lines: string[] = []
   for (const a of actions) lines.push(`- ${a.title} (${a.workflowShort})`)
 
+  // H02: the briefing feeds the model-gateway chat context — keep the mismatch
+  // SIGNAL but never the detail text (it spells out full legal names across
+  // documents). The candidate sees the specifics on their documents screen.
   const nameFlag = flags.find((f) => f.type === 'name_mismatch')
-  lines.push(`NAME: ${nameFlag ? `${nameFlag.detail} — fix before exam/appointment` : 'consistent across documents'}`)
+  lines.push(`NAME: ${nameFlag ? 'mismatch detected across documents — fix before exam/appointment' : 'consistent across documents'}`)
 
   const passport = d.identityDocuments.find((x) => x.kind === 'passport')
   if (passport?.expirationDate) {
