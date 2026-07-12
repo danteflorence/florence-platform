@@ -397,5 +397,9 @@ export function createPassportClient(opts: PassportClientOptions) {
     /** Revoke a consent in Core by consentId + nurse selector + purpose. */
     revokeConsent: (input: Record<string, unknown>): Promise<{ ok: boolean }> =>
       call("/v1/consent/revoke", "POST", input),
+    /** Provision a Core candidate login (user + `cand` binding + candidate grant) so
+     *  the candidate can sign in via /login/candidate. Idempotent; refuses staff emails. */
+    provisionCandidate: (input: { email: string; name?: string; candId: string }): Promise<{ ok: boolean; userId: string; created: boolean }> =>
+      call("/v1/candidates/provision", "POST", input),
   };
 }

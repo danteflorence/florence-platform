@@ -27,10 +27,21 @@ export function staffLogout(): void {
   staffOk = false
   window.location.href = `${CORE_URL}/logout?redirect=${encodeURIComponent(location.origin)}`
 }
+/** Candidate sign-in (C01): Core's email one-time-code page. Used when the server
+ *  runs with PATHWAY_REQUIRE_AUTH=1 and a candidate surface gets "Sign in required." */
+export function candidateLogin(): void {
+  window.location.href = `${CORE_URL}/login/candidate?redirect=${encodeURIComponent(location.href)}`
+}
 
 async function j<T>(r: Response): Promise<T> {
   if (!r.ok) {
     const body = await r.json().catch(() => ({}))
+    // The REQUIRE_AUTH gate answers exactly "Sign in required." — bounce the
+    // candidate to Core's candidate sign-in and return here signed in. Scoped to
+    // that exact message so staff-surface 401s keep their existing sign-in card.
+    if (r.status === 401 && (body as any).error === 'Sign in required.') {
+      candidateLogin()
+    }
     throw new Error((body as any).error ? JSON.stringify((body as any).error) : r.statusText)
   }
   return r.json() as Promise<T>

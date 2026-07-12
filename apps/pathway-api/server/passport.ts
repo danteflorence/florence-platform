@@ -29,6 +29,28 @@ export async function readPassport(candidateId: string): Promise<Record<string, 
   }
 }
 
+/** Provision a Core sign-in for a Pathway candidate (user + `cand` binding + candidate
+ *  role) so /login/candidate works for them — the C01 prerequisite for flipping
+ *  PATHWAY_REQUIRE_AUTH on. Fire-and-forget + mock-by-default like every spine call:
+ *  with no Core creds this is a no-op, and a failed provision never breaks intake
+ *  (the back-fill script re-covers it). */
+export function provisionCoreLogin(candidateId: string): void {
+  if (!client) return
+  void (async () => {
+    const c = await store.candidates.get(candidateId)
+    if (!c?.email) return
+    try {
+      await client!.provisionCandidate({
+        email: c.email,
+        name: `${c.legalFirstName} ${c.legalLastName}`.trim(),
+        candId: candidateId,
+      })
+    } catch (e) {
+      console.warn(`[pathway] core login provision failed:`, (e as Error).message)
+    }
+  })().catch(() => undefined)
+}
+
 /** Emit a journey event for a Pathway candidate (resolved by email + pathway ref). */
 export function emitForCandidate(candidateId: string, type: string, data?: Record<string, unknown>): void {
   if (!client) return

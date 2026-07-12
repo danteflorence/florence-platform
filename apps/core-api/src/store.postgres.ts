@@ -733,4 +733,27 @@ export class PostgresStore implements Store {
     const { rows } = await this.sql.query("select * from data_disputes where nurse_id=$1 order by created_at", [nurseId]);
     return rows as import("./store.ts").DataDispute[];
   }
+
+  async insertLoginCode(c: import("./store.ts").LoginCode) {
+    await this.sql.query(
+      `insert into login_codes (id, email, code_hash, expires_at, attempts, consumed_at, created_at)
+       values ($1,$2,$3,$4,$5,$6,$7) on conflict (id) do nothing`,
+      [c.id, c.email, c.code_hash, c.expires_at, c.attempts, c.consumed_at ?? null, c.created_at],
+    );
+  }
+  async latestLoginCode(email: string) {
+    const { rows } = await this.sql.query(
+      "select * from login_codes where email=$1 and consumed_at is null order by created_at desc limit 1",
+      [email],
+    );
+    return rows[0] as import("./store.ts").LoginCode | undefined;
+  }
+  async updateLoginCode(id: string, patch: Partial<import("./store.ts").LoginCode>) {
+    if (patch.attempts !== undefined) await this.sql.query("update login_codes set attempts=$1 where id=$2", [patch.attempts, id]);
+    if (patch.consumed_at !== undefined) await this.sql.query("update login_codes set consumed_at=$1 where id=$2", [patch.consumed_at, id]);
+  }
+  async loginCodesSince(email: string, sinceIso: string) {
+    const { rows } = await this.sql.query("select count(*)::int as n from login_codes where email=$1 and created_at >= $2", [email, sinceIso]);
+    return Number((rows[0] as { n: number } | undefined)?.n ?? 0);
+  }
 }

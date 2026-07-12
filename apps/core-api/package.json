@@ -26,6 +26,7 @@
     "verify-gateway": "node scripts/verify-gateway.ts",
     "verify-lender": "node scripts/verify-lender.ts",
     "verify-tenant-binding": "node scripts/verify-tenant-binding.ts",
+    "verify-candidate-auth": "node scripts/verify-candidate-auth.ts",
     "verify-tenant-isolation": "node scripts/verify-tenant-isolation.ts",
     "rotate-key": "node scripts/rotate-key.ts",
     "checkpoint": "node scripts/mint-test.ts",

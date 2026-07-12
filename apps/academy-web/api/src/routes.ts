@@ -3706,6 +3706,7 @@ async function postCoachTick(ctx: ReqCtx, deps: Deps): Promise<void> {
     }
     // Escalation buckets; a once-daily cron sends each bucket exactly once.
     if (!COACH_NUDGE_DAYS.has(daysInactive)) continue;
+    if (!cand.email) continue; // no address to nudge
     const firstName = (cand.full_name ?? "").split(" ")[0] || "there";
     const urgency =
       daysInactive >= 9

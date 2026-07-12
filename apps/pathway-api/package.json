@@ -19,6 +19,8 @@
     "seed": "node --import tsx scripts/seed.ts",
     "seed:local": "PATHWAY_DB=sqlite ALLOW_SQLITE_LOCAL_DEV=1 node --experimental-sqlite --import tsx scripts/seed.ts",
     "pathway-v1-smoke": "node --import tsx scripts/pathway-v1-smoke.ts",
+    "require-auth-smoke": "node --import tsx scripts/require-auth-smoke.ts",
+    "provision-core-accounts": "node --import tsx scripts/provision-core-accounts.ts",
     "consular-payments-smoke": "node --import tsx scripts/consular-payments-smoke.ts",
     "english-requirements-smoke": "node --import tsx scripts/english-requirements-smoke.ts",
     "ssn-application-smoke": "node --import tsx scripts/ssn-application-smoke.ts",

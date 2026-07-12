@@ -7,7 +7,8 @@ import type { Audit } from "./audit.ts";
 import { config, googleConfigured } from "./config.ts";
 import { verifyJwtRS256, type CoreClaims } from "./crypto.ts";
 import { exchangeCode, googleAuthUrl, type GoogleProfile } from "./google.ts";
-import { adminPage, loginPage } from "./html.ts";
+import { adminPage, candidateLoginPage, loginPage } from "./html.ts";
+import { provisionCandidateUser, requestLoginCode, verifyLoginCode } from "./candidateAuth.ts";
 import type { KeyManager } from "./keys.ts";
 import { issueClientToken } from "./m2m.ts";
 import { ALL_ROLES, isRole, type Role } from "./roles.ts";
@@ -335,6 +336,73 @@ export function buildRoutes(deps: Deps): Route[] {
           return;
         }
         await finishLogin(ctx, user.id, user.email, "password", redirectTo);
+      },
+    },
+
+    // ── Candidate sign-in (email one-time code — the C01 auth method) ─────────
+    // Candidates never get passwords or staff Google SSO. The page requests a
+    // 6-digit code (delivered by email; mock-by-default) and verifying it mints
+    // the same fl_session cookie the whole fleet honors — with the `cand` claim
+    // that Pathway's candidate-binding middleware enforces.
+    {
+      method: "GET",
+      path: "/login/candidate",
+      handler: async (ctx) => {
+        const redirectTo = safeRedirect(ctx.query.get("redirect"));
+        // Sliding SSO: an already-signed-in candidate skips the form entirely.
+        if (verifySession(ctx, keys)) {
+          redirect(ctx.res, redirectTo || "/");
+          return;
+        }
+        sendHtml(ctx.res, 200, candidateLoginPage({ redirect: redirectTo }));
+      },
+    },
+    {
+      method: "POST",
+      path: "/auth/candidate/request",
+      handler: async (ctx) => {
+        const r = await requestLoginCode(store, audit, String(ctx.body.email ?? ""));
+        if (r.rateLimited) {
+          sendJson(ctx.res, 429, { error: "rate_limited" });
+          return;
+        }
+        // Always generic — never reveals whether the email has an account.
+        sendJson(ctx.res, 200, { ok: true, ...(r.devCode ? { devCode: r.devCode } : {}) });
+      },
+    },
+    {
+      method: "POST",
+      path: "/auth/candidate/verify",
+      handler: async (ctx) => {
+        const redirectTo = safeRedirect(String(ctx.body.redirect ?? ""));
+        const r = await verifyLoginCode(store, audit, String(ctx.body.email ?? ""), String(ctx.body.code ?? ""));
+        if (!r.ok || !r.user) {
+          sendJson(ctx.res, 401, { error: "invalid_code" });
+          return;
+        }
+        await finishLogin(ctx, r.user.id, r.user.email, "candidate_otp", redirectTo);
+      },
+    },
+    // App M2M (passport:write — internal clients only, never partner-obtainable):
+    // provision a Core login for an app candidate at intake / back-fill so the
+    // PATHWAY_REQUIRE_AUTH flip cannot lock real candidates out.
+    {
+      method: "POST",
+      path: "/v1/candidates/provision",
+      handler: async (ctx) => {
+        const claims = await requireScope(ctx, keys, audit, "passport:write");
+        if (!claims) return;
+        const r = await provisionCandidateUser(store, audit, {
+          email: String(ctx.body.email ?? ""),
+          ...(bstr(ctx.body, "name") ? { name: bstr(ctx.body, "name")! } : {}),
+          candId: String(ctx.body.candId ?? ctx.body.cand_id ?? ""),
+          actor: String(claims.email ?? claims.sub ?? "service"),
+        });
+        if (!r.ok) {
+          sendJson(ctx.res, 409, { error: "provision_refused", detail: r.error });
+          return;
+        }
+        sendJson(ctx.res, r.created ? 201 : 200, { ok: true, userId: r.userId, created: r.created });
       },
     },
 

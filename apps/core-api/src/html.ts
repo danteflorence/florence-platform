@@ -57,6 +57,58 @@ export function loginPage(opts: { redirect: string; googleEnabled: boolean; erro
   );
 }
 
+/** Candidate sign-in: email → one-time code (no password). Two-step, fetch-based;
+ *  the generic "check your email" copy never reveals whether an account exists. */
+export function candidateLoginPage(opts: { redirect: string }): string {
+  const r = escapeHtml(opts.redirect);
+  return SHELL(
+    "Candidate sign-in · Florence",
+    `<div class="card" style="max-width:440px;margin:60px auto">
+      <div class="brand">Florence</div>
+      <h1>Candidate sign-in</h1>
+      <div class="muted" style="margin-bottom:14px">Enter the email you used with Florence and we'll send you a one-time sign-in code. No password needed.</div>
+      <div id="err" class="err" style="display:none"></div>
+      <form id="step1">
+        <label>Email</label><input type="email" id="email" required autocomplete="username" inputmode="email"/>
+        <button type="submit">Email me a code</button>
+      </form>
+      <form id="step2" style="display:none">
+        <div class="muted" style="margin:6px 0 10px">If that email is registered, a 6-digit code is on its way. It expires in 10 minutes.</div>
+        <label>6-digit code</label><input id="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"/>
+        <button type="submit">Sign in</button>
+        <div class="muted" style="margin-top:10px"><a href="#" id="again">Use a different email</a></div>
+      </form>
+      <div class="hr"></div>
+      <div class="muted">Florence staff? <a href="/login?redirect=${encodeURIComponent(opts.redirect)}">Sign in here</a>.</div>
+    </div>
+    <script>
+      var redirectTo = "${r}";
+      var err = document.getElementById('err');
+      function showErr(m){ err.textContent = m; err.style.display = 'block'; }
+      function clearErr(){ err.style.display = 'none'; }
+      document.getElementById('step1').addEventListener('submit', async function (e) {
+        e.preventDefault(); clearErr();
+        var res = await fetch('/auth/candidate/request', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value }) });
+        if (res.status === 429) { showErr('Too many requests — wait a few minutes and try again.'); return; }
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('code').focus();
+      });
+      document.getElementById('step2').addEventListener('submit', async function (e) {
+        e.preventDefault(); clearErr();
+        var res = await fetch('/auth/candidate/verify', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, code: document.getElementById('code').value, redirect: redirectTo }) });
+        if (res.ok) { var j = await res.json().catch(function(){ return {}; }); window.location.assign(j.redirect || redirectTo || '/'); return; }
+        showErr('That code did not work — it may be expired. Request a new one.');
+      });
+      document.getElementById('again').addEventListener('click', function (e) {
+        e.preventDefault(); clearErr();
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step1').style.display = 'block';
+      });
+    </script>`,
+  );
+}
+
 export interface AdminData {
   me: { email: string; role: string };
   users: Array<{ user: User; roles: string[] }>;

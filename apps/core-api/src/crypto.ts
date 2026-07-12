@@ -29,7 +29,7 @@ const enc = (buf: Buffer | string): string =>
   Buffer.from(buf).toString("base64url");
 const dec = (s: string): Buffer => Buffer.from(s, "base64url");
 
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   if (ab.length !== bb.length) return false;
