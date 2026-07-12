@@ -820,7 +820,8 @@ export type OutcomeKind =
   | "employer_offer" // status: offered | accepted | declined
   | "start" // a billable RN start
   | "retention_90d" // status: retained | attrited
-  | "repayment"; // status: active | delinquent | paid; amount_cents?
+  | "repayment" // status: active | delinquent | paid; amount_cents?
+  | "employer_feedback"; // detail: { competency, rating 1-5, note? } - field signal → curriculum
 
 export interface OutcomeEvent {
   id: string; // oc_…

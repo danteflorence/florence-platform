@@ -12,6 +12,8 @@ import {
   recordAttendance,
   fetchSimDebrief,
   fetchTopMissed,
+  fetchFieldSignal,
+  type FieldSignalRow,
   type CohortCopilot,
   type CohortSimDebrief,
   type InstructorCohort,
@@ -534,6 +536,8 @@ function CohortConsole({
         <ReviewPlannerPane />
 
         <TopMissedPane />
+
+        <FieldSignalPane />
 
         <PostClassWrap
           cohort={cohort}
@@ -1168,6 +1172,75 @@ function RunbookPane({
  * can name the misconception, not just the topic. Data loads on expand (the
  * question bank is a heavy chunk; no reason to pay for it unopened).
  */
+// Field signal: what employers say our placed graduates need more of, per
+// competency (K>=3 server-side, weakest first). The bedside grading the
+// curriculum - reteach what scores lowest.
+function FieldSignalPane() {
+  const [state, setState] = useState<
+    | { phase: "closed" }
+    | { phase: "loading" }
+    | { phase: "error"; message: string }
+    | { phase: "ready"; total: number; rows: FieldSignalRow[] }
+  >({ phase: "closed" });
+
+  const load = async () => {
+    if (state.phase === "ready" || state.phase === "loading") return;
+    setState({ phase: "loading" });
+    try {
+      const sig = await fetchFieldSignal();
+      setState({ phase: "ready", total: sig.total_feedback, rows: sig.by_competency });
+    } catch (e) {
+      setState({ phase: "error", message: e instanceof Error ? e.message : "could not load" });
+    }
+  };
+
+  return (
+    <details
+      className="group rounded-2xl border border-florence-line bg-white"
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) void load();
+      }}
+    >
+      <summary className="cursor-pointer p-6">
+        <span className="text-sm font-medium">Field signal — what employers see</span>
+        <span className="ml-2 text-xs text-florence-slate group-open:hidden">Open</span>
+      </summary>
+      <div className="border-t border-florence-line p-6 pt-4">
+        {state.phase === "loading" && <p className="text-sm text-florence-slate">Aggregating employer feedback…</p>}
+        {state.phase === "error" && <p className="text-sm text-vital-danger">{state.message}</p>}
+        {state.phase === "ready" && state.rows.length === 0 && (
+          <p className="text-sm text-florence-slate">
+            No competency has 3+ employer ratings yet. This fills as placed graduates get their
+            30/60/90-day reviews - and it becomes the strongest curriculum signal we have.
+          </p>
+        )}
+        {state.phase === "ready" && state.rows.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-florence-slate">
+              {state.total} employer ratings on placed graduates. Weakest first - these are the
+              reteach priorities.
+            </p>
+            {state.rows.map((r) => (
+              <div key={r.competency} className="flex items-center gap-3 rounded-xl border border-florence-line px-3 py-2">
+                <span className="flex-1 text-sm text-florence-ink">{r.competency}</span>
+                <span className="h-1.5 w-24 overflow-hidden rounded-full bg-florence-mist">
+                  <span
+                    className={`block h-full ${r.mean_rating < 3 ? "bg-vital-danger" : r.mean_rating < 4 ? "bg-vital-warn" : "bg-vital-ok"}`}
+                    style={{ width: `${(r.mean_rating / 5) * 100}%` }}
+                  />
+                </span>
+                <span className="text-xs font-semibold text-florence-slate">
+                  {r.mean_rating.toFixed(1)}/5 · n={r.n}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function TopMissedPane() {
   const [state, setState] = useState<
     | { phase: "closed" }

@@ -148,6 +148,7 @@ const OUTCOME_KINDS: readonly OutcomeKind[] = [
   "start",
   "retention_90d",
   "repayment",
+  "employer_feedback",
 ];
 
 const ASSESSMENT_KINDS: readonly AssessmentKind[] = [
@@ -3679,6 +3680,43 @@ async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
+// Field signal - employer feedback on placed graduates, aggregated into a
+// curriculum steer for instructors. Events arrive through the existing
+// outcomes ledger (kind:"employer_feedback", detail {competency, rating
+// 1-5}); only competency-level means with n>=3 leave here - no nurse is ever
+// identifiable, no free-text note is surfaced.
+async function getFieldSignal(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "field_signal";
+  const byCompetency = new Map<string, { sum: number; n: number }>();
+  let cursor: string | undefined;
+  let total = 0;
+  do {
+    const page = await deps.store.outcomes.list(undefined, cursor, 200);
+    for (const o of page.data) {
+      if (o.kind !== "employer_feedback") continue;
+      const detail = (o.detail ?? {}) as Record<string, unknown>;
+      const competency = typeof detail["competency"] === "string" ? detail["competency"] : "";
+      const rating = typeof detail["rating"] === "number" ? detail["rating"] : NaN;
+      if (!competency || !(rating >= 1 && rating <= 5)) continue;
+      total += 1;
+      const acc = byCompetency.get(competency) ?? { sum: 0, n: 0 };
+      acc.sum += rating;
+      acc.n += 1;
+      byCompetency.set(competency, acc);
+    }
+    cursor = page.next_cursor ?? undefined;
+  } while (cursor);
+  const rows = [...byCompetency.entries()]
+    .filter(([, v]) => v.n >= 3) // K-anonymity per competency
+    .map(([competency, v]) => ({
+      competency,
+      n: v.n,
+      mean_rating: Math.round((v.sum / v.n) * 100) / 100,
+    }))
+    .sort((a, b) => a.mean_rating - b.mean_rating); // weakest first = teach this
+  send(ctx, 200, { total_feedback: total, by_competency: rows });
+}
+
 // Graded charting practice - the first-90-days documentation skill. The
 // grader is a deterministic, auditable heuristic (src/charting.ts); a model
 // gateway may later polish the feedback PROSE, but pass/fail logic stays
@@ -4698,6 +4736,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
   compile("GET", "/v1/me/sim-benchmark", "candidates:read", true, getMySimBenchmark),
   compile("POST", "/v1/sim/chart-note", "candidates:read", true, postChartNote),
+  compile("GET", "/v1/curriculum/field-signal", "cohorts:read", false, getFieldSignal),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),

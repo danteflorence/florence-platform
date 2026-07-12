@@ -9,6 +9,14 @@ import { CandidateProvider } from "./lib/CandidateContext";
 import "@florence/design-system/tokens.css";
 import "./index.css";
 
+// Offline shell: register the service worker in production builds only (dev
+// stays uncached so HMR behaves). Failure is silent - the app works without it.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  });
+}
+
 // The lesson route pulls in the heavy interactive libraries (model-viewer /
 // three.js + recharts). Lazy-loading it keeps those out of the landing-page
 // bundle so the home page paints fast.

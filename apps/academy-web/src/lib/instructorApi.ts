@@ -221,6 +221,20 @@ export async function fetchTopMissed(limit = 8): Promise<TopMissedItem[]> {
   return j.items ?? [];
 }
 
+/** Field signal: employer feedback on placed graduates, aggregated per
+ *  competency (K>=3 server-side, weakest first) - the bedside's curriculum steer. */
+export interface FieldSignalRow {
+  competency: string;
+  n: number;
+  mean_rating: number;
+}
+
+export async function fetchFieldSignal(): Promise<{ total_feedback: number; by_competency: FieldSignalRow[] }> {
+  const res = await authedFetch(`/v1/curriculum/field-signal`);
+  if (!res.ok) throw new InstructorError(res.status, "could not load the field signal");
+  return (await res.json()) as { total_feedback: number; by_competency: FieldSignalRow[] };
+}
+
 // ── Scenario Studio ─────────────────────────────────────────────────────────
 export interface IngestResult {
   scenario: Record<string, unknown>;
