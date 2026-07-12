@@ -1037,14 +1037,44 @@ function Reminders({ v, candidateId }: { v: CandidateView; candidateId: string }
   )
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  familyName: 'Family name', givenNames: 'Given names', nameOnDocument: 'Name as printed',
+  dateOfBirth: 'Date of birth', expirationDate: 'Expires', issueDate: 'Issued',
+  issuingAuthority: 'Issuing authority', nationality: 'Nationality', documentNumberLast4: 'Number (last 4)',
+}
+
 function Documents({ v, candidateId, onChange }: { v: CandidateView; candidateId: string; onChange: () => void }) {
   const [kind, setKind] = useState('passport_scan')
   const [busy, setBusy] = useState(false)
+  const [proposal, setProposal] = useState<{ docId: string; fields: Record<string, string>; notes: string[] } | null>(null)
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
     setBusy(true)
-    try { await api.uploadDocument(candidateId, { kind, filename: f.name }); onChange() } finally { setBusy(false); e.target.value = '' }
+    try {
+      // Images ride along for extraction (extract-and-discard server-side);
+      // other files upload as metadata records exactly as before.
+      let body: { kind: string; filename: string; imageBase64?: string; mediaType?: string } = { kind, filename: f.name }
+      if (['image/jpeg', 'image/png', 'image/webp'].includes(f.type) && f.size < 2_000_000) {
+        const b64 = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(String(r.result).split(',')[1] ?? '')
+          r.onerror = reject
+          r.readAsDataURL(f)
+        })
+        body = { ...body, imageBase64: b64, mediaType: f.type }
+      }
+      const res = await api.uploadDocument(candidateId, body)
+      if (res.fields && Object.keys(res.fields).length > 0) {
+        setProposal({ docId: res.id, fields: res.fields, notes: res.notes ?? [] })
+      }
+      onChange()
+    } finally { setBusy(false); e.target.value = '' }
+  }
+  const confirm = async () => {
+    if (!proposal) return
+    setBusy(true)
+    try { await api.confirmDocument(candidateId, proposal.docId, proposal.fields); setProposal(null); onChange() } finally { setBusy(false) }
   }
   return (
     <Card>
@@ -1060,6 +1090,28 @@ function Documents({ v, candidateId, onChange }: { v: CandidateView; candidateId
             ))}
           </ul>
         ) : <p className="text-xs text-slate-400">No documents uploaded yet.</p>}
+        {proposal && (
+          <div className="rounded-xl border border-florence-200 bg-florence-50/50 p-3">
+            <p className="text-xs font-semibold text-florence-800">Check what we read — you confirm, we never guess:</p>
+            <ul className="mt-1 space-y-0.5">
+              {Object.entries(proposal.fields).map(([k, val]) => (
+                <li key={k} className="flex items-baseline justify-between gap-2 text-xs">
+                  <span className="text-slate-500">{FIELD_LABELS[k] ?? k}</span>
+                  <input
+                    value={val}
+                    onChange={(e) => setProposal({ ...proposal, fields: { ...proposal.fields, [k]: e.target.value } })}
+                    className="w-44 rounded border border-slate-300 px-1.5 py-0.5 text-right font-medium text-slate-800 focus:border-florence-400 focus:outline-none"
+                  />
+                </li>
+              ))}
+            </ul>
+            {proposal.notes.map((n, i) => <p key={i} className="mt-1 text-[11px] text-slate-500">{n}</p>)}
+            <div className="mt-2 flex gap-2">
+              <Button onClick={() => void confirm()} disabled={busy}>These match the document</Button>
+              <button className="text-xs text-slate-500 underline" onClick={() => setProposal(null)}>Dismiss</button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2 pt-1">
           <select value={kind} onChange={(e) => setKind(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1 text-xs focus:outline-none">
             <option value="passport_scan">Passport</option>
@@ -1074,7 +1126,7 @@ function Documents({ v, candidateId, onChange }: { v: CandidateView; candidateId
             <input type="file" className="hidden" onChange={onFile} />
           </label>
         </div>
-        <p className="text-[11px] text-slate-400">Extraction (passport / I-20 → form fields) runs with a vision model when configured.</p>
+        <p className="text-[11px] text-slate-400">Photos are read for form fields, then discarded — confirmed details feed the name-match check that prevents deficiencies. Document numbers are never extracted beyond the last 4 digits.</p>
       </div>
     </Card>
   )

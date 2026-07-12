@@ -7,7 +7,7 @@ import {
 } from '../../shared/schema'
 import { ALL_RULES, getRule } from '../../shared/rules'
 import { WORKFLOW_META, VISA_OUTCOME_LABEL } from '../../shared/constants'
-import type { CandidateProfile, WorkflowInstance, PathwayDocument } from '../../shared/types'
+import type { CandidateProfile, WorkflowInstance, PathwayDocument, IdentityDocument } from '../../shared/types'
 import { runPipeline, pushMilestone } from '../agents'
 import { emitForCandidate, provisionCandidateUser } from '../passport'
 import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
@@ -216,18 +216,88 @@ api.post('/candidates/:id/notify', h(async (req, res) => {
   res.json({ sent: view.reminders.length, channel: hook ? 'webhook' : 'logged (set FLORENCE_NOTIFY_WEBHOOK for email/SMS delivery)' })
 }))
 
+// Proposed-field allowlist for document extraction. Anything number-like is
+// truncated to LAST 4 at this boundary — a model never supplies a full document
+// number; the candidate types critical identifiers themselves.
+const EXTRACT_FIELD_ALLOWLIST = new Set([
+  'familyName', 'givenNames', 'nameOnDocument', 'dateOfBirth', 'expirationDate',
+  'issueDate', 'issuingAuthority', 'nationality', 'documentNumberLast4',
+])
+function sanitizeExtractedFields(raw: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (!EXTRACT_FIELD_ALLOWLIST.has(k) || typeof v !== 'string' || !v.trim()) continue
+    out[k] = k === 'documentNumberLast4' ? v.replace(/[^A-Za-z0-9]/g, '').slice(-4) : v.trim().slice(0, 120)
+  }
+  return out
+}
+
 api.post('/candidates/:id/documents', h(async (req, res) => {
   const c = await store.candidates.get(req.params.id)
   if (!c) return res.status(404).json({ error: 'not found' })
   const kind = String(req.body?.kind ?? 'derived') as PathwayDocument['kind']
   const filename = String(req.body?.filename ?? 'document')
-  // Extraction is ModelGateway-pluggable; without Core gateway configuration the
-  // document is stored for manual confirmation.
+  // Optional intake payload: a page image (extract-and-DISCARD — never stored
+  // here; restricted-document storage is Core's Document Vault) and/or the MRZ.
+  const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : undefined
+  const mediaType = typeof req.body?.mediaType === 'string' ? req.body.mediaType : undefined
+  const textContent = typeof req.body?.textContent === 'string' ? req.body.textContent.slice(0, 4000) : undefined
+  if (imageBase64 && imageBase64.length > 3_000_000) return res.status(413).json({ error: 'image too large (max ~2MB)' })
+  if (mediaType && !['image/jpeg', 'image/png', 'image/webp'].includes(mediaType)) {
+    return res.status(400).json({ error: 'unsupported media type' })
+  }
+
   const doc: PathwayDocument = { id: uid(), candidateId: c.id, kind, filename, uploadedAt: now(), extracted: false, extractionConfidence: 'unknown' }
+  let notes: string[] = []
+  if (imageBase64 || textContent) {
+    const proposal = await getLlm().extractDocument({ kind, filename, imageBase64, mediaType, textContent })
+    const fields = sanitizeExtractedFields(proposal.fields)
+    if (Object.keys(fields).length > 0) {
+      doc.fields = fields // a DRAFT — extracted stays false until the candidate confirms
+      doc.extractionConfidence = proposal.confidence
+    }
+    notes = proposal.notes
+  }
   await store.documents.insert(doc)
-  await audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `kind=${kind};document=${doc.id}`)
+  await audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `kind=${kind};document=${doc.id};proposed=${Object.keys(doc.fields ?? {}).length}`)
   emitForCandidate(c.id, 'pathway.document_verified', { key: kind })
-  res.json({ id: doc.id, extracted: doc.extracted })
+  res.json({ id: doc.id, extracted: doc.extracted, fields: doc.fields, confidence: doc.extractionConfidence, notes })
+}))
+
+// Candidate confirms (and may correct) the proposed fields — the attestation
+// step. Confirmed passport fields become an IdentityDocument, which feeds the
+// name-match consistency agent, preventing deficiencies at intake.
+api.post('/candidates/:id/documents/:docId/confirm', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const doc = await store.documents.get(req.params.docId)
+  if (!doc || doc.candidateId !== c.id) return res.status(404).json({ error: 'not found' })
+  const confirmed = sanitizeExtractedFields((req.body?.fields ?? {}) as Record<string, string>)
+  if (!Object.keys(confirmed).length) return res.status(400).json({ error: 'no valid fields to confirm' })
+
+  doc.fields = confirmed
+  doc.extracted = true
+  doc.extractionConfidence = 'high' // candidate-attested against the printed page
+  await store.documents.update(doc)
+
+  if (doc.kind === 'passport_scan' && confirmed.nameOnDocument) {
+    const existing = (await store.identityDocuments.byCandidate(c.id)).find((i) => i.kind === 'passport')
+    const idDoc: IdentityDocument = existing ?? { id: uid(), candidateId: c.id, kind: 'passport', nameOnDocument: '', status: 'document_extracted', confidence: 'high' }
+    idDoc.nameOnDocument = confirmed.nameOnDocument
+    if (confirmed.dateOfBirth) idDoc.dateOfBirth = confirmed.dateOfBirth
+    if (confirmed.expirationDate) idDoc.expirationDate = confirmed.expirationDate
+    if (confirmed.issuingAuthority) idDoc.issuingAuthority = confirmed.issuingAuthority
+    if (existing) await store.identityDocuments.update(idDoc)
+    else await store.identityDocuments.insert(idDoc)
+  }
+  await audit('candidate', 'document_extraction_confirmed', 'candidate', c.id, c.id, `document=${doc.id};fields=${Object.keys(confirmed).length}`)
+  await pushMilestone(c.id, undefined, 'Document details confirmed')
+  // Re-run open workflow pipelines so the consistency agent sees the new
+  // name observation immediately (deficiency prevention at intake).
+  for (const w of await store.workflows.byCandidate(c.id)) {
+    if (!['submitted', 'completed'].includes(w.status)) { await runPipeline(w.id); break }
+  }
+  res.json({ ok: true, document: doc })
 }))
 
 const EXAM_TYPE_BY_STATE: Record<string, WorkflowInstance['type']> = {

@@ -1,5 +1,5 @@
 import { heuristicProvider } from './heuristic'
-import type { ChatInput, ExplainStepInput, LlmProvider, QaSummaryInput } from './provider'
+import type { ChatInput, ExplainStepInput, ExtractDocumentInput, LlmProvider, QaSummaryInput } from './provider'
 
 type GatewayResponse = {
   ok?: boolean
@@ -122,6 +122,26 @@ export function createModelGatewayProvider(): LlmProvider {
       })
       if (needsHumanReview(result)) return humanReviewMessage()
       return heuristicProvider.chat(i)
+    },
+    async extractDocument(i: ExtractDocumentInput) {
+      // Photo → fields runs ONLY through the Model Gateway (central data-class +
+      // high-stakes controls; the raw image never goes to a provider directly).
+      const result = await runGatewayTask({
+        task: 'document_field_extraction',
+        dataClass: 'CANDIDATE_RESTRICTED',
+        sourceTypes: ['candidate_document'],
+        input: {
+          kind: i.kind,
+          ...(i.imageBase64 ? { image_base64: i.imageBase64, media_type: i.mediaType ?? 'image/jpeg' } : {}),
+          ...(i.textContent ? { text_content: i.textContent } : {}),
+        },
+      })
+      const fields = (result as { fields?: Record<string, string> } | undefined)?.fields
+      if (result?.ok && fields && typeof fields === 'object') {
+        return { fields, confidence: 'medium' as const, notes: ['Extracted via the Model Gateway. Confirm each field against the printed page.'] }
+      }
+      // Gateway unavailable/declined → the deterministic MRZ/manual path.
+      return heuristicProvider.extractDocument(i)
     },
   }
 }

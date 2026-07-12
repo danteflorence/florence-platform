@@ -30,12 +30,32 @@ export interface ChatInput {
   context: string
 }
 
+export interface ExtractDocumentInput {
+  kind: string
+  filename: string
+  /** Base64 page image (png/jpeg/webp) — sent ONLY through the Model Gateway. */
+  imageBase64?: string
+  mediaType?: string
+  /** Machine-readable text when available (e.g. the passport MRZ lines). */
+  textContent?: string
+}
+
+/** Proposed fields from a document — a DRAFT the candidate must confirm.
+ *  Document numbers are truncated to last-4 at the seam; the full number is
+ *  typed by the candidate in the official flow, never taken from a model. */
+export interface ExtractedDocumentProposal {
+  fields: Record<string, string>
+  confidence: 'high' | 'medium' | 'low' | 'unknown'
+  notes: string[]
+}
+
 export interface LlmProvider {
   readonly mode: 'model_gateway' | 'heuristic'
   explainStep(i: ExplainStepInput): Promise<string>
   summarizeForQa(i: QaSummaryInput): Promise<string>
   classifyDeficiency(items: string[]): Promise<{ classification: string; responseDraft: string }>
   chat(i: ChatInput): Promise<string>
+  extractDocument(i: ExtractDocumentInput): Promise<ExtractedDocumentProposal>
 }
 
 let cached: LlmProvider | null = null

@@ -1,4 +1,4 @@
-import type { LlmProvider, ExplainStepInput, QaSummaryInput, ChatInput } from './provider'
+import type { LlmProvider, ExplainStepInput, QaSummaryInput, ChatInput, ExtractDocumentInput, ExtractedDocumentProposal } from './provider'
 
 // Deterministic, no-API-key implementation. Outputs are templated but genuinely
 // derived from the structured inputs — this is the honest fallback, and it also
@@ -96,10 +96,61 @@ function chat(i: ChatInput): string {
   return `I’m your Florence pathway copilot, ${i.candidateName}. Ask me what’s next, or about your visa, NCLEX, licensure, or appointment.`
 }
 
+// ── document extraction (deterministic, no model) ───────────────────────────
+// Real capability, honestly labeled: parses the passport MRZ (TD3, two 44-char
+// lines) when the caller supplies it as text — surname/given names, birth date,
+// expiry, issuing state, and the document number truncated to LAST 4 at this
+// seam. Without an MRZ it returns an empty proposal so the UI asks the
+// candidate to type the fields (never invents values). Vision (photo → fields)
+// requires the Model Gateway provider.
+const yymmddToIso = (s: string, kind: 'dob' | 'expiry'): string | undefined => {
+  if (!/^\d{6}$/.test(s)) return undefined
+  const yy = Number(s.slice(0, 2))
+  const nowYy = new Date().getUTCFullYear() % 100
+  // dob: past century window; expiry: future window.
+  const century = kind === 'dob' ? (yy > nowYy ? 1900 : 2000) : (yy < nowYy - 1 ? 2100 : 2000)
+  return `${century + yy}-${s.slice(2, 4)}-${s.slice(4, 6)}`
+}
+
+function extractDocument(i: ExtractDocumentInput): ExtractedDocumentProposal {
+  const notes: string[] = []
+  const lines = (i.textContent ?? '')
+    .split(/\r?\n/)
+    .map((l) => l.trim().toUpperCase())
+    .filter((l) => l.length >= 30 && /^[A-Z0-9<]+$/.test(l))
+  const l1 = lines.find((l) => l.startsWith('P<'))
+  const l2 = l1 ? lines[lines.indexOf(l1) + 1] : undefined
+  if (l1 && l2) {
+    const fields: Record<string, string> = {}
+    const nameBlock = l1.slice(5).split('<<')
+    const family = (nameBlock[0] ?? '').replace(/</g, ' ').trim()
+    const given = (nameBlock[1] ?? '').replace(/</g, ' ').trim()
+    if (family) fields.familyName = family
+    if (given) fields.givenNames = given
+    if (family || given) fields.nameOnDocument = `${given} ${family}`.trim()
+    fields.issuingAuthority = l1.slice(2, 5).replace(/</g, '')
+    const number = l2.slice(0, 9).replace(/</g, '')
+    if (number) fields.documentNumberLast4 = number.slice(-4)
+    const dob = yymmddToIso(l2.slice(13, 19), 'dob')
+    if (dob) fields.dateOfBirth = dob
+    const exp = yymmddToIso(l2.slice(21, 27), 'expiry')
+    if (exp) fields.expirationDate = exp
+    notes.push('Parsed from the machine-readable zone (MRZ). Confirm each field against the printed page.')
+    return { fields, confidence: 'medium', notes }
+  }
+  notes.push(
+    i.imageBase64
+      ? 'Photo received, but no vision provider is configured — connect the Core Model Gateway for photo extraction, or type the fields below.'
+      : 'No machine-readable text found. Type the fields exactly as printed on the document.',
+  )
+  return { fields: {}, confidence: 'unknown', notes }
+}
+
 export const heuristicProvider: LlmProvider = {
   mode: 'heuristic',
   async explainStep(i) { return explainStep(i) },
   async summarizeForQa(i) { return summarizeForQa(i) },
   async classifyDeficiency(items) { return classifyDeficiency(items) },
   async chat(i) { return chat(i) },
+  async extractDocument(i) { return extractDocument(i) },
 }
