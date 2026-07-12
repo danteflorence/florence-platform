@@ -12,6 +12,7 @@ import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import ReadinessCard from "../components/ReadinessCard";
 import RemediationPanel from "../components/RemediationPanel";
 import DailyReviewCard from "../components/DailyReviewCard";
+import TodaysPlanCard from "../components/TodaysPlanCard";
 import ReasoningProfileCard from "../components/ReasoningProfileCard";
 import {
   Badge as FlorenceBadge,
@@ -150,6 +151,7 @@ export default function AcademyHome() {
       {status === "authenticated" && readiness ? (
         <section className="border-b border-florence-line bg-florence-mist/60">
           <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:px-8">
+            <TodaysPlanCard />
             <ReadinessCard snapshot={readiness} />
             <DailyReviewCard />
             <RemediationPanel />

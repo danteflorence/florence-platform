@@ -16,6 +16,7 @@ process.env["CORS_ALLOWED_ORIGINS"] = "https://app.florenceedu.com";
 process.env["RATE_LIMIT_CAPACITY"] = "2000";
 process.env["RATE_LIMIT_REFILL_PER_SEC"] = "2000";
 process.env["DRIP_TICK_SECRET"] = "smoke-drip-secret";
+process.env["COACH_TICK_SECRET"] = "smoke-coach-secret";
 process.env["DRIP_STAGE_INTERVAL_DAYS"] = "0,0,0,0,0,0"; // no waiting in tests
 
 const { config } = await import("../src/config.ts");
@@ -421,10 +422,13 @@ try {
 
   // 4i-bis) Spoken tutor: /v1/audio/speak returns a playable cached clip.
   // Mock mode renders a silent mp3, so the shape + caching are fully testable.
+  // Unique text per run: the audio store persists on disk across smoke runs,
+  // so a fixed line would be a cache HIT on the second-ever run.
+  const spText = `Look at the whole picture before you act. (${Date.now()})`;
   const sp1 = await fetch(`${base}/v1/audio/speak`, {
     method: "POST",
     headers: { "content-type": "application/json", ...bearer(T) },
-    body: JSON.stringify({ text: "Look at the whole picture before you act." }),
+    body: JSON.stringify({ text: spText }),
   });
   const sp1j = (await sp1.json()) as any;
   assert.equal(sp1.status, 200);
@@ -433,7 +437,7 @@ try {
   const sp2 = await fetch(`${base}/v1/audio/speak`, {
     method: "POST",
     headers: { "content-type": "application/json", ...bearer(T) },
-    body: JSON.stringify({ text: "Look at the whole picture before you act." }),
+    body: JSON.stringify({ text: spText }),
   });
   const sp2j = (await sp2.json()) as any;
   assert.equal(sp2j.cached, true); // identical text → cache hit, no re-render
@@ -957,6 +961,33 @@ try {
   assert.equal(readiness.sections_total, 20);
   assert.ok(readiness.focus_areas.includes("pharmacological-therapies")); // weakest need
   ok("readiness snapshot: band + progress rollup + weakest focus area");
+
+  // Daily Coach: the derived plan + the nudge tick.
+  const dp = await fetch(`${base}/v1/me/daily-plan`, { headers: bearer(CS) });
+  const dpj = (await dp.json()) as any;
+  assert.equal(dp.status, 200);
+  assert.equal(dpj.active_today, true); // this candidate just posted a result
+  assert.ok(dpj.streak_days >= 1);
+  assert.equal(dpj.readiness.band, "orange");
+  assert.ok(dpj.readiness.focus_areas.includes("pharmacological-therapies"));
+  assert.ok(typeof dpj.plan_day_index === "number");
+  const ctBad = await fetch(`${base}/v1/ops/coach/tick`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-coach-secret": "wrong" },
+    body: "{}",
+  });
+  assert.equal(ctBad.status, 401);
+  const ct = await fetch(`${base}/v1/ops/coach/tick`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-coach-secret": "smoke-coach-secret" },
+    body: JSON.stringify({ cap: 50 }),
+  });
+  const ctj = (await ct.json()) as any;
+  assert.equal(ct.status, 200);
+  assert.ok(typeof ctj.scanned === "number");
+  // This candidate was active seconds ago → never nudged.
+  assert.equal(ctj.nudged, 0);
+  ok("daily coach: plan derives streak/readiness; tick guards secret + skips active learners");
 
   // 5g) Auth hardening: weak-password rejection + failed-login lockout
   const weak = await fetch(`${base}/v1/auth/signup`, {
