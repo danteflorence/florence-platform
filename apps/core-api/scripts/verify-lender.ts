@@ -91,6 +91,15 @@ async function main() {
   const decList = await call("GET", `/v1/nurses/${ids[0]}/credit-decisions`, lenderToken);
   ok("decision: list returns the org's decision", decList.status === 200 && decList.body.decisions.some((d: { id: string }) => d.id === deny.body.id));
 
+  // ── C06: a DIFFERENT lender org (no consent, no ownership) is fully walled off ─
+  const key2 = await call("POST", "/v1/partner-keys", opsToken, { name: "OtherBank", org_id: "org-other-bank", scopes: ["passport:read:lender", "credit:read", "credit:decide"] });
+  const issued2 = await issueClientToken(store, keys, key2.body.client_id, key2.body.client_secret);
+  const otherLenderToken = issued2.ok ? issued2.token.access_token : "";
+  const otherList = await call("GET", `/v1/nurses/${ids[0]}/credit-decisions`, otherLenderToken);
+  ok("C06: a lender with NO consent for the nurse ⇒ decisions list 403 (consent+tenant)", otherList.status === 403);
+  const otherAdverse = await call("POST", `/v1/credit-decisions/${deny.body.id}/adverse-action`, otherLenderToken, {});
+  ok("C06: a lender CANNOT adverse-action another lender's decision ⇒ 403 (ownership)", otherAdverse.status === 403);
+
   // ── candidate data dispute (FCRA accuracy) ─────────────────────────────────
   const disp = await call("POST", "/v1/disputes", opsToken, { nurseId: ids[0], field: "licensure.state", claim: "state is wrong" });
   ok("dispute: staff raises a data-accuracy dispute ⇒ 201", disp.status === 201 && disp.body.status === "open");
@@ -116,6 +125,9 @@ async function main() {
   await call("POST", "/v1/consent/revoke", opsToken, { consentId, purpose: "underwriting", nurseId: ids[0] });
   const afterRevoke = await call("GET", `/v1/nurses/${ids[0]}/credit-data`, lenderToken);
   ok("fail-closed: after consent revoke ⇒ credit-data 403", afterRevoke.status === 403);
+  // C06: the decisions LISTING is consent-gated too — revoke fails it closed.
+  const listAfterRevoke = await call("GET", `/v1/nurses/${ids[0]}/credit-decisions`, lenderToken);
+  ok("C06: after consent revoke ⇒ credit-decisions list 403 (consent before read)", listAfterRevoke.status === 403);
 
   server.close();
   console.log(`\n${fail ? "LENDER SMOKE FAILED" : "LENDER SMOKE PASSED"} — ${pass} passed, ${fail} failed`);

@@ -161,15 +161,22 @@ export function lenderModule(store: Store, audit: Audit): GwRoute[] {
         const claims = ctx.claims!;
         const nurse = await lookupNurse(store, { nurseId: ctx.params.id });
         if (!nurse) return { status: 404, body: { error: "nurse_not_found" } };
+        // C06: a lender may list decisions only with a LIVE named underwriting consent
+        // for this nurse (fail-closed on revoke, consistent with credit-data) — the
+        // tenant gate denies missing_consent. The listing is then hard-scoped to the
+        // caller's own org; only a super_admin (staff bypass) may see every lender's,
+        // and a non-staff caller without an org gets nothing (never the full set).
+        const consentOk = consentAllows(await store.consentsByNurse(nurse.id), "underwriting", claims.org_id).ok;
         const access = await authorizeTenantAccessWithAudit(audit, {
           actor: lenderActor(claims),
           action: "read",
           purpose: "underwriting",
-          resource: { type: "lender_packet", id: nurse.id, ownerOrgId: claims.org_id, consentOk: true, dataClass: "RESTRICTED_FINANCING" },
+          resource: { type: "lender_packet", id: nurse.id, ownerOrgId: claims.org_id, consentOk, dataClass: "RESTRICTED_FINANCING" },
         });
         if (!access.allow) return denied(access.reason);
         const all = await store.creditDecisionsByNurse(nurse.id);
-        const mine = claims.org_id ? all.filter((d) => d.lender_org_id === claims.org_id) : all;
+        const mine = claims.org_id ? all.filter((d) => d.lender_org_id === claims.org_id) : (isStaffClaims(claims) ? all : []);
+        await audit(actorOf(claims), "credit_decisions.list", "nurse", nurse.id, { org: claims.org_id ?? null, count: mine.length });
         return { status: 200, body: { nurseId: nurse.id, decisions: mine } };
       },
     }),
