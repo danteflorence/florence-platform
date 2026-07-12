@@ -1,4 +1,4 @@
-# FlorenceRN Demand Radar
+# Florence OS Demand Radar
 
 The job-demand intelligence + attribution layer, and the **pre-ATS proof of demand**:
 ingest public/partner RN openings → normalize + dedup → price per-RN/month → tracked

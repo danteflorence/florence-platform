@@ -1,4 +1,4 @@
-# FlorenceRN Incident Response Plan
+# Florence OS Incident Response Plan
 
 Status: SOC 2 ready controls in progress. This plan requires operational owner assignment and tabletop validation before it can be treated as production-ready.
 

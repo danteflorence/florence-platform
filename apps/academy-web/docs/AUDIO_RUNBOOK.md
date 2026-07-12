@@ -39,7 +39,7 @@ specific, tied to retrieval) — not generic lectures.
 
 ## Order of operations (small + high-value first; re-runs are free via textHash)
 ```bash
-cd florence-academy/api
+cd apps/academy-web/api
 # 0) one-time live setup (when you have the grant key)
 export ELEVENLABS_API_KEY=<ELEVENLABS_API_KEY>            # (+ optional ELEVENLABS_VOICE_ID / ELEVENLABS_DICTIONARY_ID)
 export DATABASE_URL=<DATABASE_URL>       # walkthrough audio reads APPROVED rows from the store

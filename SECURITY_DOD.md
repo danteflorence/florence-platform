@@ -1,4 +1,4 @@
-# FlorenceRN Security Definition of Done
+# Florence OS Security Definition of Done
 
 Every feature, fix, partner integration, and data migration touching restricted FlorenceRN data must satisfy this checklist before merge and release.
 

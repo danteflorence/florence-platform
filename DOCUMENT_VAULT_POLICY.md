@@ -1,4 +1,4 @@
-# FlorenceRN Document Vault Policy
+# Florence OS Document Vault Policy
 
 Status: SOC 2 ready controls in progress. This is repository evidence and target policy, not an audit attestation.
 
@@ -86,9 +86,9 @@ Legacy public bearer links for resumes, packets, or other restricted documents m
 
 Current repository evidence:
 
-- `florence-core npm run verify-document-vault`
-- `florence-ats-connect npm run document-vault-smoke`
-- `florence-core npm run verify-gateway`
+- `apps/core-api npm run verify-document-vault`
+- `apps/employer-connect-api npm run document-vault-smoke`
+- `apps/core-api npm run verify-gateway`
 
 ## Residual Risk
 

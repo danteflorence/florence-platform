@@ -1,4 +1,4 @@
-# FlorenceRN Consent And Data Sharing Policy
+# Florence OS Consent And Data Sharing Policy
 
 Status: SOC 2 ready controls in progress. This is not a formal privacy attestation.
 
@@ -88,8 +88,8 @@ Audit details must not contain raw PII, passport numbers, SEVIS IDs, DS-160 data
 
 Current repository evidence:
 
-- `florence-core npm run verify-security`
-- `florence-core npm run verify-tenant-isolation`
-- `florence-core npm run verify-gateway`
-- `florence-core npm run verify-lender`
-- `florence-academy/api npm test`
+- `apps/core-api npm run verify-security`
+- `apps/core-api npm run verify-tenant-isolation`
+- `apps/core-api npm run verify-gateway`
+- `apps/core-api npm run verify-lender`
+- `apps/academy-web/api npm test`

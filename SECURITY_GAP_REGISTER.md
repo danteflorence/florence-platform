@@ -1,4 +1,4 @@
-# FlorenceRN Security Gap Register
+# Florence OS Security Gap Register
 
 Status: SOC 2 ready controls in progress. This is not a formal SOC 2 audit report.
 

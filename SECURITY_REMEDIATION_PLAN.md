@@ -1,4 +1,9 @@
-# FlorenceRN Security Remediation Plan
+# Florence OS Security Remediation Plan
+
+> **⚠️ Partially executed.** Live per-finding status is the **Disposition Tracker in
+> `SECURITY_FINDINGS.md`** — read that, not this, for what is open vs fixed (e.g. C02, C05,
+> H07 are remediated with regression tests; C03, C04, C06 remain open and release-blocking).
+> This file is kept as the ordered remediation playbook and acceptance criteria.
 
 ## Top 10 Fixes In Execution Order
 

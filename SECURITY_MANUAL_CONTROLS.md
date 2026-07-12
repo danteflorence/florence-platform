@@ -1,4 +1,4 @@
-# FlorenceRN Manual Security Controls
+# Florence OS Manual Security Controls
 
 Status: SOC 2 ready controls in progress. This is not a formal SOC 2 audit report.
 

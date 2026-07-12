@@ -1,4 +1,4 @@
-# FlorenceRN Backup And Recovery Plan
+# Florence OS Backup And Recovery Plan
 
 Status: SOC 2 ready controls in progress. Repository code includes persistence patterns, but production backup evidence must be provided by operations.
 

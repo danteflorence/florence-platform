@@ -1,4 +1,4 @@
-# FlorenceRN Security Findings
+# Florence OS Security Findings
 
 Severity definitions:
 
@@ -31,7 +31,7 @@ This tracker satisfies the current requirement that every critical/high scan fin
 
 Evidence:
 
-- `florence-pathway-agent/server/routes/index.ts` only staff-gates `/admin` and `/qa`.
+- `apps/pathway-api/server/routes/index.ts` only staff-gates `/admin` and `/qa`.
 - Candidate binding blocks mismatched authenticated candidate tokens, but unauthenticated requests are allowed to continue.
 - Internal routes expose candidate dossiers, candidate views, required actions, chat, notifications, document metadata, workflows, DS-160 confirmation capture, NCLEX/ATT state, visa appointment state, and several workflow mutations.
 
@@ -58,8 +58,8 @@ Required fix:
 
 Evidence:
 
-- `florence-core/src/passportRead.ts` treats relationship as `self` when `inp.role === "candidate"`, without verifying `inp.cand` equals the resolved nurse id.
-- `florence-core/src/passportView.ts` returns full self Passport fields for `self`.
+- `apps/core-api/src/passportRead.ts` treats relationship as `self` when `inp.role === "candidate"`, without verifying `inp.cand` equals the resolved nurse id.
+- `apps/core-api/src/passportView.ts` returns full self Passport fields for `self`.
 - `/v1/nurses/:id/passport` and legacy `/v1/nurse/passport` pass through the canonical read path.
 - Candidates have `passport:read:self`.
 
@@ -84,7 +84,7 @@ Required fix:
 
 Evidence:
 
-- `florence-ats-connect/server/routes.ts` authenticates `/api/ops`, `/candidates`, and `/ledger`, but allows employer role GET requests unless specific routes add stricter checks.
+- `apps/employer-connect-api/server/routes.ts` authenticates `/api/ops`, `/candidates`, and `/ledger`, but allows employer role GET requests unless specific routes add stricter checks.
 - `/ops/application-packets` returns packets without tenant scoping.
 - `/ops/requisitions/:id` lacks employer ownership checks.
 - `/ledger` can return all ledger events when no candidate or employer filter is supplied.
@@ -112,8 +112,8 @@ Required fix:
 
 Evidence:
 
-- `florence-core/src/consent.ts` allows consent when recipient organization is absent or when consent has no recipient organization, causing category-wide consent to match arbitrary recipients.
-- `florence-core/src/passportRead.ts` sets partner `org_matched` based on presence of caller org id for employer, university, or lender roles, not a proven nurse-to-org relationship.
+- `apps/core-api/src/consent.ts` allows consent when recipient organization is absent or when consent has no recipient organization, causing category-wide consent to match arbitrary recipients.
+- `apps/core-api/src/passportRead.ts` sets partner `org_matched` based on presence of caller org id for employer, university, or lender roles, not a proven nurse-to-org relationship.
 - Core Passport partner views expose employer, lender, and university views from this policy decision.
 
 Attack path:
@@ -169,7 +169,7 @@ Required fix:
 
 Evidence:
 
-- `florence-core/src/gateway/modules/lender.ts` creates credit decisions with a lender scope but without checking lender-specific candidate consent.
+- `apps/core-api/src/gateway/modules/lender.ts` creates credit decisions with a lender scope but without checking lender-specific candidate consent.
 - Decision listing can return all decisions when no org id filter is supplied.
 - Adverse-action updates do not sufficiently prove org ownership before mutation.
 
