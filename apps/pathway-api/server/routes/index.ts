@@ -10,6 +10,7 @@ import { WORKFLOW_META, VISA_OUTCOME_LABEL } from '../../shared/constants'
 import type { CandidateProfile, WorkflowInstance, PathwayDocument } from '../../shared/types'
 import { runPipeline, pushMilestone } from '../agents'
 import { emitForCandidate, provisionCandidateUser } from '../passport'
+import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -154,6 +155,32 @@ api.get('/candidates/:id', h(async (req, res) => {
   const d = await getDossier(req.params.id)
   if (!d) return res.status(404).json({ error: 'not found' })
   res.json(d)
+}))
+
+// --- notifications (candidate-bound; bodies live in the outbox, never logs) ---
+api.get('/candidates/:id/notifications', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  res.json(await store.notifications.byCandidate(req.params.id, 50))
+}))
+
+// Channel preferences — BOOLEANS ONLY (no numbers accepted or stored here; the
+// phone on file comes from the profile). Email is transactional-default-on.
+api.post('/candidates/:id/notification-prefs', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const prefs: Record<string, boolean> = {}
+  for (const k of ['email', 'sms', 'whatsapp'] as const) {
+    if (k in (req.body ?? {})) {
+      if (typeof req.body[k] !== 'boolean') return res.status(400).json({ error: `${k} must be a boolean` })
+      prefs[k] = req.body[k]
+    }
+  }
+  c.notificationPrefs = { ...(c.notificationPrefs ?? {}), ...prefs }
+  c.updatedAt = now()
+  await store.candidates.update(c)
+  await audit('candidate', 'notification_prefs', 'candidate', c.id, c.id, Object.entries(prefs).map(([k, v]) => `${k}=${v}`).join(','))
+  res.json({ ok: true, prefs: c.notificationPrefs })
 }))
 
 api.get('/candidates/:id/view', h(async (req, res) => {
@@ -774,6 +801,7 @@ api.post('/workflows/:id/deficiency', h(async (req, res) => {
   await store.deficiencies.insert(def)
   applyStatus(w, 'deficiency_received'); await store.workflows.update(w)
   await audit('system', 'deficiency_received', 'workflow', w.id, w.candidateId, classification)
+  void notifyCandidate(w.candidateId, 'deficiency', { kind: classification, step: WORKFLOW_META[w.type].short }, { workflowId: w.id }).catch(() => undefined)
   res.json(def)
 }))
 
@@ -813,6 +841,7 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
   } else {
     review.status = 'changes_requested'
     applyStatus(w, 'needs_candidate_data')
+    void notifyCandidate(w.candidateId, 'qa_changes_requested', { step: WORKFLOW_META[w.type].short }, { workflowId: w.id }).catch(() => undefined)
   }
   review.reviewer = parsed.data.reviewer
   review.reviewerNotes = parsed.data.notes
@@ -824,6 +853,19 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
 }))
 
 // --- admin -----------------------------------------------------------------
+// Outbox monitor + manual tick (staff-only via the /admin gate above).
+api.get('/admin/notifications', h(async (_req, res) => res.json({
+  transports: transportMode(),
+  recent: await store.notifications.recent(100),
+})))
+api.post('/admin/notifications/tick', h(async (_req, res) => {
+  const deadlines = await scanDeadlines()
+  const digests = await sendWeeklyDigests(async (cid) => {
+    const d = await getDossier(cid)
+    return d ? nextActions(d).map((a) => `${a.workflowShort}: ${a.title}`) : []
+  })
+  res.json({ ok: true, deadlines, digests })
+}))
 api.get('/admin/metrics', h(async (_req, res) => res.json(await assembleAdminMetrics())))
 api.get('/admin/ledger', h(async (_req, res) => res.json(await store.ledger.all())))
 api.get('/admin/audit', h(async (_req, res) => res.json(await store.audit.recent(150))))

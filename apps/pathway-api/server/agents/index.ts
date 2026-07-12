@@ -13,6 +13,7 @@ import { findMissing } from './missingData'
 import { complianceCheck, type ComplianceResult } from './compliance'
 import { applyStatus } from './workflow'
 import { buildQaReview } from './qa'
+import { notifyCandidate } from '../notifications'
 import { uid, now } from './util'
 
 export interface PipelineResult {
@@ -66,5 +67,8 @@ export async function pushMilestone(candidateId: string, workflowId: string | un
   }
   await store.ledger.insert(m)
   await audit('system', 'ledger_milestone', 'candidate', candidateId, candidateId, milestone)
+  // The engine finally speaks: every milestone notifies the candidate (their
+  // own progress, label only). Fire-and-forget — never blocks the pipeline.
+  void notifyCandidate(candidateId, 'milestone', { milestone }, workflowId ? { workflowId } : {}).catch(() => undefined)
   return m
 }

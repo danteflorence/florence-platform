@@ -154,8 +154,29 @@ export interface CandidateProfile {
   /** Per-field provenance for the canonical profile (source / confidence / verification). */
   provenance?: Record<string, FieldProvenance>
 
+  /** Notification channels. Email is ON by default (transactional pathway
+   *  notices); SMS/WhatsApp are OPT-IN only. Booleans only — never numbers. */
+  notificationPrefs?: { email?: boolean; sms?: boolean; whatsapp?: boolean }
+
   createdAt: string
   updatedAt: string
+}
+
+/** One outbound candidate notification (the outbox row). The body is stored
+ *  here — never logged — and carries step labels only, no document contents. */
+export interface NotificationRecord {
+  id: string
+  candidateId: string
+  channel: 'email' | 'sms' | 'whatsapp'
+  template: string
+  subject: string
+  body: string
+  status: 'queued' | 'sent' | 'skipped' | 'failed'
+  /** Idempotency key — one notification per (candidate, key). */
+  dedupeKey?: string
+  workflowId?: string
+  createdAt: string
+  sentAt?: string
 }
 
 /** Where the canonical profile may be reused. Each is a separate, revocable consent. */

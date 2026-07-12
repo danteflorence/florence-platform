@@ -7,6 +7,9 @@ import { seedIfEmpty } from './seedData'
 import { getLlm } from './llm/provider'
 import { configureCoreAuthFromEnv } from './coreAuth'
 import { logInternalError } from './safeErrors'
+import { startNotificationLoop } from './notifications'
+import { getDossier } from './db'
+import { nextActions } from './agents/workflow'
 
 // Trust FlorenceRN Core's RS256 SSO token (verified via JWKS). Configured from
 // CORE_ISSUER_URL / TOKEN_ISS / TOKEN_AUD (defaults to the local lvh.me Core).
@@ -34,6 +37,12 @@ Promise.resolve(shouldSeedDemo ? seedIfEmpty() : undefined)
   .then(() => {
     app.listen(port, () => {
       console.log(`[pathway] API on http://localhost:${port}  (LLM provider: ${getLlm().mode})`)
+    })
+    // Hourly deadline reminders + Monday digests (idempotent via dedupe keys;
+    // mock transports by default). Disable with PATHWAY_NOTIFICATIONS_DISABLED=1.
+    startNotificationLoop(async (cid) => {
+      const d = await getDossier(cid)
+      return d ? nextActions(d).map((a) => `${a.workflowShort}: ${a.title}`) : []
     })
   })
   .catch((err) => {

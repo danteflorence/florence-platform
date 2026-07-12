@@ -18,7 +18,7 @@ import type {
   SubmissionEvent, AppointmentEvent, DeficiencyNotice, AuditEntry,
   LedgerMilestone, CandidateDossier, ConsularPaymentOrder, SevismateHandoff,
   I901Receipt, ConsularPaymentEvent, ConsularCase, DS160WorkbenchStatus,
-  VisaAppointment, SevismateHandoffStatus,
+  VisaAppointment, SevismateHandoffStatus, NotificationRecord,
 } from '../shared/types'
 
 const requestedBackend = process.env.PATHWAY_DB ?? 'postgres'
@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS attestations (id TEXT PRIMARY KEY, candidate_id TEXT,
 CREATE TABLE IF NOT EXISTS submissions (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS appointments (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS deficiencies (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, resolved INTEGER, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, candidate_id TEXT, dedupe_key TEXT, created_at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS audit_log (id TEXT PRIMARY KEY, candidate_id TEXT, at TEXT, actor TEXT, entity TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ledger_milestones (id TEXT PRIMARY KEY, candidate_id TEXT, workflow_id TEXT, milestone TEXT, pushed INTEGER, at TEXT, json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS consular_cases (id TEXT PRIMARY KEY, candidate_id TEXT, status TEXT, updated_at TEXT, json TEXT NOT NULL);
@@ -242,6 +243,13 @@ export const store = {
     get: (id: string): DeficiencyNotice | null => { const r = db.prepare('SELECT json FROM deficiencies WHERE id = ?').get(id); return r ? parse(r) : null },
     byWorkflow: (wid: string): DeficiencyNotice[] => parseAll(db.prepare('SELECT json FROM deficiencies WHERE workflow_id = ?').all(wid)),
     all: (): DeficiencyNotice[] => parseAll(db.prepare('SELECT json FROM deficiencies').all()),
+  },
+
+  notifications: {
+    insert(n: NotificationRecord) { db.prepare('INSERT INTO notifications(id, candidate_id, dedupe_key, created_at, json) VALUES(?,?,?,?,?)').run(n.id, n.candidateId, n.dedupeKey ?? null, n.createdAt, JSON.stringify(n)) },
+    byCandidate: (cid: string, limit = 50): NotificationRecord[] => parseAll(db.prepare('SELECT json FROM notifications WHERE candidate_id = ? ORDER BY created_at DESC LIMIT ?').all(cid, limit)),
+    recent: (limit = 100): NotificationRecord[] => parseAll(db.prepare('SELECT json FROM notifications ORDER BY created_at DESC LIMIT ?').all(limit)),
+    byDedupeKey: (cid: string, key: string): NotificationRecord | null => { const r = db.prepare('SELECT json FROM notifications WHERE candidate_id = ? AND dedupe_key = ? LIMIT 1').get(cid, key); return r ? parse(r) : null },
   },
 
   audit: {
