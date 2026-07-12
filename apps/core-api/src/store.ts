@@ -22,6 +22,17 @@ export interface User {
   last_login_at?: string;
 }
 
+/** One-time email sign-in code (candidate OTP; see src/otp.ts). Stored HASHED. */
+export interface LoginCode {
+  id: string;
+  email: string;
+  code_hash: string;
+  expires_at: string;
+  attempts: number;
+  consumed_at?: string;
+  created_at: string;
+}
+
 export interface Org {
   id: string;
   kind: "employer" | "university" | "lender" | "internal";
@@ -255,6 +266,11 @@ export interface Store {
   updateUser(id: string, patch: Partial<User>): Promise<void>;
   listUsers(): Promise<User[]>;
 
+  insertLoginCode(c: LoginCode): Promise<void>;
+  /** Most recent code for an email (consumed or not) — verify inspects state. */
+  latestLoginCode(email: string): Promise<LoginCode | undefined>;
+  updateLoginCode(id: string, patch: Partial<LoginCode>): Promise<void>;
+
   getOrgById(id: string): Promise<Org | undefined>;
   getOrgByExternalRef(ref: string): Promise<Org | undefined>;
   insertOrg(o: Org): Promise<void>;
@@ -448,6 +464,9 @@ export class MemoryStore implements Store {
   private webhookDelivs = new Map<string, WebhookDelivery>();
   private creditDecisions = new Map<string, CreditDecision>();
   private dataDisputes = new Map<string, DataDispute>();
+  // OTP login codes are ephemeral (10-min, single-use) — deliberately NOT part
+  // of the file snapshot; a dev restart invalidating pending codes is correct.
+  private loginCodes = new Map<string, LoginCode>();
   private file?: string;
 
   constructor(file?: string) {
@@ -527,6 +546,19 @@ export class MemoryStore implements Store {
     if (!u) return;
     this.users.set(id, { ...u, ...patch, updated_at: new Date().toISOString() });
     this.persist();
+  }
+  async insertLoginCode(c: LoginCode) {
+    this.loginCodes.set(c.id, c);
+  }
+  async latestLoginCode(email: string) {
+    const e = email.toLowerCase();
+    return [...this.loginCodes.values()]
+      .filter((c) => c.email === e)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  }
+  async updateLoginCode(id: string, patch: Partial<LoginCode>) {
+    const c = this.loginCodes.get(id);
+    if (c) this.loginCodes.set(id, { ...c, ...patch });
   }
   async listUsers() {
     return [...this.users.values()];

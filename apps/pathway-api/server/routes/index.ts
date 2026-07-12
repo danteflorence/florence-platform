@@ -9,7 +9,7 @@ import { ALL_RULES, getRule } from '../../shared/rules'
 import { WORKFLOW_META, VISA_OUTCOME_LABEL } from '../../shared/constants'
 import type { CandidateProfile, WorkflowInstance, PathwayDocument } from '../../shared/types'
 import { runPipeline, pushMilestone } from '../agents'
-import { emitForCandidate } from '../passport'
+import { emitForCandidate, provisionCandidateUser } from '../passport'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -144,6 +144,9 @@ api.post('/candidates', h(async (req, res) => {
   }
   await store.candidates.insert(profile)
   await audit('system', 'candidate_created', 'candidate', profile.id, profile.id)
+  // Provision the candidate's Core sign-in account (OTP / C01). Fire-and-forget:
+  // mock-by-default no-op without client creds; the back-fill script sweeps misses.
+  void provisionCandidateUser(profile.id).catch(() => undefined)
   res.json({ id: profile.id })
 }))
 

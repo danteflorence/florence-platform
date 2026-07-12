@@ -18,7 +18,8 @@ const SPINE_SCOPES = ["passport:read", "passport:write", "consent:read", "consen
 const APPS: { client_id: string; env: string; scopes?: string[] }[] = [
   { client_id: "florence-academy", env: "FLORENCE_ACADEMY_CLIENT_SECRET" },
   { client_id: "florence-ats", env: "FLORENCE_ATS_CLIENT_SECRET" },
-  { client_id: "florence-pathway", env: "FLORENCE_PATHWAY_CLIENT_SECRET" },
+  // Pathway also provisions candidate Core accounts at intake (OTP sign-in / C01).
+  { client_id: "florence-pathway", env: "FLORENCE_PATHWAY_CLIENT_SECRET", scopes: [...SPINE_SCOPES, "identity:provision"] },
   // Reporting clients (read-only, de-identified/k-anon surfaces).
   { client_id: "florence-investor", env: "FLORENCE_INVESTOR_CLIENT_SECRET", scopes: ["investor:read", "control-tower:read"] },
   { client_id: "florence-university-portal", env: "FLORENCE_UNIVERSITY_CLIENT_SECRET", scopes: ["passport:read:university_staff", "university:read"] },

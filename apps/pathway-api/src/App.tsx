@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, Outlet, Navigate, useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, type ReactNode } from 'react'
-import { api, isStaff, onStaffChange, staffLogout, staffLogin, refreshSession } from './api'
+import { api, isStaff, onStaffChange, staffLogout, staffLogin, refreshSession, candidateId, onSessionChange, signOut } from './api'
+import SignIn from './surfaces/candidate/SignIn'
 import { LegalDisclaimer } from '@florence/design-system'
 import { useAsync } from './lib/useAsync'
 import { Badge, Spinner, cx, Icon, Card, CardHeader, Button } from './lib/ui'
@@ -14,6 +15,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />
+        <Route path="signin" element={<SignIn />} />
         <Route path="candidate/:id" element={<CandidateCopilot />} />
         <Route path="qa" element={<StaffGate><QaConsole /></StaffGate>} />
         <Route path="qa/:id" element={<StaffGate><QaReview /></StaffGate>} />
@@ -29,6 +31,17 @@ function useStaff(): boolean {
   const [v, setV] = useState(isStaff())
   useEffect(() => {
     const off = onStaffChange(() => setV(isStaff()))
+    void refreshSession()
+    return off
+  }, [])
+  return v
+}
+
+/** Reactive signed-in-candidate state (the Core `cand` claim, in api.ts). */
+function useCand(): string | null {
+  const [v, setV] = useState(candidateId())
+  useEffect(() => {
+    const off = onSessionChange(() => setV(candidateId()))
     void refreshSession()
     return off
   }, [])
@@ -54,10 +67,17 @@ function StaffGate({ children }: { children: ReactNode }) {
 }
 
 function Home() {
+  const cand = useCand()
   const { data, loading } = useAsync(() => api.candidates(), [])
+  // A signed-in candidate lands on their OWN pathway, never a list.
+  if (cand) return <Navigate to={`/candidate/${cand}`} replace />
   if (loading) return <div className="p-10"><Spinner label="Loading candidates…" /></div>
   if (data && data.length) return <Navigate to={`/candidate/${data[0].id}`} replace />
-  return <div className="p-10 text-slate-500">No candidates yet.</div>
+  return (
+    <div className="p-10 text-slate-500">
+      No candidates visible. <NavLink to="/signin" className="text-florence-700 underline">Candidate sign-in</NavLink>
+    </div>
+  )
 }
 
 function Layout() {
@@ -66,7 +86,8 @@ function Layout() {
   const params = useParams()
   const navigate = useNavigate()
   const staff = useStaff()
-  const activeCandidate = params.id ?? candidates?.[0]?.id ?? ''
+  const cand = useCand()
+  const activeCandidate = params.id ?? cand ?? candidates?.[0]?.id ?? ''
 
   const tab = (to: string, label: string, icon: keyof typeof Icon, staffOnly = false) => {
     const IconC = Icon[icon]
@@ -110,7 +131,9 @@ function Layout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
-            {candidates && (
+            {/* The jump-to-candidate switcher is a staff/demo affordance — a signed-in
+                candidate sees only their own pathway, so it is hidden for them. */}
+            {candidates && !(cand && !staff) && (
               <select
                 value={params.id ?? ''}
                 onChange={(e) => e.target.value && navigate(`/candidate/${e.target.value}`)}
@@ -119,6 +142,20 @@ function Layout() {
                 <option value="" disabled>Jump to candidate…</option>
                 {candidates.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.nationality}</option>)}
               </select>
+            )}
+            {cand && !staff && (
+              <button
+                onClick={() => signOut()}
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                title="Sign out"
+              >
+                <Icon.lock className="h-3 w-3" />Sign out
+              </button>
+            )}
+            {!cand && !staff && (
+              <NavLink to="/signin" className="whitespace-nowrap rounded-lg px-2 py-1 text-xs font-medium text-florence-700 hover:bg-florence-50">
+                Candidate sign-in
+              </NavLink>
             )}
             <Badge tone={meta?.llmMode === 'model_gateway' ? 'success' : 'neutral'}>
               <Icon.sparkle className="h-3 w-3" />

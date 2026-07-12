@@ -29,6 +29,56 @@ export async function readPassport(candidateId: string): Promise<Record<string, 
   }
 }
 
+// ── Candidate Core-account provisioning (OTP sign-in / C01 full close) ──────
+// Every candidate gets a Core user whose `cand` claim equals their Pathway
+// candidate id — the binding PATHWAY_REQUIRE_AUTH enforces. Same mock-by-default
+// posture as the spine: no client creds → no-op, and a failed provision never
+// breaks intake (the back-fill script sweeps stragglers).
+let provisionToken = ''
+let provisionExp = 0
+async function provisionTokenGet(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  if (provisionToken && now < provisionExp - 30) return provisionToken
+  const r = await fetch(`${coreUrl.replace(/\/$/, '')}/oauth/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'identity:provision' }),
+  })
+  if (!r.ok) throw new Error(`provision: token failed ${r.status}`)
+  const j = (await r.json()) as { access_token: string; expires_in?: number }
+  provisionToken = j.access_token
+  provisionExp = now + (j.expires_in ?? 3600)
+  return provisionToken
+}
+
+/** Create/link the candidate's Core sign-in account. Resolves true on success. */
+export async function provisionCandidateUser(candidateId: string): Promise<boolean> {
+  if (!passportEnabled) return false
+  const c = await store.candidates.get(candidateId)
+  if (!c?.email) return false
+  try {
+    const t = await provisionTokenGet()
+    const r = await fetch(`${coreUrl.replace(/\/$/, '')}/v1/candidate-users`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${t}` },
+      body: JSON.stringify({
+        email: c.email,
+        name: `${c.legalFirstName} ${c.legalLastName}`.trim(),
+        candidate_id: candidateId,
+      }),
+    })
+    if (r.status === 409) {
+      // Email already linked to a DIFFERENT candidate — surface loudly, never repoint.
+      console.warn(`[pathway] provision conflict for candidate ${candidateId} (email linked elsewhere)`)
+      return false
+    }
+    return r.ok
+  } catch (e) {
+    console.warn(`[pathway] candidate provisioning failed:`, (e as Error).message)
+    return false
+  }
+}
+
 /** Emit a journey event for a Pathway candidate (resolved by email + pathway ref). */
 export function emitForCandidate(candidateId: string, type: string, data?: Record<string, unknown>): void {
   if (!client) return

@@ -81,6 +81,7 @@ export async function seedDemoClient(store: Store): Promise<{ id: string; secret
       "control-tower:read",
       "investor:read",
       "university:read",
+      "identity:provision",
     ],
     active: true,
     created_at: nowIso(),

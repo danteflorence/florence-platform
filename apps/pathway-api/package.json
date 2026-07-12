@@ -17,6 +17,7 @@
     "clean": "node ../../scripts/ci/clean-artifacts.mjs .",
     "migrate": "node db/migrate.mjs",
     "seed": "node --import tsx scripts/seed.ts",
+    "backfill-candidate-users": "node --import tsx scripts/backfill-candidate-users.ts",
     "seed:local": "PATHWAY_DB=sqlite ALLOW_SQLITE_LOCAL_DEV=1 node --experimental-sqlite --import tsx scripts/seed.ts",
     "pathway-v1-smoke": "node --import tsx scripts/pathway-v1-smoke.ts",
     "consular-payments-smoke": "node --import tsx scripts/consular-payments-smoke.ts",

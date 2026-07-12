@@ -34,6 +34,7 @@ import {
   sessionFor,
   verifyPassword,
 } from "./users.ts";
+import { requestLoginCode, verifyLoginCode } from "./otp.ts";
 import { issueRefresh, peekRefresh, revokeRefresh, rotateRefresh } from "./sessions.ts";
 import { lookupNurse, recordEvent, resolveNurse, type ResolveInput } from "./nurses.ts";
 import { grantConsent, requiresRecipientOrg, revokeConsentById } from "./consent.ts";
@@ -335,6 +336,75 @@ export function buildRoutes(deps: Deps): Route[] {
           return;
         }
         await finishLogin(ctx, user.id, user.email, "password", redirectTo);
+      },
+    },
+
+    // ── Candidate OTP sign-in (C01 full close) ──────────────────────────────
+    // Passwordless email code for candidate accounts (users with cand_id).
+    // Enumeration-safe, rate-limited, hashed codes, single-use — see src/otp.ts.
+    {
+      method: "POST",
+      path: "/auth/otp/request",
+      handler: async (ctx) => {
+        const email = String(ctx.body.email ?? "");
+        const ip = ctx.req.socket.remoteAddress ?? "unknown";
+        const r = await requestLoginCode(store, audit, email, ip);
+        // dev_code is present ONLY in mock-mail, non-production mode.
+        sendJson(ctx.res, 200, { ok: true, ...(r.devCode ? { dev_code: r.devCode } : {}) });
+      },
+    },
+    {
+      method: "POST",
+      path: "/auth/otp/verify",
+      handler: async (ctx) => {
+        const email = String(ctx.body.email ?? "");
+        const code = String(ctx.body.code ?? "");
+        const redirectTo = safeRedirect(String(ctx.body.redirect ?? ""));
+        const user = await verifyLoginCode(store, audit, email, code);
+        if (!user) {
+          sendJson(ctx.res, 401, { error: "invalid_code" });
+          return;
+        }
+        await finishLogin(ctx, user.id, user.email, "otp", redirectTo);
+      },
+    },
+
+    // ── Candidate account provisioning (M2M; scope identity:provision) ──────
+    // Called by Pathway at candidate intake (and by the back-fill script) so
+    // every candidate has a Core user whose `cand` claim equals their candidate
+    // id — the binding PATHWAY_REQUIRE_AUTH enforces. Idempotent by email.
+    {
+      method: "POST",
+      path: "/v1/candidate-users",
+      handler: async (ctx) => {
+        const claims = await requireScope(ctx, keys, audit, "identity:provision");
+        if (!claims) return;
+        const email = String(ctx.body.email ?? "").trim().toLowerCase();
+        const candidateId = String(ctx.body.candidate_id ?? "").trim();
+        const name = ctx.body.name ? String(ctx.body.name) : undefined;
+        if (!email || !email.includes("@") || !candidateId) {
+          sendJson(ctx.res, 400, { error: "email and candidate_id are required" });
+          return;
+        }
+        const actor = String(claims.email ?? claims.sub ?? "service");
+        let user = await store.getUserByEmail(email);
+        if (user) {
+          if (user.cand_id && user.cand_id !== candidateId) {
+            // Never silently re-point an existing account at a different candidate.
+            await audit(actor, "user.provision_conflict", "user", user.id, { candidate_id: candidateId });
+            sendJson(ctx.res, 409, { error: "email is already linked to a different candidate" });
+            return;
+          }
+          if (!user.cand_id) await store.updateUser(user.id, { cand_id: candidateId });
+        } else {
+          user = await createUser(store, audit, { email, ...(name ? { name } : {}), cand_id: candidateId, actor });
+        }
+        const grants = await store.grantsByUser(user.id);
+        if (!grants.some((g) => g.role === "candidate")) {
+          await grantRole(store, audit, { userId: user.id, role: "candidate", grantedBy: actor });
+        }
+        await audit(actor, "user.provision_candidate", "user", user.id, { candidate_id: candidateId });
+        sendJson(ctx.res, 200, { ok: true, user_id: user.id, cand: candidateId });
       },
     },
 

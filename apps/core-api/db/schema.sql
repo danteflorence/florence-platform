@@ -357,3 +357,16 @@ CREATE TABLE IF NOT EXISTS data_disputes (
   resolved_at text
 );
 CREATE INDEX IF NOT EXISTS data_disputes_nurse_idx ON data_disputes (nurse_id);
+
+-- One-time email sign-in codes for candidate OTP login (src/otp.ts). Codes are
+-- stored hashed; 10-minute expiry, single-use, attempt-capped in code.
+CREATE TABLE IF NOT EXISTS login_codes (
+  id          text PRIMARY KEY,
+  email       text NOT NULL,
+  code_hash   text NOT NULL,
+  expires_at  timestamptz NOT NULL,
+  attempts    integer NOT NULL DEFAULT 0,
+  consumed_at timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS login_codes_email_idx ON login_codes (email, created_at DESC);
