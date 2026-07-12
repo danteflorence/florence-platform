@@ -15,6 +15,7 @@ import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatus
 import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
 import { SUPPORTED_LANGUAGE_CODES } from '../../shared/languages'
 import { etaForecast } from '../eta'
+import { clusterDeficiencies, decideIntakeCheck, checksForCandidate } from '../flywheel'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -932,6 +933,56 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
   res.json({ status: w.status, review })
 }))
 
+// --- cost-to-destination wallet (candidate's OWN costs only) -----------------
+// Built from the requirements ledger's grounded fees; the candidate marks items
+// paid (boolean state). The financing CTA reflects the underwriting consent —
+// no amounts, no Florence economics, ever.
+api.get('/candidates/:id/wallet', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const v = await assembleCandidateView(c.id)
+  if (!v) return res.status(404).json({ error: 'not found' })
+  const items = v.requirements.flatMap((g) =>
+    g.items.filter((i) => i.feeUsd != null).map((i) => ({
+      itemId: `${g.workflowId}:${i.fieldId}`,
+      label: `${g.workflowShort}: ${i.label}`,
+      feeUsd: i.feeUsd!,
+      source: i.source,
+      paid: Boolean(c.paidFees?.[`${g.workflowId}:${i.fieldId}`]),
+      paidAt: c.paidFees?.[`${g.workflowId}:${i.fieldId}`]?.at,
+    })))
+  const knownUsd = items.reduce((s, i) => s + i.feeUsd, 0)
+  const paidUsd = items.filter((i) => i.paid).reduce((s, i) => s + i.feeUsd, 0)
+  res.json({
+    items,
+    totals: { knownUsd, paidUsd, remainingUsd: Math.max(0, knownUsd - paidUsd) },
+    note: 'Known fees from official sources so far — boards can change fees; each item links to the official schedule.',
+    financing: { consented: Boolean(c.consents?.underwriting?.granted) },
+  })
+}))
+api.post('/candidates/:id/wallet/mark-paid', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const itemId = String(req.body?.itemId ?? '')
+  const paid = req.body?.paid !== false
+  if (!itemId) return res.status(400).json({ error: 'itemId is required' })
+  const fees = { ...(c.paidFees ?? {}) }
+  if (paid) fees[itemId] = { at: now() }
+  else delete fees[itemId]
+  c.paidFees = fees
+  c.updatedAt = now()
+  await store.candidates.update(c)
+  await audit('candidate', 'wallet_mark_paid', 'candidate', c.id, c.id, `${itemId}=${paid}`)
+  res.json({ ok: true })
+}))
+
+// Approved intake checks that apply to THIS candidate (deficiency prevention).
+api.get('/candidates/:id/intake-checks', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  res.json(await checksForCandidate(c, await store.workflows.byCandidate(c.id)))
+}))
+
 // --- external status (candidate attestation + staff sync) -------------------
 // One-click candidate confirmation for statuses with no API (ATT arrival,
 // CGFNS issuance). Label-only enum — no free text, no numbers.
@@ -961,6 +1012,16 @@ api.post('/admin/integrations/sync', h(async (_req, res) => res.json({ ok: true,
 // change; the engine never edits a rule by itself.
 // Cohort-calibrated start forecast (staff) — schedule truth for Control Tower.
 api.get('/admin/eta-forecast', h(async (_req, res) => res.json(await etaForecast())))
+// Deficiency flywheel: recluster + review proposed intake checks (staff).
+api.post('/admin/intake-checks/cluster', h(async (_req, res) => res.json({ ok: true, ...(await clusterDeficiencies()) })))
+api.get('/admin/intake-checks', h(async (_req, res) => res.json(await store.intakeChecks.all())))
+api.post('/admin/intake-checks/:id/decide', h(async (req, res) => {
+  const action = String(req.body?.action ?? '')
+  const reviewer = String(req.body?.reviewer ?? '')
+  if (!['approve', 'dismiss'].includes(action) || !reviewer) return res.status(400).json({ error: 'action (approve|dismiss) and reviewer are required' })
+  const done = await decideIntakeCheck(req.params.id, action as 'approve' | 'dismiss', reviewer)
+  res.status(done ? 200 : 409).json(done ? { ok: true } : { error: 'check not in proposed state' })
+}))
 api.get('/admin/freshness', h(async (_req, res) => res.json(await freshnessBoard())))
 api.post('/admin/freshness/check', h(async (_req, res) => res.json({ ok: true, ...(await checkFreshness()) })))
 api.post('/admin/freshness/approve', h(async (req, res) => {

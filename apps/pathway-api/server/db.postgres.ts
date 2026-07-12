@@ -308,6 +308,14 @@ export const store = {
     all: (): Promise<unknown[]> => rows<unknown>('SELECT json FROM rule_snapshots'),
   },
 
+  intakeChecks: {
+    get: (id: string): Promise<unknown | null> => one<unknown>('SELECT json FROM intake_checks WHERE id = $1', [id]),
+    async upsert(id: string, check: unknown) {
+      await db.query('INSERT INTO intake_checks(id, json) VALUES($1,$2::jsonb) ON CONFLICT(id) DO UPDATE SET json = EXCLUDED.json', [id, JSON.stringify(check)])
+    },
+    all: (): Promise<unknown[]> => rows<unknown>('SELECT json FROM intake_checks'),
+  },
+
   audit: {
     async log(e: AuditEntry & { candidateId?: string }) {
       await db.query('INSERT INTO audit_log(id, candidate_id, at, actor, entity, json) VALUES($1,$2,$3,$4,$5,$6::jsonb)', [e.id, e.candidateId ?? null, e.at, e.actor, e.entity, JSON.stringify(e)])

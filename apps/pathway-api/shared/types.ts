@@ -165,6 +165,10 @@ export interface CandidateProfile {
   /** Copilot language (ISO 639-1 from shared/languages.ts). Default 'en'. */
   preferredLanguage?: string
 
+  /** Cost wallet: which requirement fees the candidate marked paid (their OWN
+   *  costs only — Florence economics never appear on candidate surfaces). */
+  paidFees?: Record<string, { at: string }>
+
   createdAt: string
   updatedAt: string
 }

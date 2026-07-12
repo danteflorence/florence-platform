@@ -58,3 +58,6 @@ CREATE INDEX IF NOT EXISTS idx_pathway_notifications_dedupe ON notifications(can
 
 -- Rule-source snapshots for the freshness engine (server/freshness.ts).
 CREATE TABLE IF NOT EXISTS rule_snapshots (id text PRIMARY KEY, json jsonb NOT NULL);
+
+-- Deficiency-flywheel intake checks (server/flywheel.ts).
+CREATE TABLE IF NOT EXISTS intake_checks (id text PRIMARY KEY, json jsonb NOT NULL);
