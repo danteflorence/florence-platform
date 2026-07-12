@@ -25,6 +25,7 @@ import {
 import type { ActionCategory, ActionDef, VPatientScenario } from "../data/vpatient/types";
 import type { CjmmStep } from "../types/question";
 import { coachingFocus } from "../lib/vpatient/score";
+import { listenOnce, speechAvailable, type ListenHandle } from "../lib/speech";
 import {
   applyDifficulty,
   DIFFICULTIES,
@@ -149,6 +150,8 @@ export function SimRunner({
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
   const [tutorHint, setTutorHint] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const micHandle = useRef<ListenHandle | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Vitals trend history for the tile sparklines: sample every 2s, keep the
@@ -280,10 +283,15 @@ export function SimRunner({
     void el.play().catch(() => undefined);
   };
 
-  const askTutor = async () => {
+  const askTutor = async (spokenQuestion?: string) => {
     const focus = coachingFocus(state, scenario);
     dispatch({ type: "hint" });
-    const situation = `Patient ${scenario.patient.name}, ${scenario.setting}. The learner has surfaced ${state.revealedCueIds.length} findings and taken ${state.actionLog.length} actions with ${focus.openDecisions} clinical decisions still open.`;
+    // A spoken question rides in the situation field; the server still only
+    // coaches the NCJMM step - it never sees the answer key.
+    const situation = (
+      (spokenQuestion ? `The learner asks: "${spokenQuestion}". ` : "") +
+      `Patient ${scenario.patient.name}, ${scenario.setting}. The learner has surfaced ${state.revealedCueIds.length} findings and taken ${state.actionLog.length} actions with ${focus.openDecisions} clinical decisions still open.`
+    ).slice(0, 300);
     const fallback = STEP_FALLBACK[focus.step];
     try {
       if (storedToken() && apiBaseUrl()) {
@@ -300,6 +308,25 @@ export function SimRunner({
     }
     setTutorHint(fallback);
     void speakHint(fallback);
+  };
+
+  // Voice-in: one tap, one spoken question, tutor answers aloud. English STT
+  // on purpose - asking clinical questions in English IS the practice.
+  const micTutor = () => {
+    if (listening) {
+      micHandle.current?.stop();
+      setListening(false);
+      return;
+    }
+    const handle = listenOnce({
+      onResult: (transcript) => void askTutor(transcript),
+      onEnd: () => setListening(false),
+      onError: (message) => setTutorHint(message),
+    });
+    if (handle) {
+      micHandle.current = handle;
+      setListening(true);
+    }
   };
 
   if (state.ended) {
@@ -450,12 +477,27 @@ export function SimRunner({
                   <p className="text-[11px] text-florence-slate">
                     Stuck? The tutor will nudge your thinking, not give the answer.
                   </p>
-                  <button
-                    onClick={askTutor}
-                    className="shrink-0 rounded-lg border border-florence-teal/40 bg-florence-teal-soft/40 px-3 py-1.5 text-xs font-semibold text-florence-teal-dark hover:bg-florence-teal-soft"
-                  >
-                    Ask the tutor
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {speechAvailable() && (
+                      <button
+                        onClick={micTutor}
+                        aria-label={listening ? "Stop listening" : "Ask the tutor by voice"}
+                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                          listening
+                            ? "animate-pulse border-vital-danger bg-red-50 text-vital-danger"
+                            : "border-florence-teal/40 bg-florence-teal-soft/40 text-florence-teal-dark hover:bg-florence-teal-soft"
+                        }`}
+                      >
+                        {listening ? "● Listening…" : "🎙 Speak"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => void askTutor()}
+                      className="rounded-lg border border-florence-teal/40 bg-florence-teal-soft/40 px-3 py-1.5 text-xs font-semibold text-florence-teal-dark hover:bg-florence-teal-soft"
+                    >
+                      Ask the tutor
+                    </button>
+                  </div>
                 </div>
                 {tutorHint && (
                   <div className="mt-2 rounded-lg bg-florence-teal-soft/40 px-3 py-2">

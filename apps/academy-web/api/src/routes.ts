@@ -3678,6 +3678,42 @@ async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
+// Self-reported NCLEX outcome - the raw material of the calibration moat.
+// Lands in the append-only outcomes ledger tagged source:"self_report" so ops
+// can later verify against the state registry (verification = a second
+// nclex_result event with source:"registry_verified", via POST /v1/outcomes).
+// One self-report per candidate - a changed story is an ops conversation.
+async function postMyNclexOutcome(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "nclex_self_report";
+  ctx.resourceId = bound;
+  const status = str(ctx.body, "status");
+  if (status !== "pass" && status !== "fail")
+    return err(ctx, 400, "invalid_request", "status must be pass or fail");
+  const testedOn = str(ctx.body, "tested_on"); // optional YYYY-MM-DD
+  if (testedOn && !/^\d{4}-\d{2}-\d{2}$/.test(testedOn))
+    return err(ctx, 400, "invalid_request", "tested_on must be YYYY-MM-DD");
+  const existing = await deps.store.outcomes.list(bound, undefined, 100);
+  if (
+    existing.data.some(
+      (o) =>
+        o.kind === "nclex_result" &&
+        (o.detail as Record<string, unknown> | undefined)?.["source"] === "self_report",
+    )
+  )
+    return err(ctx, 409, "conflict", "an NCLEX result is already on file; contact your instructor to correct it");
+  const o = await deps.store.outcomes.create({
+    candidate_id: bound,
+    kind: "nclex_result",
+    status,
+    detail: { source: "self_report" },
+    occurred_at: testedOn ? `${testedOn}T00:00:00.000Z` : new Date().toISOString(),
+  });
+  deps.webhooks.emit("outcome.recorded", o);
+  send(ctx, 201, { id: o.id, kind: o.kind, status: o.status });
+}
+
 /** Days-inactive buckets that trigger a nudge (escalating tone downstream). */
 const COACH_NUDGE_DAYS = new Set([2, 5, 9]);
 
@@ -4587,6 +4623,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/me/cohort", "candidates:read", true, getMyCohort),
   compile("GET", "/v1/me/audit", "candidates:read", true, getMyAudit),
   compile("GET", "/v1/me/daily-plan", "candidates:read", true, getMyDailyPlan),
+  compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),
