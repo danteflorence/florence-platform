@@ -1,4 +1,4 @@
-# FlorenceRN Security Threat Model
+# Florence OS Security Threat Model
 
 ## Scope
 

@@ -12,7 +12,7 @@ Florence Education / Florence OS is being consolidated into one production-grade
 - `apps/pathway-api` - Pathway candidate and QA workflow app.
 - `apps/employer-connect-api` - Employer Connect, ATS Connect, VMS Connect, demand, packet, and submission workflows.
 - `apps/economist-app` - Placeholder for the workforce economist app. The current implementation remains in the separate `labor-economics-agent` repo until it is explicitly ported or wrapped.
-- `packages/*` - Shared package placeholders for the future Core SDK, event SDK, auth SDK, config, logging, database, agent system, API, and test fixtures.
+- `packages/*` - Shared packages (Core SDK, event SDK, auth SDK, config, logging, database, agent system, API, design system, test fixtures). Populated incrementally: several carry initial implementations, others are still thin scaffolds - check each package's README/src before assuming depth.
 - `infra/` - Terraform and infrastructure assets.
 - `docs/` - Platform and partner documentation.
 

@@ -1,4 +1,4 @@
-# FlorenceRN Vendor Risk Register
+# Florence OS Vendor Risk Register
 
 Status: SOC 2 ready controls in progress. This register is a diligence inventory based on repository references and planned partner flows. It is not proof that contracts, DPAs, BAAs, or security reviews are complete.
 

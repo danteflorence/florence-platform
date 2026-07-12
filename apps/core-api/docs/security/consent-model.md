@@ -1,6 +1,6 @@
 # Consent Model
 
-**Status:** ✅ canonical store implemented in `florence-core` (`consents` table + `src/consent.ts` + `/v1/consent/*`); ATS dual-writes today; Pathway/Academy seam shipped
+**Status:** ✅ canonical store implemented in `apps/core-api` (`consents` table + `src/consent.ts` + `/v1/consent/*`); ATS dual-writes today; Pathway/Academy seam shipped
 **Maps to:** SOC 2 Privacy criteria (P-series) · NIST CSF 2.0 GV.PO (policy) · GDPR Art. 6/7 (lawful basis, conditions for consent)
 
 Consent is a **first-class, versioned, granular, revocable, auditable** record —

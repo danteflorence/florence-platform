@@ -1,4 +1,4 @@
-# FlorenceRN AI Safety Policy
+# Florence OS AI Safety Policy
 
 Status: SOC 2 ready controls in progress. This is not a medical, legal, immigration, credit, or employment compliance attestation.
 
@@ -118,8 +118,8 @@ Audit records must not include raw restricted PII, prompt text, document text, s
 
 Current repository evidence:
 
-- `florence-core npm run verify-model-gateway`
-- `florence-core npm run verify-gateway`
+- `apps/core-api npm run verify-model-gateway`
+- `apps/core-api npm run verify-gateway`
 - Static scan inside `verify-model-gateway` for direct LLM and direct conversational AI calls in known server surfaces.
 
 ## Residual Risk

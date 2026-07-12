@@ -1,6 +1,6 @@
 # Data Classification Policy
 
-**Status:** ✅ implemented in `florence-core/src/classification.ts`
+**Status:** ✅ implemented in `apps/core-api/src/classification.ts`
 **Maps to:** NIST CSF 2.0 ID.AM-05 (resources prioritized by classification) · SOC 2 CC6.1, C1.1 (confidentiality)
 
 Every field, object, API response, export, dashboard, and AI prompt in FlorenceRN

@@ -1,7 +1,10 @@
 # Florence Pathway OS — Build-Out Plan
 
+> **📜 Executed plan (June 2026).** The phases below shipped; the code in `apps/pathway-api`
+> wins over any "future work" framing. Kept as the decision record for the Pathway OS reframe.
+
 _Integrating the "route-control layer" feedback into a sequenced plan, grounded in the
-code we already have in `~/florence-work/florence-pathway-agent`._
+code we already have in `apps/pathway-api`._
 
 ---
 

@@ -1,4 +1,4 @@
-# FlorenceRN Access Control Policy
+# Florence OS Access Control Policy
 
 Status: SOC 2 ready controls in progress. This policy is not a formal audit attestation.
 
@@ -90,10 +90,10 @@ Pathway candidate and workflow routes still include an interim open candidate/co
 
 Current repository evidence:
 
-- `florence-core npm run verify-gateway`
-- `florence-core npm run verify-tenant-isolation`
-- `florence-core npm run verify-application-gate`
-- `florence-core npm run verify-security`
-- `florence-academy/api npm test`
-- `florence-ats-connect npm run platform-api-smoke`
-- `florence-ats-connect npm run application-gate-smoke`
+- `apps/core-api npm run verify-gateway`
+- `apps/core-api npm run verify-tenant-isolation`
+- `apps/core-api npm run verify-application-gate`
+- `apps/core-api npm run verify-security`
+- `apps/academy-web/api npm test`
+- `apps/employer-connect-api npm run platform-api-smoke`
+- `apps/employer-connect-api npm run application-gate-smoke`

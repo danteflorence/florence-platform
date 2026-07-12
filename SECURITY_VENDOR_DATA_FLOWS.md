@@ -1,4 +1,4 @@
-# FlorenceRN Third-Party Data Flow Register
+# Florence OS Third-Party Data Flow Register
 
 Status: SOC 2 ready controls in progress. Vendor review and DPA status must be verified before production restricted-data sharing.
 

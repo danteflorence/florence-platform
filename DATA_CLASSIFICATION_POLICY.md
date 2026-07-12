@@ -1,4 +1,4 @@
-# FlorenceRN Data Classification Policy
+# Florence OS Data Classification Policy
 
 Status: SOC 2 ready controls in progress. This policy describes repository controls and target operating rules. It is not a formal compliance attestation.
 
@@ -40,7 +40,7 @@ The central registry must tag these fields at minimum:
 
 ## Central Registry
 
-The authoritative registry is `florence-core/src/classification.ts`.
+The authoritative registry is `apps/core-api/src/classification.ts`.
 
 Required behavior:
 
@@ -95,10 +95,10 @@ PII, passport data, SEVIS IDs, DS-160 data, visa status, credit data, loan data,
 
 Current repository evidence:
 
-- `florence-core npm run verify-security`
-- `florence-core npm run verify-logging-audit`
-- `florence-core npm run verify-logging-telemetry-audit`
-- `florence-ats-connect npm run pii-url-smoke`
+- `apps/core-api npm run verify-security`
+- `apps/core-api npm run verify-logging-audit`
+- `apps/core-api npm run verify-logging-telemetry-audit`
+- `apps/employer-connect-api npm run pii-url-smoke`
 - `npm run security:secrets`
 
 ## Residual Risk

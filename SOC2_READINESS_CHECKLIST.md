@@ -1,4 +1,4 @@
-# FlorenceRN SOC 2 Readiness Checklist
+# Florence OS SOC 2 Readiness Checklist
 
 Status: SOC 2 ready controls in progress. FlorenceRN has not completed a formal SOC 2 audit. Do not claim SOC 2 compliance.
 
@@ -49,12 +49,12 @@ This checklist maps current repository controls to SOC 2 readiness work. It focu
 
 | Requested proof | Tests |
 | --- | --- |
-| Partner isolation | `florence-core npm run verify-tenant-isolation`, `florence-core npm run verify-gateway`, `florence-ats-connect npm run platform-api-smoke` |
-| Application Gate | `florence-core npm run verify-application-gate`, `florence-ats-connect npm run application-gate-smoke` |
-| Redaction | `florence-core npm run verify-security`, `florence-core npm run verify-logging-audit`, `florence-core npm run verify-logging-telemetry-audit`, `florence-ats-connect npm run pii-url-smoke` |
-| Document security | `florence-core npm run verify-document-vault`, `florence-ats-connect npm run document-vault-smoke` |
-| Webhook security | `florence-core npm run verify-gateway`, `florence-academy/api npm test` |
-| AI safety | `florence-core npm run verify-model-gateway` |
+| Partner isolation | `apps/core-api npm run verify-tenant-isolation`, `apps/core-api npm run verify-gateway`, `apps/employer-connect-api npm run platform-api-smoke` |
+| Application Gate | `apps/core-api npm run verify-application-gate`, `apps/employer-connect-api npm run application-gate-smoke` |
+| Redaction | `apps/core-api npm run verify-security`, `apps/core-api npm run verify-logging-audit`, `apps/core-api npm run verify-logging-telemetry-audit`, `apps/employer-connect-api npm run pii-url-smoke` |
+| Document security | `apps/core-api npm run verify-document-vault`, `apps/employer-connect-api npm run document-vault-smoke` |
+| Webhook security | `apps/core-api npm run verify-gateway`, `apps/academy-web/api npm test` |
+| AI safety | `apps/core-api npm run verify-model-gateway` |
 | Secret protection | `npm run security:secrets`, `npm run security:secrets:test` |
 | Required CI jobs | `npm run security:ci:test` |
 

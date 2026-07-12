@@ -1,4 +1,4 @@
-# FlorenceRN Security Controls Matrix
+# Florence OS Security Controls Matrix
 
 Status: SOC 2 ready controls in progress. This is engineering evidence, not an audit attestation.
 
@@ -17,7 +17,7 @@ Status: SOC 2 ready controls in progress. This is engineering evidence, not an a
 | Governance | Security threat model and attack surface inventory | Implemented | `SECURITY_THREAT_MODEL.md`, `SECURITY_ATTACK_SURFACE.md` | Documentation review | Re-run after each major product launch. |
 | Governance | Findings and remediation plan | Implemented | `SECURITY_FINDINGS.md`, `SECURITY_REMEDIATION_PLAN.md` | Documentation review | Track findings in issue system and close only with verifier evidence. |
 | Asset inventory | Sensitive data map | Implemented | `SECURITY_DATA_MAP.md`, `DATA_CLASSIFICATION_POLICY.md` | `verify-security` field classification checks | Expand with production datastore inventory. |
-| Data classification | Central registry and fail-closed unknown fields | Implemented | `florence-core/src/classification.ts` | `verify-security` | Keep registry updated as schemas change. |
+| Data classification | Central registry and fail-closed unknown fields | Implemented | `apps/core-api/src/classification.ts` | `verify-security` | Keep registry updated as schemas change. |
 | Data minimization | Recipient-specific serializers | Implemented | `classification.ts`, `passportView.ts` | `verify-security` | Force all app-local partner views through Core. |
 | Logging | Structured redaction for logs and errors | Implemented in Core and hardened for Pathway/Employer Connect audit details and unexpected errors | `classification.ts`, `logger.ts`, `audit.ts`, `apps/employer-connect-api/server/db.ts`, `apps/pathway-api/server/db.postgres.ts`, `safeErrors.ts` | `verify-logging-audit`, `verify-logging-telemetry-audit`, `audit-redaction-smoke`, `no-pii-error-smoke` | Connect to production log sinks with restricted fields disabled and extend the same audit-detail redaction helper to remaining app-local surfaces. |
 | Audit | Sensitive reads and writes audit logged | Partial | `audit.ts`, `passportRead.ts`, `documentVault.ts`, `applicationGate.ts`, `apps/employer-connect-api/server/db.ts`, `apps/pathway-api/server/db.postgres.ts` | `verify-security`, `verify-document-vault`, `verify-application-gate`, `audit-redaction-smoke` | Ensure every Pathway, Academy, ATS export and packet view uses the same audit standard. |

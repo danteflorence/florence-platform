@@ -1,10 +1,10 @@
-# FlorenceRN Security Attack Surface
+# Florence OS Security Attack Surface
 
 ## Public and Anonymous Surfaces
 
 ### Florence Pathway
 
-Critical anonymous exposure was found in `florence-pathway-agent/server/routes/index.ts`.
+Critical anonymous exposure was found in `apps/pathway-api/server/routes/index.ts`.
 
 - The middleware only staff-gates `/admin` and `/qa`.
 - Candidate binding blocks mismatched authenticated candidate tokens, but unauthenticated requests continue.

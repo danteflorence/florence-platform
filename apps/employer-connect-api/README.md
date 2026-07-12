@@ -21,7 +21,7 @@ hiring workflow, and syncs interview/offer/**start/retention** status back into 
   recruiter hands to the employer's recruiter. It lands customers on Day 1 with zero
   integration. Native connectors register in `server/submission.ts` later.
 - **Reuse, don't rebuild.** The IEN candidate + readiness + consent kernel already
-  exists in `florence-pathway-agent` (incl. an `employer` consent scope); the candidate
+  exists in `apps/pathway-api` (incl. an `employer` consent scope); the candidate
   here is a consent-gated **projection** of it. Native connector *patterns* (Greenhouse/
   Lever/iCIMS pull) live in `florenceos` to harvest later — none of them submit
   candidates, which is exactly the gap Employer Connect fills.

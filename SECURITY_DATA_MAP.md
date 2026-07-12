@@ -1,4 +1,4 @@
-# FlorenceRN Security Data Map
+# Florence OS Security Data Map
 
 ## Data Domains
 

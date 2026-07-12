@@ -1,4 +1,4 @@
-# FlorenceRN — University Affiliate Network
+# Florence OS — University Affiliate Network
 
 > **📜 Largely executed (Phases 3a–3d shipped):** schools directory + tiers, signup attestation + tiered deposits, K-anonymized per-school reports (K=10), and the ops outreach view are live. The tables below were the plan; the code is the truth.
 
