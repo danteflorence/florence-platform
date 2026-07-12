@@ -300,6 +300,14 @@ export const store = {
     byDedupeKey: (cid: string, key: string): Promise<NotificationRecord | null> => one<NotificationRecord>('SELECT json FROM notifications WHERE candidate_id = $1 AND dedupe_key = $2 LIMIT 1', [cid, key]),
   },
 
+  ruleSnapshots: {
+    get: (id: string): Promise<unknown | null> => one<unknown>('SELECT json FROM rule_snapshots WHERE id = $1', [id]),
+    async upsert(id: string, snap: unknown) {
+      await db.query('INSERT INTO rule_snapshots(id, json) VALUES($1,$2::jsonb) ON CONFLICT(id) DO UPDATE SET json = EXCLUDED.json', [id, JSON.stringify(snap)])
+    },
+    all: (): Promise<unknown[]> => rows<unknown>('SELECT json FROM rule_snapshots'),
+  },
+
   audit: {
     async log(e: AuditEntry & { candidateId?: string }) {
       await db.query('INSERT INTO audit_log(id, candidate_id, at, actor, entity, json) VALUES($1,$2,$3,$4,$5,$6::jsonb)', [e.id, e.candidateId ?? null, e.at, e.actor, e.entity, JSON.stringify(e)])

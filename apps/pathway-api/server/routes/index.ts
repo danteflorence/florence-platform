@@ -12,6 +12,7 @@ import { runPipeline, pushMilestone } from '../agents'
 import { emitForCandidate, provisionCandidateUser } from '../passport'
 import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
 import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
+import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -947,6 +948,18 @@ api.get('/admin/notifications', h(async (_req, res) => res.json({
 })))
 api.get('/admin/integrations', h(async (_req, res) => res.json({ rails: integrationModes() })))
 api.post('/admin/integrations/sync', h(async (_req, res) => res.json({ ok: true, ...(await syncExternalStatuses()) })))
+// Rule-freshness board: per-workflow review dates + per-source change queue.
+// A CHANGED source is a staff review item — a human approves every regulatory
+// change; the engine never edits a rule by itself.
+api.get('/admin/freshness', h(async (_req, res) => res.json(await freshnessBoard())))
+api.post('/admin/freshness/check', h(async (_req, res) => res.json({ ok: true, ...(await checkFreshness()) })))
+api.post('/admin/freshness/approve', h(async (req, res) => {
+  const url = String(req.body?.url ?? '')
+  const reviewer = String(req.body?.reviewer ?? '')
+  if (!url || !reviewer) return res.status(400).json({ error: 'url and reviewer are required' })
+  const done = await approveSourceChange(url, reviewer)
+  res.status(done ? 200 : 409).json(done ? { ok: true } : { error: 'source is not in changed state' })
+}))
 api.post('/admin/notifications/tick', h(async (_req, res) => {
   const deadlines = await scanDeadlines()
   const digests = await sendWeeklyDigests(async (cid) => {
