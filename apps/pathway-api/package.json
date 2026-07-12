@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "npm run pathway-v1-smoke && npm run consular-payments-smoke && npm run english-requirements-smoke && npm run ssn-application-smoke && npm run audit-redaction-smoke && npm run no-pii-error-smoke && npm run notifications-smoke && npm run document-intake-smoke",
+    "test": "npm run pathway-v1-smoke && npm run consular-payments-smoke && npm run english-requirements-smoke && npm run ssn-application-smoke && npm run audit-redaction-smoke && npm run no-pii-error-smoke && npm run notifications-smoke && npm run document-intake-smoke && npm run integrations-smoke",
     "lint": "npm run typecheck",
     "clean": "node ../../scripts/ci/clean-artifacts.mjs .",
     "migrate": "node db/migrate.mjs",
@@ -26,7 +26,8 @@
     "audit-redaction-smoke": "node --import tsx scripts/audit-redaction-smoke.ts",
     "no-pii-error-smoke": "node --import tsx scripts/no-pii-error-smoke.ts",
     "notifications-smoke": "node --import tsx scripts/notifications-smoke.ts",
-    "document-intake-smoke": "node --import tsx scripts/document-intake-smoke.ts"
+    "document-intake-smoke": "node --import tsx scripts/document-intake-smoke.ts",
+    "integrations-smoke": "node --import tsx scripts/integrations-smoke.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

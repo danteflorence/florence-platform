@@ -158,6 +158,10 @@ export interface CandidateProfile {
    *  notices); SMS/WhatsApp are OPT-IN only. Booleans only — never numbers. */
   notificationPrefs?: { email?: boolean; sms?: boolean; whatsapp?: boolean }
 
+  /** Last-known external statuses per rail (nursys_license, att_received, …) —
+   *  labels only; makes re-syncs idempotent. */
+  externalStatuses?: Record<string, { value: string; at: string; source: string }>
+
   createdAt: string
   updatedAt: string
 }

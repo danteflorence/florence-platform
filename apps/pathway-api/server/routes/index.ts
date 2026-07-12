@@ -11,6 +11,7 @@ import type { CandidateProfile, WorkflowInstance, PathwayDocument, IdentityDocum
 import { runPipeline, pushMilestone } from '../agents'
 import { emitForCandidate, provisionCandidateUser } from '../passport'
 import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
+import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -922,12 +923,30 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
   res.json({ status: w.status, review })
 }))
 
+// --- external status (candidate attestation + staff sync) -------------------
+// One-click candidate confirmation for statuses with no API (ATT arrival,
+// CGFNS issuance). Label-only enum — no free text, no numbers.
+api.post('/candidates/:id/status-attest', h(async (req, res) => {
+  const kind = String(req.body?.kind ?? '')
+  if (!(kind in ATTESTABLE_STATUSES)) return res.status(400).json({ error: 'unknown status kind', allowed: Object.keys(ATTESTABLE_STATUSES) })
+  const r = await attestStatus(req.params.id, kind)
+  if (!r.ok) return res.status(404).json({ error: 'not found' })
+  res.json({ ok: true, label: r.label })
+}))
+api.get('/candidates/:id/visa-wait', h(async (req, res) => {
+  const post = String(req.query.post ?? '')
+  if (!post) return res.status(400).json({ error: 'post is required' })
+  res.json({ post, waitDays: await visaWaitDays(post) }) // null while feed unconfigured
+}))
+
 // --- admin -----------------------------------------------------------------
 // Outbox monitor + manual tick (staff-only via the /admin gate above).
 api.get('/admin/notifications', h(async (_req, res) => res.json({
   transports: transportMode(),
   recent: await store.notifications.recent(100),
 })))
+api.get('/admin/integrations', h(async (_req, res) => res.json({ rails: integrationModes() })))
+api.post('/admin/integrations/sync', h(async (_req, res) => res.json({ ok: true, ...(await syncExternalStatuses()) })))
 api.post('/admin/notifications/tick', h(async (_req, res) => {
   const deadlines = await scanDeadlines()
   const digests = await sendWeeklyDigests(async (cid) => {

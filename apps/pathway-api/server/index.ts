@@ -8,6 +8,7 @@ import { getLlm } from './llm/provider'
 import { configureCoreAuthFromEnv } from './coreAuth'
 import { logInternalError } from './safeErrors'
 import { startNotificationLoop } from './notifications'
+import { startIntegrationLoop } from './integrations'
 import { getDossier } from './db'
 import { nextActions } from './agents/workflow'
 
@@ -44,6 +45,8 @@ Promise.resolve(shouldSeedDemo ? seedIfEmpty() : undefined)
       const d = await getDossier(cid)
       return d ? nextActions(d).map((a) => `${a.workflowShort}: ${a.title}`) : []
     })
+    // Hourly external-status sync (Nursys etc.) — no-op until rails are configured.
+    startIntegrationLoop()
   })
   .catch((err) => {
     logInternalError('[pathway] failed to seed/start', err)
