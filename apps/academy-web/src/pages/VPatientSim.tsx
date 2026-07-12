@@ -22,7 +22,7 @@ import {
   tick,
   type SimState,
 } from "../lib/vpatient/engine";
-import type { ActionCategory, VPatientScenario } from "../data/vpatient/types";
+import type { ActionCategory, ActionDef, VPatientScenario } from "../data/vpatient/types";
 import type { CjmmStep } from "../types/question";
 import { coachingFocus } from "../lib/vpatient/score";
 import {
@@ -35,7 +35,8 @@ import {
 } from "../lib/vpatient/difficulty";
 import VitalsDisplay, { type VitalsSample } from "../components/vpatient/VitalsDisplay";
 import PatientPresence from "../components/vpatient/PatientPresence";
-import LabsPanel from "../components/vpatient/LabsPanel";
+import EhrChart from "../components/vpatient/EhrChart";
+import CallOverlay from "../components/vpatient/CallOverlay";
 import SimNarrationAudio from "../components/vpatient/SimNarrationAudio";
 import SimDebrief from "../components/vpatient/SimDebrief";
 import { speakText } from "../lib/audioManifest";
@@ -139,6 +140,9 @@ export function SimRunner({
   const [started, setStarted] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Escalation-as-a-phone-call: a communicate action with a targetRole opens
+  // the SBAR call overlay instead of firing instantly (the clock keeps running).
+  const [callAction, setCallAction] = useState<ActionDef | null>(null);
   const [askText, setAskText] = useState("");
   const [askReply, setAskReply] = useState<string | null>(null);
   const [tutorHint, setTutorHint] = useState<string | null>(null);
@@ -342,38 +346,9 @@ export function SimRunner({
 
         {started && <PatientPresence vitals={state.vitals} name={scenario.patient.name} />}
 
-        {/* Chart drawer */}
+        {/* Chart drawer - the EHR-lite (Notes / MAR / Orders / Flowsheet / Labs) */}
         {chartOpen && (
-          <div className="rounded-2xl border border-florence-line bg-white p-4">
-            <p className="text-sm font-semibold text-florence-ink">
-              {scenario.patient.name}, {scenario.patient.age} {scenario.patient.sex}
-            </p>
-            <p className="mt-0.5 text-xs text-florence-slate">
-              Allergies: {scenario.patient.allergies.join(", ")} · Meds:{" "}
-              {scenario.patient.meds.join(", ")}
-            </p>
-            <div className="mt-3 space-y-2">
-              {scenario.patient.chart.map((tab) => (
-                <details key={tab.id} className="rounded-lg border border-florence-line bg-florence-mist/40 p-2.5">
-                  <summary className="cursor-pointer text-sm font-medium text-florence-ink">{tab.label}</summary>
-                  <p className="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-florence-ink/85">{tab.body}</p>
-                </details>
-              ))}
-            </div>
-
-            {/* Resulted labs - the biology behind the picture */}
-            {resultedPanels.length > 0 && (
-              <div className="mt-3">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-florence-slate">Labs</p>
-                <LabsPanel panels={resultedPanels} />
-              </div>
-            )}
-            {(scenario.labPanels?.length ?? 0) > 0 && resultedPanels.length === 0 && (
-              <p className="mt-3 rounded-lg bg-florence-mist/60 px-3 py-2 text-xs text-florence-slate">
-                No labs back yet. Order a panel from the action menu and results post after the turnaround.
-              </p>
-            )}
-          </div>
+          <EhrChart scenario={scenario} state={state} history={history} resultedPanels={resultedPanels} />
         )}
 
         {/* Not started: brief the learner + let them pick the difficulty */}
@@ -486,6 +461,20 @@ export function SimRunner({
         )}
       </main>
 
+      {/* The SBAR call overlay - the clock keeps ticking while they compose. */}
+      {callAction && !state.ended && (
+        <CallOverlay
+          action={callAction}
+          member={scenario.team?.find((m) => m.role === callAction.targetRole)}
+          clockSec={state.clockSec}
+          onDeliver={() => {
+            dispatch({ type: "dispatch", scenario, actionId: callAction.id });
+            setCallAction(null);
+          }}
+          onHangUp={() => setCallAction(null)}
+        />
+      )}
+
       {/* Bottom action sheet */}
       {started && !state.ended && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-florence-line bg-white/97 px-3 pb-4 pt-2.5 backdrop-blur">
@@ -510,10 +499,15 @@ export function SimRunner({
                       {inCat.map((a) => (
                         <button
                           key={a.id}
-                          onClick={() => dispatch({ type: "dispatch", scenario, actionId: a.id })}
+                          onClick={() =>
+                            a.category === "communicate" && a.targetRole
+                              ? setCallAction(a)
+                              : dispatch({ type: "dispatch", scenario, actionId: a.id })
+                          }
                           disabled={state.busyUntilSec !== null && state.clockSec < state.busyUntilSec}
                           className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${CATEGORY_TONE[a.category]}`}
                         >
+                          {a.category === "communicate" && a.targetRole ? "📞 " : ""}
                           {a.label}
                         </button>
                       ))}
