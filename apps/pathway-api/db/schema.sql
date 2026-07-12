@@ -50,3 +50,14 @@ CREATE INDEX IF NOT EXISTS idx_pathway_sevismate_status_order ON sevismate_hando
 CREATE INDEX IF NOT EXISTS idx_pathway_sevismate_status_handoff ON sevismate_handoff_statuses(handoff_id);
 CREATE INDEX IF NOT EXISTS idx_pathway_sevismate_status_status ON sevismate_handoff_statuses(status);
 CREATE INDEX IF NOT EXISTS idx_pathway_i901_order ON i901_receipts(payment_order_id);
+
+-- Notification outbox (server/notifications.ts): bodies live HERE, never in logs.
+CREATE TABLE IF NOT EXISTS notifications (id text PRIMARY KEY, candidate_id text, dedupe_key text, created_at text, json jsonb NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_pathway_notifications_candidate ON notifications(candidate_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pathway_notifications_dedupe ON notifications(candidate_id, dedupe_key);
+
+-- Rule-source snapshots for the freshness engine (server/freshness.ts).
+CREATE TABLE IF NOT EXISTS rule_snapshots (id text PRIMARY KEY, json jsonb NOT NULL);
+
+-- Deficiency-flywheel intake checks (server/flywheel.ts).
+CREATE TABLE IF NOT EXISTS intake_checks (id text PRIMARY KEY, json jsonb NOT NULL);

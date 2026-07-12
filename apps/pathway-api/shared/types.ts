@@ -154,8 +154,40 @@ export interface CandidateProfile {
   /** Per-field provenance for the canonical profile (source / confidence / verification). */
   provenance?: Record<string, FieldProvenance>
 
+  /** Notification channels. Email is ON by default (transactional pathway
+   *  notices); SMS/WhatsApp are OPT-IN only. Booleans only — never numbers. */
+  notificationPrefs?: { email?: boolean; sms?: boolean; whatsapp?: boolean }
+
+  /** Last-known external statuses per rail (nursys_license, att_received, …) —
+   *  labels only; makes re-syncs idempotent. */
+  externalStatuses?: Record<string, { value: string; at: string; source: string }>
+
+  /** Copilot language (ISO 639-1 from shared/languages.ts). Default 'en'. */
+  preferredLanguage?: string
+
+  /** Cost wallet: which requirement fees the candidate marked paid (their OWN
+   *  costs only — Florence economics never appear on candidate surfaces). */
+  paidFees?: Record<string, { at: string }>
+
   createdAt: string
   updatedAt: string
+}
+
+/** One outbound candidate notification (the outbox row). The body is stored
+ *  here — never logged — and carries step labels only, no document contents. */
+export interface NotificationRecord {
+  id: string
+  candidateId: string
+  channel: 'email' | 'sms' | 'whatsapp'
+  template: string
+  subject: string
+  body: string
+  status: 'queued' | 'sent' | 'skipped' | 'failed'
+  /** Idempotency key — one notification per (candidate, key). */
+  dedupeKey?: string
+  workflowId?: string
+  createdAt: string
+  sentAt?: string
 }
 
 /** Where the canonical profile may be reused. Each is a separate, revocable consent. */

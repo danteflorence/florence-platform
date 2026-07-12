@@ -16,7 +16,7 @@ import type {
   SubmissionEvent, AppointmentEvent, DeficiencyNotice, AuditEntry,
   LedgerMilestone, CandidateDossier, ConsularPaymentOrder, SevismateHandoff,
   I901Receipt, ConsularPaymentEvent, ConsularCase, DS160WorkbenchStatus,
-  VisaAppointment, SevismateHandoffStatus,
+  VisaAppointment, SevismateHandoffStatus, NotificationRecord,
 } from '../shared/types'
 
 interface PgResult<T = any> { rows: T[] }
@@ -289,6 +289,31 @@ export const store = {
     get: (id: string): Promise<DeficiencyNotice | null> => one<DeficiencyNotice>('SELECT json FROM deficiencies WHERE id = $1', [id]),
     byWorkflow: (wid: string): Promise<DeficiencyNotice[]> => rows<DeficiencyNotice>('SELECT json FROM deficiencies WHERE workflow_id = $1', [wid]),
     all: (): Promise<DeficiencyNotice[]> => rows<DeficiencyNotice>('SELECT json FROM deficiencies'),
+  },
+
+  notifications: {
+    async insert(n: NotificationRecord) {
+      await db.query('INSERT INTO notifications(id, candidate_id, dedupe_key, created_at, json) VALUES($1,$2,$3,$4,$5::jsonb)', [n.id, n.candidateId, n.dedupeKey ?? null, n.createdAt, JSON.stringify(n)])
+    },
+    byCandidate: (cid: string, limit = 50): Promise<NotificationRecord[]> => rows<NotificationRecord>('SELECT json FROM notifications WHERE candidate_id = $1 ORDER BY created_at DESC LIMIT $2', [cid, limit]),
+    recent: (limit = 100): Promise<NotificationRecord[]> => rows<NotificationRecord>('SELECT json FROM notifications ORDER BY created_at DESC LIMIT $1', [limit]),
+    byDedupeKey: (cid: string, key: string): Promise<NotificationRecord | null> => one<NotificationRecord>('SELECT json FROM notifications WHERE candidate_id = $1 AND dedupe_key = $2 LIMIT 1', [cid, key]),
+  },
+
+  ruleSnapshots: {
+    get: (id: string): Promise<unknown | null> => one<unknown>('SELECT json FROM rule_snapshots WHERE id = $1', [id]),
+    async upsert(id: string, snap: unknown) {
+      await db.query('INSERT INTO rule_snapshots(id, json) VALUES($1,$2::jsonb) ON CONFLICT(id) DO UPDATE SET json = EXCLUDED.json', [id, JSON.stringify(snap)])
+    },
+    all: (): Promise<unknown[]> => rows<unknown>('SELECT json FROM rule_snapshots'),
+  },
+
+  intakeChecks: {
+    get: (id: string): Promise<unknown | null> => one<unknown>('SELECT json FROM intake_checks WHERE id = $1', [id]),
+    async upsert(id: string, check: unknown) {
+      await db.query('INSERT INTO intake_checks(id, json) VALUES($1,$2::jsonb) ON CONFLICT(id) DO UPDATE SET json = EXCLUDED.json', [id, JSON.stringify(check)])
+    },
+    all: (): Promise<unknown[]> => rows<unknown>('SELECT json FROM intake_checks'),
   },
 
   audit: {

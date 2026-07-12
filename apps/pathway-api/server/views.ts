@@ -28,6 +28,7 @@ import { findMissing } from './agents/missingData'
 import { complianceCheck, flagBlocks } from './agents/compliance'
 import { nextActions } from './agents/workflow'
 import { deadlines } from './agents/status'
+import { candidateEta } from './eta'
 
 function cardFor(w: WorkflowInstance): WorkflowCard {
   const done = w.steps.filter((s) => s.status === 'done').length
@@ -294,6 +295,7 @@ export async function assembleCandidateView(candidateId: string): Promise<Candid
     countryPlaybook: getCountryPlaybook(d.profile.citizenship),
     requirements,
     consularPayments: await candidatePaymentSummary(candidateId),
+    eta: await candidateEta(candidateId),
   }
 }
 

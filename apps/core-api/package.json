@@ -31,7 +31,7 @@
     "rotate-key": "node scripts/rotate-key.ts",
     "checkpoint": "node scripts/mint-test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run verify-security && npm run verify-logging-telemetry-audit && npm run verify-model-gateway && npm run verify-document-vault && npm run verify-application-gate && npm run verify-audit && npm run verify-control-tower && npm run verify-gateway && npm run verify-lender && npm run verify-tenant-binding && npm run verify-tenant-isolation",
+    "test": "npm run verify-security && npm run verify-logging-telemetry-audit && npm run verify-model-gateway && npm run verify-document-vault && npm run verify-application-gate && npm run verify-audit && npm run verify-control-tower && npm run verify-gateway && npm run verify-lender && npm run verify-tenant-binding && npm run verify-tenant-isolation && npm run verify-candidate-auth",
     "lint": "npm run typecheck",
     "clean": "node ../../scripts/ci/clean-artifacts.mjs ."
   },

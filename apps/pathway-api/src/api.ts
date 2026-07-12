@@ -8,15 +8,21 @@ import type { WorkflowMeta } from './types'
 // calls. `isStaff()` reflects the Core session, fetched via /api/session.
 const CORE_URL = (import.meta as any).env?.VITE_CORE_URL ?? 'http://id.lvh.me:8080'
 let staffOk = false
+let candId: string | null = null
 const staffListeners = new Set<() => void>()
 export function isStaff(): boolean { return staffOk }
+/** The signed-in candidate's own id (Core `cand` claim), or null. */
+export function candidateId(): string | null { return candId }
 export function onStaffChange(fn: () => void): () => void { staffListeners.add(fn); return () => { staffListeners.delete(fn) } }
+/** Fires on ANY session change (staff or candidate) — same listener set. */
+export const onSessionChange = onStaffChange
 function notifyStaff(): void { staffListeners.forEach((fn) => fn()) }
 export async function refreshSession(): Promise<boolean> {
   try {
     const s = await fetch('/api/session', { credentials: 'include' }).then((r) => r.json())
     staffOk = !!s?.staff
-  } catch { staffOk = false }
+    candId = typeof s?.cand === 'string' && s.cand ? s.cand : null
+  } catch { staffOk = false; candId = null }
   notifyStaff()
   return staffOk
 }
@@ -32,6 +38,31 @@ export function staffLogout(): void {
 export function candidateLogin(): void {
   window.location.href = `${CORE_URL}/login/candidate?redirect=${encodeURIComponent(location.href)}`
 }
+
+// ── Candidate sign-in (C01 full close): passwordless email code via Core ────
+// The SPA talks to Core directly (allowlisted CORS + credentials); Core sets the
+// shared fl_session cookie on verify, so /api/session then reports `cand` and
+// every /api call is candidate-bound server-side. No password ever exists.
+export async function requestSignInCode(email: string): Promise<void> {
+  await fetch(`${CORE_URL}/auth/candidate/request`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  // Enumeration-safe by design: the response never says whether the email exists.
+}
+export async function verifySignInCode(email: string, code: string): Promise<boolean> {
+  const r = await fetch(`${CORE_URL}/auth/candidate/verify`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ email, code }),
+  })
+  if (!r.ok) return false
+  await refreshSession()
+  return candId !== null
+}
+/** Sign out (candidate or staff): revoke the Core session + refresh cookie. */
+export function signOut(): void { staffLogout() }
 
 async function j<T>(r: Response): Promise<T> {
   if (!r.ok) {
@@ -88,7 +119,8 @@ export const api = {
   resolveDeficiency: (deficiencyId: string) => post<{ ok: boolean }>(`/api/deficiencies/${deficiencyId}/resolve`, {}),
   logDeficiency: (workflowId: string, source: string, items: string[]) => post<any>(`/api/workflows/${workflowId}/deficiency`, { source, items }),
   notify: (candidateId: string) => post<{ sent: number; channel: string }>(`/api/candidates/${candidateId}/notify`, {}),
-  uploadDocument: (candidateId: string, body: { kind: string; filename: string }) => post<{ id: string; extracted: boolean; fields?: Record<string, string> }>(`/api/candidates/${candidateId}/documents`, body),
+  uploadDocument: (candidateId: string, body: { kind: string; filename: string; imageBase64?: string; mediaType?: string; textContent?: string }) => post<{ id: string; extracted: boolean; fields?: Record<string, string>; confidence?: string; notes?: string[] }>(`/api/candidates/${candidateId}/documents`, body),
+  confirmDocument: (candidateId: string, docId: string, fields: Record<string, string>) => post<{ ok: boolean }>(`/api/candidates/${candidateId}/documents/${docId}/confirm`, { fields }),
   chooseState: (candidateId: string, state: string) => post<{ path: 'endorsement' | 'exam'; state: string; workflowId: string; type: string; created: boolean }>(`/api/candidates/${candidateId}/choose-state`, { state }),
   setSsnStatus: (candidateId: string, hasSsn: boolean) => post<{ hasSsn: boolean }>(`/api/candidates/${candidateId}/ssn-status`, { hasSsn }),
   updateSsnApplication: (candidateId: string, body: { action: string; workAuthorizationKind?: string; scheduledFor?: string; officeName?: string; officeCity?: string; officeState?: string }) =>

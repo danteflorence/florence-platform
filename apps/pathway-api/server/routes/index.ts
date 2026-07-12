@@ -7,9 +7,15 @@ import {
 } from '../../shared/schema'
 import { ALL_RULES, getRule } from '../../shared/rules'
 import { WORKFLOW_META, VISA_OUTCOME_LABEL } from '../../shared/constants'
-import type { CandidateProfile, WorkflowInstance, PathwayDocument } from '../../shared/types'
+import type { CandidateProfile, WorkflowInstance, PathwayDocument, IdentityDocument } from '../../shared/types'
 import { runPipeline, pushMilestone } from '../agents'
 import { emitForCandidate, provisionCoreLogin } from '../passport'
+import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
+import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
+import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
+import { SUPPORTED_LANGUAGE_CODES } from '../../shared/languages'
+import { etaForecast } from '../eta'
+import { clusterDeficiencies, decideIntakeCheck, checksForCandidate } from '../flywheel'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -193,6 +199,38 @@ api.get('/candidates/:id', h(async (req, res) => {
   res.json(d)
 }))
 
+// --- notifications (candidate-bound; bodies live in the outbox, never logs) ---
+api.get('/candidates/:id/notifications', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  res.json(await store.notifications.byCandidate(req.params.id, 50))
+}))
+
+// Channel preferences — BOOLEANS ONLY (no numbers accepted or stored here; the
+// phone on file comes from the profile). Email is transactional-default-on.
+api.post('/candidates/:id/notification-prefs', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const prefs: Record<string, boolean> = {}
+  for (const k of ['email', 'sms', 'whatsapp'] as const) {
+    if (k in (req.body ?? {})) {
+      if (typeof req.body[k] !== 'boolean') return res.status(400).json({ error: `${k} must be a boolean` })
+      prefs[k] = req.body[k]
+    }
+  }
+  c.notificationPrefs = { ...(c.notificationPrefs ?? {}), ...prefs }
+  // Copilot language preference rides the same prefs endpoint (allowlisted code).
+  if ('language' in (req.body ?? {})) {
+    const lang = String(req.body.language ?? '').toLowerCase()
+    if (!SUPPORTED_LANGUAGE_CODES.includes(lang)) return res.status(400).json({ error: 'unsupported language', allowed: SUPPORTED_LANGUAGE_CODES })
+    c.preferredLanguage = lang
+  }
+  c.updatedAt = now()
+  await store.candidates.update(c)
+  await audit('candidate', 'notification_prefs', 'candidate', c.id, c.id, Object.entries(prefs).map(([k, v]) => `${k}=${v}`).join(','))
+  res.json({ ok: true, prefs: c.notificationPrefs, language: c.preferredLanguage ?? 'en' })
+}))
+
 api.get('/candidates/:id/view', h(async (req, res) => {
   const v = await assembleCandidateView(req.params.id)
   if (!v) return res.status(404).json({ error: 'not found' })
@@ -226,18 +264,88 @@ api.post('/candidates/:id/notify', h(async (req, res) => {
   res.json({ sent: view.reminders.length, channel: hook ? 'webhook' : 'logged (set FLORENCE_NOTIFY_WEBHOOK for email/SMS delivery)' })
 }))
 
+// Proposed-field allowlist for document extraction. Anything number-like is
+// truncated to LAST 4 at this boundary — a model never supplies a full document
+// number; the candidate types critical identifiers themselves.
+const EXTRACT_FIELD_ALLOWLIST = new Set([
+  'familyName', 'givenNames', 'nameOnDocument', 'dateOfBirth', 'expirationDate',
+  'issueDate', 'issuingAuthority', 'nationality', 'documentNumberLast4',
+])
+function sanitizeExtractedFields(raw: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (!EXTRACT_FIELD_ALLOWLIST.has(k) || typeof v !== 'string' || !v.trim()) continue
+    out[k] = k === 'documentNumberLast4' ? v.replace(/[^A-Za-z0-9]/g, '').slice(-4) : v.trim().slice(0, 120)
+  }
+  return out
+}
+
 api.post('/candidates/:id/documents', h(async (req, res) => {
   const c = await store.candidates.get(req.params.id)
   if (!c) return res.status(404).json({ error: 'not found' })
   const kind = String(req.body?.kind ?? 'derived') as PathwayDocument['kind']
   const filename = String(req.body?.filename ?? 'document')
-  // Extraction is ModelGateway-pluggable; without Core gateway configuration the
-  // document is stored for manual confirmation.
+  // Optional intake payload: a page image (extract-and-DISCARD — never stored
+  // here; restricted-document storage is Core's Document Vault) and/or the MRZ.
+  const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : undefined
+  const mediaType = typeof req.body?.mediaType === 'string' ? req.body.mediaType : undefined
+  const textContent = typeof req.body?.textContent === 'string' ? req.body.textContent.slice(0, 4000) : undefined
+  if (imageBase64 && imageBase64.length > 3_000_000) return res.status(413).json({ error: 'image too large (max ~2MB)' })
+  if (mediaType && !['image/jpeg', 'image/png', 'image/webp'].includes(mediaType)) {
+    return res.status(400).json({ error: 'unsupported media type' })
+  }
+
   const doc: PathwayDocument = { id: uid(), candidateId: c.id, kind, filename, uploadedAt: now(), extracted: false, extractionConfidence: 'unknown' }
+  let notes: string[] = []
+  if (imageBase64 || textContent) {
+    const proposal = await getLlm().extractDocument({ kind, filename, imageBase64, mediaType, textContent })
+    const fields = sanitizeExtractedFields(proposal.fields)
+    if (Object.keys(fields).length > 0) {
+      doc.fields = fields // a DRAFT — extracted stays false until the candidate confirms
+      doc.extractionConfidence = proposal.confidence
+    }
+    notes = proposal.notes
+  }
   await store.documents.insert(doc)
-  await audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `kind=${kind};document=${doc.id}`)
+  await audit('candidate', 'document_uploaded', 'candidate', c.id, c.id, `kind=${kind};document=${doc.id};proposed=${Object.keys(doc.fields ?? {}).length}`)
   emitForCandidate(c.id, 'pathway.document_verified', { key: kind })
-  res.json({ id: doc.id, extracted: doc.extracted })
+  res.json({ id: doc.id, extracted: doc.extracted, fields: doc.fields, confidence: doc.extractionConfidence, notes })
+}))
+
+// Candidate confirms (and may correct) the proposed fields — the attestation
+// step. Confirmed passport fields become an IdentityDocument, which feeds the
+// name-match consistency agent, preventing deficiencies at intake.
+api.post('/candidates/:id/documents/:docId/confirm', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const doc = await store.documents.get(req.params.docId)
+  if (!doc || doc.candidateId !== c.id) return res.status(404).json({ error: 'not found' })
+  const confirmed = sanitizeExtractedFields((req.body?.fields ?? {}) as Record<string, string>)
+  if (!Object.keys(confirmed).length) return res.status(400).json({ error: 'no valid fields to confirm' })
+
+  doc.fields = confirmed
+  doc.extracted = true
+  doc.extractionConfidence = 'high' // candidate-attested against the printed page
+  await store.documents.update(doc)
+
+  if (doc.kind === 'passport_scan' && confirmed.nameOnDocument) {
+    const existing = (await store.identityDocuments.byCandidate(c.id)).find((i) => i.kind === 'passport')
+    const idDoc: IdentityDocument = existing ?? { id: uid(), candidateId: c.id, kind: 'passport', nameOnDocument: '', status: 'document_extracted', confidence: 'high' }
+    idDoc.nameOnDocument = confirmed.nameOnDocument
+    if (confirmed.dateOfBirth) idDoc.dateOfBirth = confirmed.dateOfBirth
+    if (confirmed.expirationDate) idDoc.expirationDate = confirmed.expirationDate
+    if (confirmed.issuingAuthority) idDoc.issuingAuthority = confirmed.issuingAuthority
+    if (existing) await store.identityDocuments.update(idDoc)
+    else await store.identityDocuments.insert(idDoc)
+  }
+  await audit('candidate', 'document_extraction_confirmed', 'candidate', c.id, c.id, `document=${doc.id};fields=${Object.keys(confirmed).length}`)
+  await pushMilestone(c.id, undefined, 'Document details confirmed')
+  // Re-run open workflow pipelines so the consistency agent sees the new
+  // name observation immediately (deficiency prevention at intake).
+  for (const w of await store.workflows.byCandidate(c.id)) {
+    if (!['submitted', 'completed'].includes(w.status)) { await runPipeline(w.id); break }
+  }
+  res.json({ ok: true, document: doc })
 }))
 
 const EXAM_TYPE_BY_STATE: Record<string, WorkflowInstance['type']> = {
@@ -811,6 +919,7 @@ api.post('/workflows/:id/deficiency', h(async (req, res) => {
   await store.deficiencies.insert(def)
   applyStatus(w, 'deficiency_received'); await store.workflows.update(w)
   await audit('system', 'deficiency_received', 'workflow', w.id, w.candidateId, classification)
+  void notifyCandidate(w.candidateId, 'deficiency', { kind: classification, step: WORKFLOW_META[w.type].short }, { workflowId: w.id }).catch(() => undefined)
   res.json(def)
 }))
 
@@ -850,6 +959,7 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
   } else {
     review.status = 'changes_requested'
     applyStatus(w, 'needs_candidate_data')
+    void notifyCandidate(w.candidateId, 'qa_changes_requested', { step: WORKFLOW_META[w.type].short }, { workflowId: w.id }).catch(() => undefined)
   }
   review.reviewer = parsed.data.reviewer
   review.reviewerNotes = parsed.data.notes
@@ -860,7 +970,112 @@ api.post('/qa/reviews/:id/decide', h(async (req, res) => {
   res.json({ status: w.status, review })
 }))
 
+// --- cost-to-destination wallet (candidate's OWN costs only) -----------------
+// Built from the requirements ledger's grounded fees; the candidate marks items
+// paid (boolean state). The financing CTA reflects the underwriting consent —
+// no amounts, no Florence economics, ever.
+api.get('/candidates/:id/wallet', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const v = await assembleCandidateView(c.id)
+  if (!v) return res.status(404).json({ error: 'not found' })
+  const items = v.requirements.flatMap((g) =>
+    g.items.filter((i) => i.feeUsd != null).map((i) => ({
+      itemId: `${g.workflowId}:${i.fieldId}`,
+      label: `${g.workflowShort}: ${i.label}`,
+      feeUsd: i.feeUsd!,
+      source: i.source,
+      paid: Boolean(c.paidFees?.[`${g.workflowId}:${i.fieldId}`]),
+      paidAt: c.paidFees?.[`${g.workflowId}:${i.fieldId}`]?.at,
+    })))
+  const knownUsd = items.reduce((s, i) => s + i.feeUsd, 0)
+  const paidUsd = items.filter((i) => i.paid).reduce((s, i) => s + i.feeUsd, 0)
+  res.json({
+    items,
+    totals: { knownUsd, paidUsd, remainingUsd: Math.max(0, knownUsd - paidUsd) },
+    note: 'Known fees from official sources so far — boards can change fees; each item links to the official schedule.',
+    financing: { consented: Boolean(c.consents?.underwriting?.granted) },
+  })
+}))
+api.post('/candidates/:id/wallet/mark-paid', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  const itemId = String(req.body?.itemId ?? '')
+  const paid = req.body?.paid !== false
+  if (!itemId) return res.status(400).json({ error: 'itemId is required' })
+  const fees = { ...(c.paidFees ?? {}) }
+  if (paid) fees[itemId] = { at: now() }
+  else delete fees[itemId]
+  c.paidFees = fees
+  c.updatedAt = now()
+  await store.candidates.update(c)
+  await audit('candidate', 'wallet_mark_paid', 'candidate', c.id, c.id, `${itemId}=${paid}`)
+  res.json({ ok: true })
+}))
+
+// Approved intake checks that apply to THIS candidate (deficiency prevention).
+api.get('/candidates/:id/intake-checks', h(async (req, res) => {
+  const c = await store.candidates.get(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not found' })
+  res.json(await checksForCandidate(c, await store.workflows.byCandidate(c.id)))
+}))
+
+// --- external status (candidate attestation + staff sync) -------------------
+// One-click candidate confirmation for statuses with no API (ATT arrival,
+// CGFNS issuance). Label-only enum — no free text, no numbers.
+api.post('/candidates/:id/status-attest', h(async (req, res) => {
+  const kind = String(req.body?.kind ?? '')
+  if (!(kind in ATTESTABLE_STATUSES)) return res.status(400).json({ error: 'unknown status kind', allowed: Object.keys(ATTESTABLE_STATUSES) })
+  const r = await attestStatus(req.params.id, kind)
+  if (!r.ok) return res.status(404).json({ error: 'not found' })
+  res.json({ ok: true, label: r.label })
+}))
+api.get('/candidates/:id/visa-wait', h(async (req, res) => {
+  const post = String(req.query.post ?? '')
+  if (!post) return res.status(400).json({ error: 'post is required' })
+  res.json({ post, waitDays: await visaWaitDays(post) }) // null while feed unconfigured
+}))
+
 // --- admin -----------------------------------------------------------------
+// Outbox monitor + manual tick (staff-only via the /admin gate above).
+api.get('/admin/notifications', h(async (_req, res) => res.json({
+  transports: transportMode(),
+  recent: await store.notifications.recent(100),
+})))
+api.get('/admin/integrations', h(async (_req, res) => res.json({ rails: integrationModes() })))
+api.post('/admin/integrations/sync', h(async (_req, res) => res.json({ ok: true, ...(await syncExternalStatuses()) })))
+// Rule-freshness board: per-workflow review dates + per-source change queue.
+// A CHANGED source is a staff review item — a human approves every regulatory
+// change; the engine never edits a rule by itself.
+// Cohort-calibrated start forecast (staff) — schedule truth for Control Tower.
+api.get('/admin/eta-forecast', h(async (_req, res) => res.json(await etaForecast())))
+// Deficiency flywheel: recluster + review proposed intake checks (staff).
+api.post('/admin/intake-checks/cluster', h(async (_req, res) => res.json({ ok: true, ...(await clusterDeficiencies()) })))
+api.get('/admin/intake-checks', h(async (_req, res) => res.json(await store.intakeChecks.all())))
+api.post('/admin/intake-checks/:id/decide', h(async (req, res) => {
+  const action = String(req.body?.action ?? '')
+  const reviewer = String(req.body?.reviewer ?? '')
+  if (!['approve', 'dismiss'].includes(action) || !reviewer) return res.status(400).json({ error: 'action (approve|dismiss) and reviewer are required' })
+  const done = await decideIntakeCheck(req.params.id, action as 'approve' | 'dismiss', reviewer)
+  res.status(done ? 200 : 409).json(done ? { ok: true } : { error: 'check not in proposed state' })
+}))
+api.get('/admin/freshness', h(async (_req, res) => res.json(await freshnessBoard())))
+api.post('/admin/freshness/check', h(async (_req, res) => res.json({ ok: true, ...(await checkFreshness()) })))
+api.post('/admin/freshness/approve', h(async (req, res) => {
+  const url = String(req.body?.url ?? '')
+  const reviewer = String(req.body?.reviewer ?? '')
+  if (!url || !reviewer) return res.status(400).json({ error: 'url and reviewer are required' })
+  const done = await approveSourceChange(url, reviewer)
+  res.status(done ? 200 : 409).json(done ? { ok: true } : { error: 'source is not in changed state' })
+}))
+api.post('/admin/notifications/tick', h(async (_req, res) => {
+  const deadlines = await scanDeadlines()
+  const digests = await sendWeeklyDigests(async (cid) => {
+    const d = await getDossier(cid)
+    return d ? nextActions(d).map((a) => `${a.workflowShort}: ${a.title}`) : []
+  })
+  res.json({ ok: true, deadlines, digests })
+}))
 api.get('/admin/metrics', h(async (_req, res) => res.json(await assembleAdminMetrics())))
 api.get('/admin/ledger', h(async (_req, res) => res.json(await store.ledger.all())))
 api.get('/admin/audit', h(async (_req, res) => res.json(await store.audit.recent(150))))
