@@ -49,6 +49,18 @@ jobs:
           npm ci
           npm run database:check
 
+  auth-sdk-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Verify vendored coreAuth copies match packages/auth-sdk
+        run: |
+          npm ci
+          npm run check:auth-sdk
+
   typecheck:
     needs: install
     runs-on: ubuntu-latest

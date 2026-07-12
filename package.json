@@ -21,6 +21,8 @@
     "typecheck": "node scripts/ci/run-npm.mjs typecheck",
     "workspace:check": "node scripts/ci/check-workspace-skeleton.mjs",
     "database:check": "node scripts/ci/check-database-standard.mjs",
+    "sync:auth-sdk": "node scripts/ci/sync-auth-sdk.mjs",
+    "check:auth-sdk": "node scripts/ci/sync-auth-sdk.mjs --check",
     "database:compose": "node scripts/ci/verify-docker-postgres.mjs",
     "migration:dry-run": "node scripts/deploy/migration-dry-run.mjs",
     "test": "node scripts/ci/run-npm.mjs test",
@@ -35,7 +37,7 @@
     "security:ci:test": "node scripts/security/check-ci-workflow.mjs",
     "security:static": "node scripts/security/static-analysis.mjs",
     "security:test": "node scripts/security/test-secret-scanner.mjs && node scripts/security/check-ci-workflow.mjs",
-    "ci": "npm run workspace:check && npm run database:check && npm run ci:install && npm run typecheck && npm test && npm run lint && npm run prettier && npm run build && npm run security:secrets && npm run security:secrets:test && npm run security:audit && npm run security:static && npm run security:ci:test"
+    "ci": "npm run workspace:check && npm run database:check && npm run check:auth-sdk && npm run ci:install && npm run typecheck && npm test && npm run lint && npm run prettier && npm run build && npm run security:secrets && npm run security:secrets:test && npm run security:audit && npm run security:static && npm run security:ci:test"
   },
   "engines": {
     "node": ">=24"

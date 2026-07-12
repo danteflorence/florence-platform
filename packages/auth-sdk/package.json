@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Placeholder for shared auth SDK contracts.",
+  "description": "Canonical source of the Core SSO verification SDK (coreAuth.ts); npm run sync:auth-sdk vendors it into each app.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
