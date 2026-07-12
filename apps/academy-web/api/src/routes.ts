@@ -116,6 +116,7 @@ import type {
   SponsorshipProgramType,
 } from "./types.ts";
 import { isScope } from "./types.ts";
+import { gradeChartNote } from "./charting.ts";
 
 const PROGRESS_STATUSES: readonly ProgressStatus[] = [
   "not_started",
@@ -3678,6 +3679,21 @@ async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
+// Graded charting practice - the first-90-days documentation skill. The
+// grader is a deterministic, auditable heuristic (src/charting.ts); a model
+// gateway may later polish the feedback PROSE, but pass/fail logic stays
+// rule-based. The note itself is never stored - practice, not surveillance.
+async function postChartNote(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "chart_note_practice";
+  const note = (str(ctx.body, "note") ?? "").slice(0, 4000);
+  if (note.trim().length < 20)
+    return err(ctx, 400, "invalid_request", "note must be at least 20 characters");
+  const mustMention = ((arr(ctx.body, "expected") ?? []) as unknown[])
+    .filter((x): x is string => typeof x === "string")
+    .slice(0, 12);
+  send(ctx, 200, gradeChartNote(note, { mustMention }));
+}
+
 // Cohort benchmark for the sim debrief - "how did the nurses around you do?"
 // K-anonymous by design: nothing renders until >=5 cohort-mates have sim runs,
 // and only means leave the server (no per-person rows, no names). The learner
@@ -4681,6 +4697,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/me/daily-plan", "candidates:read", true, getMyDailyPlan),
   compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
   compile("GET", "/v1/me/sim-benchmark", "candidates:read", true, getMySimBenchmark),
+  compile("POST", "/v1/sim/chart-note", "candidates:read", true, postChartNote),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),

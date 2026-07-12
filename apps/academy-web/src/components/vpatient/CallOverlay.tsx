@@ -11,8 +11,9 @@
 // respond exactly as before.
 // ───────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ActionDef, TeamMember } from "../../data/vpatient/types";
+import { readbackQuiz } from "../../lib/vpatient/readback";
 
 const ROLE_LABEL: Record<string, string> = {
   charge_nurse: "Charge nurse",
@@ -36,17 +37,25 @@ export default function CallOverlay({
   action,
   member,
   clockSec,
+  orders = [],
   onDeliver,
   onHangUp,
 }: {
   action: ActionDef;
   member: TeamMember | undefined;
   clockSec: number;
+  /** Verbal orders this call produces (labels of actions it unlocks). When
+   *  present, delivering the SBAR leads into a read-back check - Joint
+   *  Commission NPSG 02.03.01, the phone ritual US practice runs on. */
+  orders?: string[];
   onDeliver: () => void;
   onHangUp: () => void;
 }) {
   const [connected, setConnected] = useState(false);
   const [sbar, setSbar] = useState({ s: "", b: "", a: "", r: "" });
+  // "compose" → (deliver) → "readback" when the provider gives an order.
+  const [phase, setPhase] = useState<"compose" | "readback">("compose");
+  const [picked, setPicked] = useState<number | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setConnected(true), 1200);
@@ -57,6 +66,70 @@ export default function CallOverlay({
   const name = member?.name ?? roleLabel;
   const filled = Object.values(sbar).filter((v) => v.trim().length >= 3).length;
   const canDeliver = connected && filled >= 2;
+
+  const quiz = useMemo(() => (orders.length ? readbackQuiz(orders[0]) : null), [orders]);
+
+  const deliver = () => {
+    // The engine responds immediately (orders unlock, narration fires); the
+    // read-back is the learner's half of closing the loop.
+    onDeliver();
+    if (quiz) setPhase("readback");
+    else onHangUp();
+  };
+
+  if (phase === "readback" && quiz) {
+    const correct = picked === quiz.correctIndex;
+    return (
+      <div className="fixed inset-0 z-40 flex items-end justify-center bg-florence-ink/80 backdrop-blur-sm sm:items-center">
+        <div className="w-full max-w-md rounded-t-3xl bg-white p-4 shadow-2xl sm:rounded-3xl">
+          <p className="text-sm font-semibold text-florence-ink">{name}</p>
+          <p className="mt-2 rounded-xl bg-florence-indigo-soft/40 px-3 py-2 text-sm italic text-florence-ink">
+            "OK - {orders[0]}. Read that back to me."
+          </p>
+          <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-florence-slate">
+            Your read-back
+          </p>
+          <div className="mt-1.5 space-y-2">
+            {quiz.options.map((opt, i) => {
+              const cls =
+                picked === null
+                  ? "border-florence-line bg-white hover:bg-florence-mist"
+                  : i === quiz.correctIndex
+                    ? "border-vital-ok bg-emerald-50"
+                    : i === picked
+                      ? "border-vital-danger bg-red-50"
+                      : "border-florence-line bg-white opacity-60";
+              return (
+                <button
+                  key={i}
+                  disabled={picked !== null}
+                  onClick={() => setPicked(i)}
+                  className={`block w-full rounded-xl border px-3 py-2 text-left text-sm text-florence-ink ${cls}`}
+                >
+                  "{opt}"
+                </button>
+              );
+            })}
+          </div>
+          {picked !== null && (
+            <div className="mt-3">
+              <p className="text-sm text-florence-ink">
+                {correct
+                  ? '"Correct. Thanks." Read-back confirmed - that\'s how orders stay safe over the phone.'
+                  : `"No - ${orders[0]}." Numbers are where phone orders go wrong: repeat the order verbatim, digit by digit.`}
+              </p>
+              <button
+                onClick={onHangUp}
+                className="mt-3 w-full rounded-xl bg-florence-teal px-4 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-florence-teal-dark"
+              >
+                Hang up and carry out the order
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-florence-ink/80 backdrop-blur-sm sm:items-center">
@@ -114,7 +187,7 @@ export default function CallOverlay({
             Hang up
           </button>
           <button
-            onClick={onDeliver}
+            onClick={deliver}
             disabled={!canDeliver}
             className="flex-1 rounded-xl bg-florence-teal px-4 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-florence-teal-dark disabled:opacity-40"
           >

@@ -21,6 +21,7 @@ import { resultedLabPanels, type SimState } from "../../lib/vpatient/engine";
 import { cjmmScorecard, evaluate, toAssessmentSummary, type DecisionVerdict } from "../../lib/vpatient/score";
 import { CJMM_STEPS } from "../../data/blueprint";
 import LabsPanel, { panelsWithCritical } from "./LabsPanel";
+import ChartNotePractice from "./ChartNotePractice";
 import { ERROR_TYPE_LABEL, type ErrorType } from "../../lib/walkthrough";
 import { useCandidate } from "../../lib/CandidateContext";
 import {
@@ -279,6 +280,20 @@ export default function SimDebrief({
               ))}
             </ul>
           </div>
+        )}
+
+        {/* Graded charting practice - the run isn't over until it's documented. */}
+        {candidate && (
+          <ChartNotePractice
+            expected={[
+              ...scenario.phases
+                .flatMap((p) => p.cues ?? [])
+                .filter((c) => c.critical)
+                .map((c) => c.text)
+                .slice(0, 5),
+              "provider notified",
+            ]}
+          />
         )}
 
         {/* Cohort benchmark - only when the K-anonymity gate opens. */}

@@ -537,16 +537,21 @@ export function SimRunner({
         )}
       </main>
 
-      {/* The SBAR call overlay - the clock keeps ticking while they compose. */}
+      {/* The SBAR call overlay - the clock keeps ticking while they compose.
+          Orders = labels of actions this call unlocks; they drive the
+          telephone read-back beat after the SBAR is delivered. */}
       {callAction && !state.ended && (
         <CallOverlay
           action={callAction}
           member={scenario.team?.find((m) => m.role === callAction.targetRole)}
           clockSec={state.clockSec}
-          onDeliver={() => {
-            fire(callAction);
-            setCallAction(null);
-          }}
+          orders={scenario.rules
+            .filter((r) => r.when.actionTaken === callAction.id)
+            .flatMap((r) => r.effects)
+            .filter((e): e is Extract<typeof e, { kind: "unlockAction" }> => e.kind === "unlockAction")
+            .map((e) => scenario.actions.find((a) => a.id === e.actionId)?.label)
+            .filter((l): l is string => typeof l === "string")}
+          onDeliver={() => fire(callAction)}
           onHangUp={() => setCallAction(null)}
         />
       )}
