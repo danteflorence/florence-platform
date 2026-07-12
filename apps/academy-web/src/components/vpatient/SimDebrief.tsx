@@ -13,8 +13,9 @@
 // feeds readiness / remediation / the copilot with no bespoke backend.
 // ───────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { call } from "../../lib/academyAuth";
 import type { VPatientScenario } from "../../data/vpatient/types";
 import { resultedLabPanels, type SimState } from "../../lib/vpatient/engine";
 import { cjmmScorecard, evaluate, toAssessmentSummary, type DecisionVerdict } from "../../lib/vpatient/score";
@@ -40,18 +41,41 @@ function mmss(sec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 }
 
+interface SimBenchmark {
+  available: boolean;
+  participants?: number;
+  cohort_mean?: number;
+  my_mean: number | null;
+  my_runs: number;
+}
+
 export default function SimDebrief({
   scenario,
   state,
   onReplay,
+  onRecast,
 }: {
   scenario: VPatientScenario;
   state: SimState;
   onReplay: () => void;
+  onRecast?: () => void;
 }) {
   const ev = useMemo(() => evaluate(state, scenario), [state, scenario]);
   const { candidate, refreshReadiness } = useCandidate();
   const reported = useRef(false);
+  // Cohort benchmark - K-anonymous server aggregate; renders only when >=5
+  // cohort-mates have sim runs, so nobody's run is inferable.
+  const [benchmark, setBenchmark] = useState<SimBenchmark | null>(null);
+  useEffect(() => {
+    if (!candidate) return;
+    let live = true;
+    call<SimBenchmark>("/v1/me/sim-benchmark")
+      .then((b) => live && setBenchmark(b))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [candidate]);
 
   // Report the run once (kind:"simulation"). Hinted runs are marked and, per
   // the score module, carry no readiness value - so they inform dimensions
@@ -257,6 +281,22 @@ export default function SimDebrief({
           </div>
         )}
 
+        {/* Cohort benchmark - only when the K-anonymity gate opens. */}
+        {benchmark?.available && benchmark.cohort_mean !== undefined && (
+          <div className="mt-6 rounded-xl border border-florence-indigo/25 bg-florence-indigo-soft/25 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-florence-slate">Your cohort</p>
+            <p className="mt-1 text-sm text-florence-ink">
+              {benchmark.participants} nurses in your cohort have run sims — cohort average{" "}
+              <span className="font-semibold">{Math.round(benchmark.cohort_mean * 100)}%</span>
+              {benchmark.my_mean !== null && (
+                <>
+                  {" · "}your average <span className="font-semibold">{Math.round(benchmark.my_mean * 100)}%</span>
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-7 flex flex-wrap gap-3">
           <button
@@ -268,6 +308,14 @@ export default function SimDebrief({
           >
             Run it again
           </button>
+          {onRecast && (
+            <button
+              onClick={onRecast}
+              className="rounded-xl border border-florence-teal/40 bg-florence-teal-soft/40 px-5 py-3 text-sm font-semibold text-florence-teal-dark hover:bg-florence-teal-soft"
+            >
+              Different patient, same case
+            </button>
+          )}
           <Link
             to="/academy/practice"
             className="rounded-xl border border-florence-line bg-white px-5 py-3 text-sm font-semibold text-florence-ink hover:bg-florence-mist"

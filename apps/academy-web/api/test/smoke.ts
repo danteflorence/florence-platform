@@ -1013,6 +1013,14 @@ try {
   assert.equal(sr2.status, 409); // one self-report; corrections go through ops
   ok("nclex self-report: validates status, writes the ledger once, 409 on retell");
 
+  // Sim benchmark: K-anonymous - one lone candidate never sees an aggregate.
+  const sb = await fetch(`${base}/v1/me/sim-benchmark`, { headers: bearer(CS) });
+  const sbj = (await sb.json()) as any;
+  assert.equal(sb.status, 200);
+  assert.equal(sbj.available, false); // cohort of 1 < K=5
+  assert.ok(typeof sbj.my_runs === "number");
+  ok("sim benchmark: K-anonymity gate holds below 5 participants");
+
   // 5g) Auth hardening: weak-password rejection + failed-login lockout
   const weak = await fetch(`${base}/v1/auth/signup`, {
     method: "POST",

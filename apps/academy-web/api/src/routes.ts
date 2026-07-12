@@ -3678,6 +3678,62 @@ async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
+// Cohort benchmark for the sim debrief - "how did the nurses around you do?"
+// K-anonymous by design: nothing renders until >=5 cohort-mates have sim runs,
+// and only means leave the server (no per-person rows, no names). The learner
+// sees their own mean next to the cohort's - motivation, not surveillance.
+async function getMySimBenchmark(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "sim_benchmark";
+  ctx.resourceId = bound;
+  const K = 5;
+  const runScore = (r: { readiness?: number }) => r.readiness ?? 0;
+  const myRuns = (await allAssessments(deps, bound)).filter(
+    (r) => r.kind === "simulation" && typeof r.readiness === "number",
+  );
+  const my_mean = myRuns.length
+    ? Math.round((myRuns.reduce((s, r) => s + runScore(r), 0) / myRuns.length) * 1000) / 1000
+    : null;
+  const enrollment = (await deps.store.enrollments.byCandidate(bound)).find(
+    (e) => e.status !== "withdrawn",
+  );
+  if (!enrollment) return send(ctx, 200, { available: false, my_mean, my_runs: myRuns.length });
+  let participants = 0;
+  let runs = 0;
+  let scoreSum = 0;
+  const cjmm = new Map<string, { sum: number; n: number }>();
+  for (const e of await deps.store.enrollments.byCohort(enrollment.cohort)) {
+    const results = (await allAssessments(deps, e.candidate_id)).filter(
+      (r) => r.kind === "simulation" && typeof r.readiness === "number",
+    );
+    if (results.length === 0) continue;
+    participants += 1;
+    for (const r of results) {
+      runs += 1;
+      scoreSum += runScore(r);
+      for (const [k, v] of Object.entries(r.by_cjmm ?? {})) {
+        const acc = cjmm.get(k) ?? { sum: 0, n: 0 };
+        acc.sum += v;
+        acc.n += 1;
+        cjmm.set(k, acc);
+      }
+    }
+  }
+  if (participants < K) return send(ctx, 200, { available: false, my_mean, my_runs: myRuns.length });
+  const by_cjmm: Record<string, number> = {};
+  for (const [k, v] of cjmm) by_cjmm[k] = Math.round((v.sum / v.n) * 1000) / 1000;
+  send(ctx, 200, {
+    available: true,
+    participants,
+    runs,
+    cohort_mean: Math.round((scoreSum / runs) * 1000) / 1000,
+    by_cjmm,
+    my_mean,
+    my_runs: myRuns.length,
+  });
+}
+
 // Self-reported NCLEX outcome - the raw material of the calibration moat.
 // Lands in the append-only outcomes ledger tagged source:"self_report" so ops
 // can later verify against the state registry (verification = a second
@@ -4624,6 +4680,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/me/audit", "candidates:read", true, getMyAudit),
   compile("GET", "/v1/me/daily-plan", "candidates:read", true, getMyDailyPlan),
   compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
+  compile("GET", "/v1/me/sim-benchmark", "candidates:read", true, getMySimBenchmark),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),

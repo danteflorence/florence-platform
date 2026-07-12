@@ -26,6 +26,7 @@ import type { ActionCategory, ActionDef, VPatientScenario } from "../data/vpatie
 import type { CjmmStep } from "../types/question";
 import { coachingFocus } from "../lib/vpatient/score";
 import { listenOnce, speechAvailable, type ListenHandle } from "../lib/speech";
+import { recastOptions, recastScenario } from "../lib/vpatient/recast";
 import {
   applyDifficulty,
   DIFFICULTIES,
@@ -133,9 +134,19 @@ export function SimRunner({
   initialDifficulty?: Difficulty;
 }) {
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
+  // Recast counter: 0 = the authored patient; each "different patient" rotates
+  // deterministically through the persona roster (same clinical run, new human
+  // - judgment must anchor on cues, not demographics).
+  const [recastN, setRecastN] = useState(0);
+  const castBase = useMemo(() => {
+    if (recastN === 0) return base;
+    const options = recastOptions(base);
+    if (options.length === 0) return base;
+    return recastScenario(base, options[(recastN - 1) % options.length]);
+  }, [base, recastN]);
   // The scenario actually run - difficulty scales timing without changing
   // the clinical content. Recomputed only when the base or level changes.
-  const scenario = useMemo(() => applyDifficulty(base, difficulty), [base, difficulty]);
+  const scenario = useMemo(() => applyDifficulty(castBase, difficulty), [castBase, difficulty]);
   const [state, dispatch] = useReducer(reducer, scenario, init);
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
@@ -211,6 +222,19 @@ export function SimRunner({
     setStarted(true);
     setRunning(true);
   }, [scenario]);
+
+  // Recast + rerun: bump the persona, then reset against the NEW scenario once
+  // it has been recomputed (the effect below fires after that render).
+  const recast = useCallback(() => setRecastN((n) => n + 1), []);
+  useEffect(() => {
+    if (recastN === 0) return;
+    dispatch({ type: "reset", scenario });
+    setAskReply(null);
+    setHistory([]);
+    setStarted(true);
+    setRunning(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recastN]);
 
   // Dispatch + register the tap for the micro-feedback chip.
   const fire = (a: ActionDef) => {
@@ -330,7 +354,7 @@ export function SimRunner({
   };
 
   if (state.ended) {
-    return <SimDebrief scenario={scenario} state={state} onReplay={restart} />;
+    return <SimDebrief scenario={scenario} state={state} onReplay={restart} onRecast={recastOptions(base).length > 0 ? recast : undefined} />;
   }
 
   return (
