@@ -305,6 +305,27 @@ export interface CandidateView {
   requirements: RequirementGroup[]
   /** Consular Payments V1: I-901 SEVIS fee orchestration. */
   consularPayments: ConsularPaymentsView
+  /** Cohort-calibrated start-date forecast — SCHEDULE ONLY, transparent basis. */
+  eta: CandidateEta | null
+}
+
+/** One node of the ETA basis — where each remaining chunk of time comes from. */
+export interface EtaBasisNode {
+  key: string
+  label: string
+  days: number
+  source: 'cohort' | 'baseline'
+  sampleSize: number
+}
+
+/** Cohort-calibrated start-date forecast (server/eta.ts). NO economics. */
+export interface CandidateEta {
+  etaDate: string
+  earliest: string
+  latest: string
+  remainingDays: number
+  biggestLever?: { key: string; label: string; days: number }
+  basis: EtaBasisNode[]
 }
 
 export interface QaQueueItem {

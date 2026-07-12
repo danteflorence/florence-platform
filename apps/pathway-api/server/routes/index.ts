@@ -14,6 +14,7 @@ import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from
 import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
 import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
 import { SUPPORTED_LANGUAGE_CODES } from '../../shared/languages'
+import { etaForecast } from '../eta'
 import { checkReadinessGate, type OverrideTicket } from '../readinessGate'
 import { instantiateWorkflow, applyStatus, nextActions } from '../agents/workflow'
 import { extractFacts } from '../agents/dataExtraction'
@@ -958,6 +959,8 @@ api.post('/admin/integrations/sync', h(async (_req, res) => res.json({ ok: true,
 // Rule-freshness board: per-workflow review dates + per-source change queue.
 // A CHANGED source is a staff review item — a human approves every regulatory
 // change; the engine never edits a rule by itself.
+// Cohort-calibrated start forecast (staff) — schedule truth for Control Tower.
+api.get('/admin/eta-forecast', h(async (_req, res) => res.json(await etaForecast())))
 api.get('/admin/freshness', h(async (_req, res) => res.json(await freshnessBoard())))
 api.post('/admin/freshness/check', h(async (_req, res) => res.json({ ok: true, ...(await checkFreshness()) })))
 api.post('/admin/freshness/approve', h(async (req, res) => {
