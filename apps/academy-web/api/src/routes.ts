@@ -541,6 +541,8 @@ function toConsent(o: Record<string, unknown> | undefined): Consent | undefined 
   if (typeof o["pathway"] === "boolean") c.pathway = o["pathway"];
   if (typeof o["financing"] === "boolean") c.financing = o["financing"];
   if (typeof o["employer_sharing"] === "boolean") c.employer_sharing = o["employer_sharing"];
+  if (Array.isArray(o["employer_org_ids"]))
+    c.employer_org_ids = (o["employer_org_ids"] as unknown[]).filter((x): x is string => typeof x === "string");
   return c;
 }
 
@@ -3089,14 +3091,26 @@ async function publishCohortReport(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, report);
 }
 
+/** H03: does this candidate's consent expose them to THIS caller? An org-bound
+ *  employer caller needs the candidate to have NAMED its org; the bare boolean is
+ *  honored only for org-less internal tokens (trusted proxies, e.g. the ops console). */
+function employerConsentAllows(consent: { employer_sharing?: boolean; employer_org_ids?: string[] }, callerOrgId?: string): boolean {
+  if (consent.employer_sharing !== true) return false;
+  if (!callerOrgId) return true; // internal (org-less) caller — boolean consent suffices
+  return Array.isArray(consent.employer_org_ids) && consent.employer_org_ids.includes(callerOrgId);
+}
+
 async function getEmployerCandidates(ctx: ReqCtx, deps: Deps): Promise<void> {
   const all = await allCandidateSnapshots(deps);
   // Only readiness-cleared candidates who have ALSO consented to employer sharing
-  // appear in the partner-facing packet list. Consent revocation removes them.
+  // appear in the partner-facing packet list — and an org-bound partner sees ONLY
+  // candidates who named its org (H03 tenant isolation). Revocation removes them.
+  const callerOrg = ctx.auth?.orgId;
   const data = all
-    .filter((x) => isReadinessCleared(x.snapshot) && x.candidate.consent.employer_sharing === true)
+    .filter((x) => isReadinessCleared(x.snapshot) && employerConsentAllows(x.candidate.consent, callerOrg))
     .map((x) => buildInterviewPacket(x.candidate, x.snapshot));
   ctx.resourceType = "employer_candidates";
+  ctx.resourceId = callerOrg ?? "internal";
   send(ctx, 200, { data });
 }
 
@@ -3107,8 +3121,8 @@ async function postEmployerOffer(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (!candidate_id) return err(ctx, 400, "invalid_request", "candidate_id is required");
   const cand = await deps.store.candidates.get(candidate_id);
   if (!cand) return err(ctx, 404, "not_found", "candidate not found");
-  if (cand.consent.employer_sharing !== true)
-    return err(ctx, 403, "employer_consent_required", "candidate has not consented to employer sharing");
+  if (!employerConsentAllows(cand.consent, ctx.auth?.orgId))
+    return err(ctx, 403, "employer_consent_required", "candidate has not consented to employer sharing with this organization");
   const status = str(ctx.body, "status") ?? "offered";
   const o = await deps.store.outcomes.create({ candidate_id, kind: "employer_offer", status });
   ctx.resourceType = "employer_offer";
@@ -3587,6 +3601,178 @@ async function getMyAudit(ctx: ReqCtx, deps: Deps): Promise<void> {
   ctx.resourceType = "audit_self";
   ctx.resourceId = bound;
   send(ctx, 200, { data });
+}
+
+// ── Daily Coach ──────────────────────────────────────────────────────────────
+// Adherence is the strongest pass-rate lever we control: consistency of
+// retrieval practice beats every content feature. The coach has two halves:
+//   1. GET /v1/me/daily-plan - the learner's day, derived (never stored):
+//      activity streak, readiness focus, open remediations, and the plan-day
+//      index the SPA uses to pick the sim of the day.
+//   2. POST /v1/ops/coach/tick - external-cron nudges for learners gone quiet
+//      (48h+), escalating at day 2 / 5 / 9. Mirrors the drip-tick contract:
+//      secret-guarded, capped, mock email by default. Run once daily.
+
+function dayOf(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+/** Consecutive-day streak ending today or yesterday, from activity dates. */
+export function streakFrom(activityDays: Set<string>, todayIso: string): number {
+  const today = new Date(`${todayIso}T00:00:00Z`).getTime();
+  const DAY = 86_400_000;
+  // A streak survives if the most recent activity was today or yesterday.
+  let cursor = today;
+  if (!activityDays.has(dayOf(new Date(cursor).toISOString()))) {
+    cursor -= DAY;
+    if (!activityDays.has(dayOf(new Date(cursor).toISOString()))) return 0;
+  }
+  let streak = 0;
+  while (activityDays.has(dayOf(new Date(cursor).toISOString()))) {
+    streak++;
+    cursor -= DAY;
+  }
+  return streak;
+}
+
+async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "daily_plan";
+  ctx.resourceId = bound;
+
+  const [results, progress, remediations, enrollments] = await Promise.all([
+    allAssessments(deps, bound),
+    deps.store.progress.listByCandidate(bound),
+    deps.store.remediations.listByCandidate(bound),
+    deps.store.enrollments.byCandidate(bound),
+  ]);
+
+  const activityDays = new Set<string>([
+    ...results.map((r) => dayOf(r.created_at)),
+    ...progress.map((p) => dayOf(p.updated_at)),
+  ]);
+  const todayIso = dayOf(new Date().toISOString());
+  const lastActive = [...results.map((r) => r.created_at), ...progress.map((p) => p.updated_at)]
+    .sort()
+    .pop();
+
+  const readiness = computeReadiness({ candidateId: bound, results, progress });
+  const active = enrollments.find((e) => e.status !== "withdrawn");
+  const planDayIndex = active
+    ? Math.max(0, Math.floor((Date.now() - Date.parse(active.created_at)) / 86_400_000))
+    : 0;
+
+  send(ctx, 200, {
+    today: todayIso,
+    active_today: activityDays.has(todayIso),
+    streak_days: streakFrom(activityDays, todayIso),
+    last_active_at: lastActive ?? null,
+    readiness: {
+      band: readiness.band,
+      next_action: readiness.next_action,
+      focus_areas: readiness.focus_areas,
+    },
+    open_remediations: remediations.filter((r) => r.status !== "cleared").length,
+    plan_day_index: planDayIndex,
+  });
+}
+
+// Self-reported NCLEX outcome - the raw material of the calibration moat.
+// Lands in the append-only outcomes ledger tagged source:"self_report" so ops
+// can later verify against the state registry (verification = a second
+// nclex_result event with source:"registry_verified", via POST /v1/outcomes).
+// One self-report per candidate - a changed story is an ops conversation.
+async function postMyNclexOutcome(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "nclex_self_report";
+  ctx.resourceId = bound;
+  const status = str(ctx.body, "status");
+  if (status !== "pass" && status !== "fail")
+    return err(ctx, 400, "invalid_request", "status must be pass or fail");
+  const testedOn = str(ctx.body, "tested_on"); // optional YYYY-MM-DD
+  if (testedOn && !/^\d{4}-\d{2}-\d{2}$/.test(testedOn))
+    return err(ctx, 400, "invalid_request", "tested_on must be YYYY-MM-DD");
+  const existing = await deps.store.outcomes.list(bound, undefined, 100);
+  if (
+    existing.data.some(
+      (o) =>
+        o.kind === "nclex_result" &&
+        (o.detail as Record<string, unknown> | undefined)?.["source"] === "self_report",
+    )
+  )
+    return err(ctx, 409, "conflict", "an NCLEX result is already on file; contact your instructor to correct it");
+  const o = await deps.store.outcomes.create({
+    candidate_id: bound,
+    kind: "nclex_result",
+    status,
+    detail: { source: "self_report" },
+    occurred_at: testedOn ? `${testedOn}T00:00:00.000Z` : new Date().toISOString(),
+  });
+  deps.webhooks.emit("outcome.recorded", o);
+  send(ctx, 201, { id: o.id, kind: o.kind, status: o.status });
+}
+
+/** Days-inactive buckets that trigger a nudge (escalating tone downstream). */
+const COACH_NUDGE_DAYS = new Set([2, 5, 9]);
+
+async function postCoachTick(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "coach_tick";
+  const secret = process.env["COACH_TICK_SECRET"] ?? "";
+  if (!secret) return err(ctx, 503, "not_configured", "COACH_TICK_SECRET not set");
+  const provided = typeof ctx.headers["x-coach-secret"] === "string" ? ctx.headers["x-coach-secret"] : "";
+  if (!provided || !safeSecretEq(provided, secret))
+    return err(ctx, 401, "unauthorized", "bad coach secret");
+
+  const cap = Math.max(1, Math.min(500, num(ctx.body, "cap") ?? 100));
+  const page = await deps.store.candidates.list(undefined, 500);
+  const now = Date.now();
+  let scanned = 0;
+  let nudged = 0;
+  let active_recent = 0;
+  let no_enrollment = 0;
+
+  for (const cand of page.data) {
+    if (nudged >= cap) break;
+    scanned++;
+    const enrollments = await deps.store.enrollments.byCandidate(cand.id);
+    if (!enrollments.some((e) => e.status !== "withdrawn")) {
+      no_enrollment++;
+      continue;
+    }
+    const results = await allAssessments(deps, cand.id);
+    const progress = await deps.store.progress.listByCandidate(cand.id);
+    const last = [...results.map((r) => r.created_at), ...progress.map((p) => p.updated_at)]
+      .sort()
+      .pop();
+    // Never active → nudge on the day-2 bucket after enrollment; else from last activity.
+    const anchor = last ?? enrollments[0]?.created_at;
+    if (!anchor) continue;
+    const daysInactive = Math.floor((now - Date.parse(anchor)) / 86_400_000);
+    if (daysInactive < 2) {
+      active_recent++;
+      continue;
+    }
+    // Escalation buckets; a once-daily cron sends each bucket exactly once.
+    if (!COACH_NUDGE_DAYS.has(daysInactive)) continue;
+    if (!cand.email) continue; // no address to nudge
+    const firstName = (cand.full_name ?? "").split(" ")[0] || "there";
+    const urgency =
+      daysInactive >= 9
+        ? "Your cohort is moving - let's get you back on pace this week."
+        : daysInactive >= 5
+          ? "Five days is a long gap this close to the exam. Twenty minutes today restarts the streak."
+          : "Two days away - one short review today keeps the momentum you built.";
+    await deps.email.send({
+      to: cand.email,
+      subject: "Your Florence study plan is waiting",
+      text: `Hi ${firstName},\n\nIt has been ${daysInactive} days since your last practice. ${urgency}\n\nToday's plan: a short review, ten practice questions on your focus area, and the sim of the day.\n\nOpen the Academy: https://florenceedu.com/#/academy\n\nFlorence Academy`,
+    });
+    nudged++;
+  }
+
+  send(ctx, 200, { scanned, nudged, active_recent, no_enrollment, cap });
 }
 
 // ── learner progress + readiness ─────────────────────────────────────────────
@@ -4436,6 +4622,9 @@ export const routes: Route[] = [
   // Candidate's currently-active cohort - read by AcademyHome to gate sections.
   compile("GET", "/v1/me/cohort", "candidates:read", true, getMyCohort),
   compile("GET", "/v1/me/audit", "candidates:read", true, getMyAudit),
+  compile("GET", "/v1/me/daily-plan", "candidates:read", true, getMyDailyPlan),
+  compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
+  compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),
   compile("GET", "/v1/candidates/:id", "candidates:read", true, getCandidate),
@@ -4496,7 +4685,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/attendance", "enrollment:write", true, createAttendance),
   compile("GET", "/v1/attendance", "enrollment:read", true, listAttendance),
   compile("GET", "/v1/employer/candidates", "employer:read", true, getEmployerCandidates),
-  compile("POST", "/v1/employer/offers", "employer:read", true, postEmployerOffer),
+  compile("POST", "/v1/employer/offers", "employer:write", true, postEmployerOffer),
   compile("GET", "/v1/university/overview", "university:read", true, getUniversityOverview),
   // Schools directory: public list (no auth) for the signup picker; admin CRUD.
   compile("GET", "/v1/schools", null, false, listSchoolsPublic),

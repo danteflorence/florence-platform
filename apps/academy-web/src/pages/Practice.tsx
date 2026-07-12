@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import MedicalEnglishDrill from "../components/MedicalEnglishDrill";
 import QuizRunner from "../components/quiz/QuizRunner";
 import CaseRunner from "../components/quiz/CaseRunner";
 import LevelChooser from "../components/quiz/LevelChooser";
@@ -104,6 +105,7 @@ export default function Practice() {
   const focusNeed = focus && VALID_NEEDS.has(focus as ClientNeed) ? (focus as ClientNeed) : null;
   const deepCases = params.get("mode") === "cases";
   const reviewMode = params.get("mode") === "review";
+  const englishMode = params.get("mode") === "english";
 
   const [kind, setKind] = useState<SessionKind | null>(deepCases ? "cases" : null);
   // A focus drill auto-picks its difficulty (medium) so it starts in one tap.
@@ -114,8 +116,13 @@ export default function Practice() {
     setKind(null);
     setLevel(null);
     // Drop the deep-link params so "Start another session" returns to the menu.
-    if (focus || deepCases || reviewMode) setParams({}, { replace: true });
+    if (focus || deepCases || reviewMode || englishMode) setParams({}, { replace: true });
   };
+
+  // NCLEX-language drill: decode the exam's own phrasing (the IEN point-saver).
+  if (englishMode) {
+    return <MedicalEnglishDrill onExit={reset} />;
+  }
 
   // Spaced re-practice: a session on exactly the items whose review is due.
   if (reviewMode) {
@@ -216,6 +223,21 @@ export default function Practice() {
         unfolding-case formats.
       </p>
       <ApplyProgramsCta placement="practice" compact className="mt-5 max-w-2xl" />
+
+      {/* Five-minute NCLEX-language drill - phrasing costs IEN candidates real
+          points; this decodes the exam's own wording. */}
+      <button
+        onClick={() => setParams({ mode: "english" })}
+        className="mt-6 flex w-full items-center justify-between rounded-2xl border border-florence-indigo/30 bg-florence-indigo-soft/30 px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-card"
+      >
+        <span>
+          <span className="text-sm font-semibold text-florence-ink">NCLEX language drill · 5 min</span>
+          <span className="mt-0.5 block text-xs text-florence-slate">
+            "Further teaching is needed", "assess first", "hold the med" - decode the exam's wording so it never costs you a point.
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-semibold text-florence-indigo">Start →</span>
+      </button>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {MODES.map((m) => (

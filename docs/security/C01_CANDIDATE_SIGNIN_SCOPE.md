@@ -1,5 +1,14 @@
 # C01 Full Close — Candidate Sign-In Scope
 
+> **📜 Executed (2026-07-12, same day).** The email one-time-code option was built: Core
+> `candidateAuth.ts` + `/login/candidate` + `/auth/candidate/request|verify` +
+> `/v1/candidates/provision` (M2M), Pathway intake hook + `provision-core-accounts`
+> back-fill + SPA sign-in bounce, and the extra REQUIRE_AUTH gates (candidates list /
+> workflow-create binding / deficiency-resolve). Proof: `verify-candidate-auth` 21/21 +
+> `require-auth-smoke` 15/15. Remaining = operator: run the back-fill, wire a
+> transactional email provider (dev echo is `CANDIDATE_OTP_DEV_ECHO=1`), set
+> `PATHWAY_REQUIRE_AUTH=1` in staging → prod. Kept as the design record.
+
 **Status:** scoping (2026-07-12). C01 is currently **mitigated** by the shadow-first
 `PATHWAY_REQUIRE_AUTH` switch (default OFF). This document scopes the work required to
 flip it **ON** in staging/prod, which is the full close.

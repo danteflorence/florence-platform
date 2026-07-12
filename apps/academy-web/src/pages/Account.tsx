@@ -27,6 +27,7 @@ import {
   type RemediationAssignment,
 } from "../lib/academyAuth";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
+import NclexReportCard from "../components/NclexReportCard";
 import { SECTIONS, CLIENT_NEED_LABEL } from "../data/blueprint";
 import type { ClientNeed } from "../types/question";
 import {
@@ -250,6 +251,8 @@ export default function Account() {
       </div>
 
       <RemediationCard candidateId={candidate.id} />
+
+      <NclexReportCard />
 
       <SponsoredAccessCard candidateId={candidate.id} />
 

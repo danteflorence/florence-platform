@@ -2,7 +2,7 @@
 // the optional `pg` driver — same approach as florence-academy/api. Apply the
 // schema first with `npm run migrate`.
 
-import type { ApiClient, ApplicationSubmissionLock, AuditRow, ConsentRow, DocumentAccessGrantRow, LoginCode, Nurse, NurseEvent, NurseRef, Org, PartnerOrg, ProgramScope, RestrictedDocumentRow, RoleGrant, SessionRow, SigningKeyRow, Store, SubmissionChannel, TenantScope, User } from "./store.ts";
+import type { ApiClient, ApplicationSubmissionLock, AuditRow, ConsentRow, DocumentAccessGrantRow, Nurse, NurseEvent, NurseRef, Org, PartnerOrg, ProgramScope, RestrictedDocumentRow, RoleGrant, SessionRow, SigningKeyRow, Store, SubmissionChannel, TenantScope, User } from "./store.ts";
 import type { Role } from "./roles.ts";
 
 const iso = (v: unknown): string => (v instanceof Date ? v.toISOString() : (v as string));
@@ -84,17 +84,6 @@ function userRow(r: any): User {
     created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
     updated_at: r.updated_at instanceof Date ? r.updated_at.toISOString() : r.updated_at,
     last_login_at: r.last_login_at ? (r.last_login_at instanceof Date ? r.last_login_at.toISOString() : r.last_login_at) : undefined,
-  };
-}
-function loginCodeRow(r: any): LoginCode {
-  return {
-    id: r.id,
-    email: r.email,
-    code_hash: r.code_hash,
-    expires_at: iso(r.expires_at),
-    attempts: Number(r.attempts),
-    consumed_at: r.consumed_at ? iso(r.consumed_at) : undefined,
-    created_at: iso(r.created_at),
   };
 }
 function orgRow(r: any): Org {
@@ -254,34 +243,6 @@ export class PostgresStore implements Store {
   async listUsers() {
     const { rows } = await this.sql.query("select * from users order by created_at");
     return rows.map(userRow);
-  }
-
-  async insertLoginCode(c: LoginCode) {
-    await this.sql.query(
-      `insert into login_codes (id,email,code_hash,expires_at,attempts,consumed_at,created_at)
-       values ($1,$2,$3,$4,$5,$6,$7)`,
-      [c.id, c.email, c.code_hash, c.expires_at, c.attempts, c.consumed_at ?? null, c.created_at],
-    );
-  }
-  async latestLoginCode(email: string) {
-    const { rows } = await this.sql.query(
-      "select * from login_codes where email=$1 order by created_at desc limit 1",
-      [email.toLowerCase()],
-    );
-    return rows[0] ? loginCodeRow(rows[0]) : undefined;
-  }
-  async updateLoginCode(id: string, patch: Partial<LoginCode>) {
-    const fields: string[] = [];
-    const vals: unknown[] = [];
-    let i = 1;
-    for (const [k, v] of Object.entries(patch)) {
-      if (k === "id") continue;
-      fields.push(`${k}=$${i++}`);
-      vals.push(v ?? null);
-    }
-    if (!fields.length) return;
-    vals.push(id);
-    await this.sql.query(`update login_codes set ${fields.join(",")} where id=$${i}`, vals);
   }
 
   async getOrgById(id: string) {
@@ -771,5 +732,28 @@ export class PostgresStore implements Store {
   async disputesByNurse(nurseId: string) {
     const { rows } = await this.sql.query("select * from data_disputes where nurse_id=$1 order by created_at", [nurseId]);
     return rows as import("./store.ts").DataDispute[];
+  }
+
+  async insertLoginCode(c: import("./store.ts").LoginCode) {
+    await this.sql.query(
+      `insert into login_codes (id, email, code_hash, expires_at, attempts, consumed_at, created_at)
+       values ($1,$2,$3,$4,$5,$6,$7) on conflict (id) do nothing`,
+      [c.id, c.email, c.code_hash, c.expires_at, c.attempts, c.consumed_at ?? null, c.created_at],
+    );
+  }
+  async latestLoginCode(email: string) {
+    const { rows } = await this.sql.query(
+      "select * from login_codes where email=$1 and consumed_at is null order by created_at desc limit 1",
+      [email],
+    );
+    return rows[0] as import("./store.ts").LoginCode | undefined;
+  }
+  async updateLoginCode(id: string, patch: Partial<import("./store.ts").LoginCode>) {
+    if (patch.attempts !== undefined) await this.sql.query("update login_codes set attempts=$1 where id=$2", [patch.attempts, id]);
+    if (patch.consumed_at !== undefined) await this.sql.query("update login_codes set consumed_at=$1 where id=$2", [patch.consumed_at, id]);
+  }
+  async loginCodesSince(email: string, sinceIso: string) {
+    const { rows } = await this.sql.query("select count(*)::int as n from login_codes where email=$1 and created_at >= $2", [email, sinceIso]);
+    return Number((rows[0] as { n: number } | undefined)?.n ?? 0);
   }
 }

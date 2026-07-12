@@ -1317,22 +1317,52 @@ api.patch('/ops/ats-applications/:id/status', h(async (req, res) => {
 
 // --- inbound ATS webhooks (provider-authenticated by timestamped HMAC over the
 // raw request body; NOT a Core user session, so these live OUTSIDE /ops auth). --
+// H04: on top of the timestamped-HMAC + replay-window check, the route is
+//   • rate-limited per provider+IP (best-effort in-memory, like the public routes)
+//   • IDEMPOTENT on the signature header via the DURABLE dual-store cache — a
+//     replayed valid delivery inside the replay window returns the original
+//     response instead of re-applying the status/ledger mutation
+//   • audited on every path (rejected signature / rate-limited / replayed / applied)
+const WEBHOOK_MAX_PER_MIN = Number(process.env.ATS_WEBHOOK_MAX_PER_MIN ?? 120)
+const webhookHits = new Map<string, number[]>()
+function webhookRateOk(key: string): boolean {
+  const cutoff = Date.now() - 60_000
+  const hits = (webhookHits.get(key) ?? []).filter((t) => t > cutoff)
+  if (hits.length >= WEBHOOK_MAX_PER_MIN) { webhookHits.set(key, hits); return false }
+  hits.push(Date.now())
+  webhookHits.set(key, hits)
+  return true
+}
 api.post('/webhooks/ats/:provider', h(async (req, res) => {
+  if (!webhookRateOk(`${req.params.provider}:${req.ip}`)) {
+    audit('connector', 'webhook.rate_limited', 'webhook', req.params.provider)
+    return res.status(429).json({ error: 'rate limited' })
+  }
   const rawBody = rawBodyFor(req)
+  const sigHeader = req.headers['x-florence-signature'] ?? req.headers['x-webhook-signature']
   const signature = verifyAtsWebhookSignature({
     rawBody: rawBody ?? Buffer.from(''),
     secret: process.env.ATS_WEBHOOK_SECRET,
-    signatureHeader: req.headers['x-florence-signature'] ?? req.headers['x-webhook-signature'],
+    signatureHeader: sigHeader,
   })
   if (!rawBody || !signature.ok) {
     audit('connector', 'webhook.signature_failed', 'webhook', req.params.provider, `reason=${signature.ok ? 'missing_raw_body' : signature.reason}`)
     return res.status(401).json({ error: 'bad webhook signature' })
+  }
+  // The (timestamp, HMAC) pair uniquely identifies a delivery — a byte-identical
+  // replay hits the durable cache and never double-applies.
+  const idemKey = `webhook:ats:${req.params.provider}:${Array.isArray(sigHeader) ? sigHeader[0] : sigHeader}`
+  const cached = await store.idempotency.get(idemKey)
+  if (cached) {
+    audit('connector', 'webhook.replayed', 'webhook', req.params.provider, 'duplicate delivery — original response replayed, no re-apply')
+    return res.status(cached.status).json(cached.body)
   }
   const extId = String(req.body?.atsApplicationId ?? req.body?.application_id ?? '')
   const status = String(req.body?.status ?? '') as ATSApplicationStatus
   if (!extId || !status) return res.status(400).json({ error: 'atsApplicationId + status required' })
   const r = await applyWebhookStatus(req.params.provider, extId, status, req.body?.atsStage ? String(req.body.atsStage) : undefined)
   audit('connector', 'webhook_status', 'application', extId, `${req.params.provider} ${status} → ${r.applied ? 'applied' : 'skipped'}`)
+  await store.idempotency.put(idemKey, 200, r)
   res.json(r)
 }))
 

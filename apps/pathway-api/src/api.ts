@@ -33,13 +33,18 @@ export function staffLogout(): void {
   staffOk = false
   window.location.href = `${CORE_URL}/logout?redirect=${encodeURIComponent(location.origin)}`
 }
+/** Candidate sign-in (C01): Core's email one-time-code page. Used when the server
+ *  runs with PATHWAY_REQUIRE_AUTH=1 and a candidate surface gets "Sign in required." */
+export function candidateLogin(): void {
+  window.location.href = `${CORE_URL}/login/candidate?redirect=${encodeURIComponent(location.href)}`
+}
 
 // ── Candidate sign-in (C01 full close): passwordless email code via Core ────
 // The SPA talks to Core directly (allowlisted CORS + credentials); Core sets the
 // shared fl_session cookie on verify, so /api/session then reports `cand` and
 // every /api call is candidate-bound server-side. No password ever exists.
 export async function requestSignInCode(email: string): Promise<void> {
-  await fetch(`${CORE_URL}/auth/otp/request`, {
+  await fetch(`${CORE_URL}/auth/candidate/request`, {
     method: 'POST', credentials: 'include',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ email }),
@@ -47,7 +52,7 @@ export async function requestSignInCode(email: string): Promise<void> {
   // Enumeration-safe by design: the response never says whether the email exists.
 }
 export async function verifySignInCode(email: string, code: string): Promise<boolean> {
-  const r = await fetch(`${CORE_URL}/auth/otp/verify`, {
+  const r = await fetch(`${CORE_URL}/auth/candidate/verify`, {
     method: 'POST', credentials: 'include',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ email, code }),
@@ -62,6 +67,12 @@ export function signOut(): void { staffLogout() }
 async function j<T>(r: Response): Promise<T> {
   if (!r.ok) {
     const body = await r.json().catch(() => ({}))
+    // The REQUIRE_AUTH gate answers exactly "Sign in required." — bounce the
+    // candidate to Core's candidate sign-in and return here signed in. Scoped to
+    // that exact message so staff-surface 401s keep their existing sign-in card.
+    if (r.status === 401 && (body as any).error === 'Sign in required.') {
+      candidateLogin()
+    }
     throw new Error((body as any).error ? JSON.stringify((body as any).error) : r.statusText)
   }
   return r.json() as Promise<T>

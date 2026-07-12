@@ -50,10 +50,12 @@ const PAYMENT_STATUS_LABEL: Record<ConsularPaymentStatus, string> = {
 
 const ORDER_READY_STATUSES = new Set(['qa_approved', 'sent_to_candidate', 'candidate_signed', 'submitted', 'completed'])
 const DEPENDENT_VISAS = new Set<ConsularVisaType>(['F2', 'M2', 'J2'])
+// H05 data-minimization: exactly what the I-901 payment partner needs — no more.
+// Phone was removed (SEVISmate matches on florence_order + email; contact data
+// beyond that exceeds the precise partner need).
 const I901_FIELDS_SENT = [
   'legalName',
   'email',
-  'phone',
   'sevisId',
   'formType',
   'schoolCode',
@@ -348,7 +350,10 @@ export async function createSevismateHandoff(orderId: string, integrationMode: S
       'Use SEVISmate only through the student-facing guided flow or an approved partner channel.',
       'Do not share passport scans, DS-160 drafts, financing details, employer packets, or sensitive immigration notes.',
       `Candidate: ${legalName(d.profile)}`,
-      `SEVIS ID: ${d.schoolPrograms[0]?.i20Number ?? 'missing'}`,
+      // H05: the full SEVIS id travels only in the structured handoff/CSV — the
+      // human-readable instruction text carries the masked form (smaller blast
+      // radius if instructions get pasted into tickets/chat).
+      `SEVIS ID: ${d.schoolPrograms[0]?.i20Number ? maskSevisId(d.schoolPrograms[0].i20Number) : 'missing'}`,
     ],
   }
 }
@@ -597,16 +602,20 @@ export async function consularPaymentsReconciliation(): Promise<PaymentReconcili
   }
 }
 
-export async function sevismateCsv(): Promise<string> {
-  const header = ['florence_order', 'candidate_name', 'email', 'phone', 'sevis_id', 'form_type', 'school_code', 'visa_category', 'country', 'payment_speed', 'consent_id']
+// H05: the export is minimized to the precise partner need — the SEVIS id is the
+// payment key (FMJfee requires it), but phone/extra contact data never ship.
+// Returns a manifest so the caller can audit every export (rows + exact fields).
+export async function sevismateCsv(): Promise<{ csv: string; manifest: { rows: number; fields: string[] } }> {
+  const header = ['florence_order', 'candidate_name', 'email', 'sevis_id', 'form_type', 'school_code', 'visa_category', 'country', 'payment_speed', 'consent_id']
   const rows = await Promise.all((await store.consularPaymentOrders.all())
     .filter((o) => o.paymentType === 'i901_sevis' && o.required && ['ready_for_sevismate', 'payment_link_generated'].includes(o.status))
     .map(async (o) => {
       const d = await assertCandidate(o.candidateId)
       const s = d.schoolPrograms[0]
-      return [o.id, legalName(d.profile), d.profile.email, d.profile.phone ?? '', s?.i20Number ?? '', 'I-20', s?.sevisSchoolCode ?? '', o.visaType, d.profile.countryOfResidence, o.serviceSpeed ?? 'standard', o.candidateAttestationId ?? '']
+      return [o.id, legalName(d.profile), d.profile.email, s?.i20Number ?? '', 'I-20', s?.sevisSchoolCode ?? '', o.visaType, d.profile.countryOfResidence, o.serviceSpeed ?? 'standard', o.candidateAttestationId ?? '']
     }))
-  return [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+  return { csv, manifest: { rows: rows.length, fields: header } }
 }
 
 export async function candidatePaymentSummary(candidateId: string) {

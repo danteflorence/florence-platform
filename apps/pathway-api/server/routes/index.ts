@@ -9,7 +9,7 @@ import { ALL_RULES, getRule } from '../../shared/rules'
 import { WORKFLOW_META, VISA_OUTCOME_LABEL } from '../../shared/constants'
 import type { CandidateProfile, WorkflowInstance, PathwayDocument, IdentityDocument } from '../../shared/types'
 import { runPipeline, pushMilestone } from '../agents'
-import { emitForCandidate, provisionCandidateUser } from '../passport'
+import { emitForCandidate, provisionCoreLogin } from '../passport'
 import { notifyCandidate, scanDeadlines, sendWeeklyDigests, transportMode } from '../notifications'
 import { attestStatus, ATTESTABLE_STATUSES, integrationModes, syncExternalStatuses, visaWaitDays } from '../integrations'
 import { checkFreshness, approveSourceChange, freshnessBoard } from '../freshness'
@@ -120,6 +120,43 @@ api.use('/workflows/:id', mw(async (req, res, next) => {
   }
   next()
 }))
+// The remaining candidate-data surfaces outside the two :id prefixes, closed under
+// the same switch (POST /candidates — intake/signup — deliberately stays open so a
+// NEW candidate can register before they can sign in):
+//   • GET /candidates lists every candidate summary → staff-only once auth is on.
+//   • POST /workflows carries candidateId in the BODY → bind non-staff to their own.
+//   • POST /deficiencies/:id/resolve mutates a candidate's workflow → bind likewise.
+api.get('/candidates', mw(async (req, res, next) => {
+  if (!REQUIRE_AUTH) return next()
+  const p = await principalFromRequest(req)
+  if (!p) { res.status(401).json({ error: 'Sign in required.' }); return }
+  if (!isStaffPrincipal(p)) { res.status(403).json({ error: 'Staff only.' }); return }
+  next()
+}))
+api.post('/workflows', mw(async (req, res, next) => {
+  if (!REQUIRE_AUTH) return next()
+  const p = await principalFromRequest(req)
+  if (!p) { res.status(401).json({ error: 'Sign in required.' }); return }
+  const bodyCandidate = typeof req.body?.candidateId === 'string' ? req.body.candidateId : ''
+  if (!isStaffPrincipal(p) && p.cand !== bodyCandidate) {
+    res.status(403).json({ error: 'You can only access your own records.' })
+    return
+  }
+  next()
+}))
+api.post('/deficiencies/:id/resolve', mw(async (req, res, next) => {
+  if (!REQUIRE_AUTH) return next()
+  const p = await principalFromRequest(req)
+  if (!p) { res.status(401).json({ error: 'Sign in required.' }); return }
+  if (!isStaffPrincipal(p)) {
+    const def = await store.deficiencies.get(req.params.id)
+    if (def && def.candidateId !== p.cand) {
+      res.status(403).json({ error: 'You can only access your own records.' })
+      return
+    }
+  }
+  next()
+}))
 
 // --- meta ------------------------------------------------------------------
 api.get('/health', h(async (_req, res) => res.json({
@@ -150,9 +187,9 @@ api.post('/candidates', h(async (req, res) => {
   }
   await store.candidates.insert(profile)
   await audit('system', 'candidate_created', 'candidate', profile.id, profile.id)
-  // Provision the candidate's Core sign-in account (OTP / C01). Fire-and-forget:
-  // mock-by-default no-op without client creds; the back-fill script sweeps misses.
-  void provisionCandidateUser(profile.id).catch(() => undefined)
+  // C01: give the new candidate a Core sign-in (fire-and-forget, mock-by-default)
+  // so PATHWAY_REQUIRE_AUTH can flip on without locking candidates out.
+  provisionCoreLogin(profile.id)
   res.json({ id: profile.id })
 }))
 
