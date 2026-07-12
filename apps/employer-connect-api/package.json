@@ -36,7 +36,8 @@
     "core-required-smoke": "node --import tsx scripts/core-required-smoke.ts",
     "onboarding-risk-smoke": "node --import tsx scripts/onboarding-risk-smoke.ts",
     "reservations-smoke": "node --import tsx scripts/reservations-smoke.ts",
-    "vms-smoke": "node --import tsx scripts/vms-smoke.ts"
+    "vms-smoke": "node --import tsx scripts/vms-smoke.ts",
+    "tenant-scope-smoke": "node --import tsx scripts/tenant-scope-smoke.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

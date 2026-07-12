@@ -280,8 +280,37 @@ async function createPacketSignedUrl(req: Request, args: {
 // scoped to their own employer; the candidate pool, cross-employer dashboards,
 // and audit log are FlorenceRN-ops only.
 api.use(['/ops', '/candidates', '/ledger'], requireAuth)
+
+// C03 — deny-by-default tenant gate. `/ops`, `/candidates`, and `/ledger` are
+// FlorenceRN-ops surfaces. An employer-role token is allowed ONLY on the explicit
+// allowlist below: GET-only, and every listed handler MUST scope its result to the
+// caller's employerId. Any other path or method is 403 for employers. This is
+// fail-closed — a NEW `/ops` route is ops-only until it is deliberately added here
+// with tenant scoping, so isolation no longer depends on each handler remembering to
+// filter. Regexes are router-relative (the `/api` app-mount is stripped first).
+const EMPLOYER_GET_ALLOWLIST: RegExp[] = [
+  /^\/ops\/employers$/,
+  /^\/ops\/employers\/[^/]+$/,
+  /^\/ops\/employers\/[^/]+\/requisitions$/,
+  /^\/ops\/requisitions$/,
+  /^\/ops\/requisitions\/[^/]+$/,
+  /^\/ops\/requisitions\/[^/]+\/matches$/,
+  /^\/ops\/application-packets$/,
+  /^\/ops\/application-packets\/[^/]+$/,
+  /^\/ops\/application-packets\/[^/]+\/resume\.pdf$/,
+  /^\/ops\/ats-applications$/,
+  /^\/ledger$/,
+]
 api.use(['/ops', '/candidates', '/ledger'], (req: Request, res: Response, next: NextFunction) => {
-  if (req.method !== 'GET' && currentUser(req)?.role !== 'ops') return res.status(403).json({ error: 'Read-only: employer role cannot modify.' })
+  if (currentUser(req)?.role === 'ops') return next() // FlorenceRN ops: full access
+  // Employer (any non-ops authenticated role): read-only AND allowlisted GETs only.
+  if (req.method !== 'GET') return res.status(403).json({ error: 'Read-only: employer role cannot modify.' })
+  const full = req.originalUrl.split('?')[0].replace(/\/+$/, '') || '/'
+  const rel = full.replace(/^\/api(?=\/)/, '')
+  if (!EMPLOYER_GET_ALLOWLIST.some((rx) => rx.test(rel))) {
+    auditTenantScopeDenied(req, 'route', rel, currentUser(req)?.employerId ?? 'unknown')
+    return res.status(403).json({ error: 'This surface is FlorenceRN-ops only.' })
+  }
   next()
 })
 api.use(['/candidates', '/ops/dashboards', '/ops/audit'], requireRole('ops'))
@@ -1342,6 +1371,14 @@ api.post('/ledger/events', requireRole('ops'), h(async (req, res) => {
 }))
 api.get('/ledger', h(async (req, res) => {
   const { candidateId, employerId } = req.query as { candidateId?: string; employerId?: string }
+  // C03 — an employer token is HARD-scoped to its own tenant regardless of the
+  // query filters it supplies (a caller-supplied employerId/candidateId can never
+  // widen the read). ops sees everything and may filter by candidate or employer.
+  const s = scopeEmployerId(req)
+  if (s) {
+    const rows = await store.ledger.byEmployer(s)
+    return res.json(candidateId ? rows.filter((e) => e.candidateId === candidateId) : rows)
+  }
   if (candidateId) return res.json(await store.ledger.byCandidate(candidateId))
   if (employerId) return res.json(await store.ledger.byEmployer(employerId))
   res.json(await store.ledger.all())
