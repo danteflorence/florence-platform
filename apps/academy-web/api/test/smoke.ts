@@ -1021,6 +1021,13 @@ try {
   assert.ok(typeof sbj.my_runs === "number");
   ok("sim benchmark: K-anonymity gate holds below 5 participants");
 
+  // Live patient pilot: fails CLOSED without env (SPA hides the button on 503).
+  const pc = await fetch(`${base}/v1/sim/patient-call`, { headers: bearer(CS) });
+  assert.equal(pc.status, 503);
+  const pcj = (await pc.json()) as any;
+  assert.equal(pcj.error.code, "not_configured");
+  ok("live patient call: 503 not_configured without agent env (fail closed)");
+
   // Field signal: employer feedback aggregates per competency at K>=3.
   for (const rating of [2, 3, 2]) {
     const fb = await fetch(`${base}/v1/outcomes`, {

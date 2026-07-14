@@ -3717,6 +3717,43 @@ async function getFieldSignal(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 200, { total_feedback: total, by_competency: rows });
 }
 
+// Live conversational patient (pilot) - mints a short-lived SIGNED session
+// URL for the ElevenLabs patient agent so the browser can open the voice
+// WebSocket without ever seeing our API key. Off unless BOTH env vars are set
+// (the SPA hides the button on 503), per-candidate daily cap because agent
+// minutes are metered, and every mint lands in the audit trail. The agent's
+// prompt receives only what the PATIENT knows - it cannot leak answers.
+const PATIENT_CALL_DAILY_CAP = 5;
+const patientCallCounts = new Map<string, { day: string; n: number }>();
+
+async function getPatientCall(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "patient_call_session";
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceId = bound;
+  const key = process.env["ELEVENLABS_API_KEY"] ?? "";
+  const agentId = process.env["ELEVENLABS_AGENT_ID"] ?? "";
+  if (!key || !agentId)
+    return err(ctx, 503, "not_configured", "live patient conversations are not enabled");
+  // ?check=1 answers "is this enabled?" without minting (and without spending
+  // a metered session) - the SPA uses it to decide whether to show the button.
+  if (ctx.query.get("check") === "1") return send(ctx, 200, { configured: true });
+  const today = new Date().toISOString().slice(0, 10);
+  const row = patientCallCounts.get(bound);
+  const n = row?.day === today ? row.n : 0;
+  if (n >= PATIENT_CALL_DAILY_CAP)
+    return err(ctx, 429, "rate_limited", "daily live-conversation limit reached; the tap-to-ask patient is always available");
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`,
+    { headers: { "xi-api-key": key } },
+  );
+  if (!res.ok) return err(ctx, 502, "upstream_error", "could not start a live session");
+  const j = (await res.json()) as { signed_url?: string };
+  if (!j.signed_url) return err(ctx, 502, "upstream_error", "could not start a live session");
+  patientCallCounts.set(bound, { day: today, n: n + 1 });
+  send(ctx, 200, { signed_url: j.signed_url, sessions_left_today: PATIENT_CALL_DAILY_CAP - n - 1 });
+}
+
 // Graded charting practice - the first-90-days documentation skill. The
 // grader is a deterministic, auditable heuristic (src/charting.ts); a model
 // gateway may later polish the feedback PROSE, but pass/fail logic stays
@@ -4736,6 +4773,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
   compile("GET", "/v1/me/sim-benchmark", "candidates:read", true, getMySimBenchmark),
   compile("POST", "/v1/sim/chart-note", "candidates:read", true, postChartNote),
+  compile("GET", "/v1/sim/patient-call", "candidates:read", true, getPatientCall),
   compile("GET", "/v1/curriculum/field-signal", "cohorts:read", false, getFieldSignal),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),

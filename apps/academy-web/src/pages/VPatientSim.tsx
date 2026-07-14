@@ -27,6 +27,7 @@ import type { CjmmStep } from "../types/question";
 import { coachingFocus } from "../lib/vpatient/score";
 import { listenOnce, speechAvailable, type ListenHandle } from "../lib/speech";
 import { recastOptions, recastScenario } from "../lib/vpatient/recast";
+import LivePatientOverlay from "../components/vpatient/LivePatientOverlay";
 import {
   applyDifficulty,
   DIFFICULTIES,
@@ -163,6 +164,19 @@ export function SimRunner({
   const [tutorHint, setTutorHint] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const micHandle = useRef<ListenHandle | null>(null);
+  // Live conversational patient (pilot): probe once per run, mint nothing.
+  const [liveEnabled, setLiveEnabled] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
+  useEffect(() => {
+    if (!storedToken() || !apiBaseUrl()) return;
+    let on = true;
+    call<{ configured: boolean }>("/v1/sim/patient-call?check=1")
+      .then((r) => on && setLiveEnabled(r.configured === true))
+      .catch(() => undefined);
+    return () => {
+      on = false;
+    };
+  }, []);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Vitals trend history for the tile sparklines: sample every 2s, keep the
@@ -495,6 +509,17 @@ export function SimRunner({
               </div>
               {askReply && <p className="mt-2 text-sm italic text-florence-indigo">"{askReply}"</p>}
 
+              {/* Live conversational patient (pilot) - only when the server
+                  says it's enabled; everything degrades to tap-to-ask. */}
+              {liveEnabled && (
+                <button
+                  onClick={() => setLiveOpen(true)}
+                  className="mt-2 w-full rounded-lg border border-florence-indigo/30 bg-florence-indigo-soft/30 px-3 py-2 text-sm font-semibold text-florence-indigo hover:bg-florence-indigo-soft/50"
+                >
+                  🗣 Talk with {scenario.patient.name} - live voice (beta)
+                </button>
+              )}
+
               {/* Safe-to-fail tutor: a Socratic nudge, never the answer. */}
               <div className="mt-3 border-t border-florence-line pt-3">
                 <div className="flex items-center justify-between gap-2">
@@ -536,6 +561,11 @@ export function SimRunner({
           </>
         )}
       </main>
+
+      {/* Live voice conversation with the patient (pilot). */}
+      {liveOpen && !state.ended && (
+        <LivePatientOverlay scenario={scenario} onClose={() => setLiveOpen(false)} />
+      )}
 
       {/* The SBAR call overlay - the clock keeps ticking while they compose.
           Orders = labels of actions this call unlocks; they drive the
