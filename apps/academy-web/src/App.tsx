@@ -47,14 +47,17 @@ export default function App() {
 
       <header className="sticky top-0 z-40 border-b border-florence-line/80 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
-          <Link to="/learn" className="group flex shrink-0 items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-florence-gradient text-sm font-bold text-white shadow-card">
-              F
-            </span>
+          <Link to="/learn" className="group flex shrink-0 items-center gap-2">
+            {/* The official Florence wordmark (florenceedu.com brand asset). */}
+            <img
+              src="/brand/logo-black-small.png"
+              alt="Florence"
+              className="h-6 w-auto sm:h-7"
+              decoding="async"
+            />
             <span className="flex flex-col leading-none">
-              <span className="whitespace-nowrap font-serif text-base font-semibold text-florence-ink sm:text-lg">
-                <span className="sm:hidden">Florence</span>
-                <span className="hidden sm:inline">Florence Academy</span>
+              <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.14em] text-florence-teal-dark">
+                Academy
               </span>
               {/* Hide subline on mobile so the wordmark + Practice + Sign in
                   fit on one row at 375px. */}

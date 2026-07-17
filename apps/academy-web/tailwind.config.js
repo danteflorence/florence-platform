@@ -32,8 +32,8 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
-        sans: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
+        serif: ['"Instrument Serif"', "Georgia", "serif"],
+        sans: ['"Inter Tight"', "Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
         xl: "0.875rem",
