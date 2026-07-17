@@ -49,23 +49,17 @@ function MarketingHeader() {
   return (
     <header className="border-b border-florence-line/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          {/* The official Florence wordmark (florenceedu.com brand asset). */}
+        <Link to="/" className="flex shrink-0 flex-col leading-none" aria-label="Florence Academy">
+          {/* Stacked brand lockup: the official Florence wordmark
+              (florenceedu.com asset) with ACADEMY letterspaced beneath it. */}
           <img
             src="/brand/logo-black-small.png"
             alt="Florence"
-            className="h-6 w-auto sm:h-7"
+            className="h-5 w-auto sm:h-6"
             decoding="async"
           />
-          <span className="flex flex-col leading-none">
-            <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.14em] text-florence-teal-dark">
-              Academy
-            </span>
-            {/* Mobile drops the "NCLEX-RN Bootcamp" subline - header has to
-                fit the wordmark, sign-in, and reserve CTA on one row. */}
-            <span className="hidden whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em] text-florence-slate sm:block">
-              NCLEX-RN Bootcamp
-            </span>
+          <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.34em] text-florence-teal-dark">
+            Academy
           </span>
         </Link>
         <nav className="flex shrink-0 items-center gap-1 text-sm font-medium text-florence-slate">
