@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useCandidate } from "../lib/CandidateContext";
 import {
   ApiError,
+  call,
   attestAffiliation,
   clearRemediation,
   fetchMyAudit,
@@ -312,6 +313,13 @@ function VerifyBanner({ email }: { email?: string }) {
   );
 }
 
+interface MarketInfo {
+  code: string;
+  symbol: string;
+  methods: string[];
+  display_price?: string;
+}
+
 function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
   const [params, setParams] = useSearchParams();
   const returned = params.get("access") ?? params.get("deposit");
@@ -321,6 +329,21 @@ function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
   // Auto-enrollment outcome message, surfaced only after checkout success
   // return when there was a pending cohort code from the public landing.
   const [autoEnroll, setAutoEnroll] = useState<string | null>(null);
+  // Local-market pricing: a Manila candidate sees ₱ + GCash, Nairobi sees
+  // KSh + M-Pesa. Display-only - the server re-derives price at checkout.
+  const { candidate } = useCandidate();
+  const [market, setMarket] = useState<MarketInfo | null>(null);
+  useEffect(() => {
+    const country = candidate?.country;
+    if (!country) return;
+    let live = true;
+    call<MarketInfo>(`/v1/public/market?country=${encodeURIComponent(country)}&usd_cents=10000`)
+      .then((m) => live && m.code !== "INTL" && setMarket(m))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [candidate?.country]);
 
   const refresh = useCallback(async () => {
     try {
@@ -446,8 +469,16 @@ function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
             <PriceRow label="Program value" value="$200" />
             <PriceRow label="University sponsorship" value="-$100" />
             <PriceRow label="Student price" value="$100" strong />
+            {market?.display_price && (
+              <PriceRow label="You pay (local)" value={`${market.display_price}`} strong />
+            )}
             <PriceRow label="Application fee" value="Covered by Florence" />
           </div>
+          {market && market.methods.length > 0 && (
+            <p className="mt-2 text-xs text-florence-slate">
+              Pay with {market.methods.join(" · ")} — charged in your local currency.
+            </p>
+          )}
           {error && (
             <p className="mt-3 rounded-lg bg-vital-danger/10 px-3 py-2 text-sm text-vital-danger">{error}</p>
           )}
@@ -458,7 +489,7 @@ function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
             variant="accent"
             className="mt-4"
           >
-            {busy ? "Starting..." : "Start Global Live access - $100"}
+            {busy ? "Starting..." : `Start Global Live access - ${market?.display_price ?? "$100"}`}
           </FlorenceButton>
           <ApplyProgramsCta placement="account" compact className="mt-4" />
         </>

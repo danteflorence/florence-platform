@@ -1094,17 +1094,63 @@ try {
   const cj = (await checkout.json()) as any;
   assert.equal(checkout.status, 201);
   assert.equal(cj.provider, "mock");
-  assert.equal(cj.amount_cents, 10000);
+  // This candidate signed up with country "PH", so the $100 USD quote is
+  // CHARGED in pesos at the operator anchor - the global-markets feature.
+  assert.equal(cj.currency, "php");
+  assert.equal(cj.amount_cents, 570000); // $100 → ₱5,700
   assert.ok(String(cj.checkout_url).includes("/checkout/mock"));
   assert.equal(cj.quote.product_name, "Florence Academy Global Live NCLEX Access");
-  assert.equal(cj.quote.student_price_usd, 100);
+  assert.equal(cj.quote.student_price_usd, 100); // the quote itself stays USD
   assertSafeApplyUrl(cj.quote.apply_url, "avila");
   assert.equal((await deps.store.payments.get(cj.payment_id))?.candidate_id, meId);
-  ok("candidate starts a $100 Global Live access checkout (mock) -> 201 with hosted URL");
+  ok("PH candidate's $100 checkout charges ₱5,700 (mock rail) -> 201 with hosted URL");
 
   const complete = await fetch(`${base}/v1/payments/${cj.payment_id}/mock-complete`, { method: "POST" });
   assert.equal(complete.status, 200);
   ok("mock-complete marks Global Live access paid");
+
+  // 5h.1) Global markets: country routes currency + price tag + methods.
+  // A Manila candidate pays in pesos (GCash rail when keyed), Nairobi in
+  // shillings; the default stays USD. Amounts are the operator-owned anchors.
+  const mkCand = async (email: string, country: string) => {
+    const r = (await (
+      await fetch(`${base}/v1/auth/signup`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password: "Vv9!globalPay26", full_name: "Global Pay", country }),
+      })
+    ).json()) as any;
+    return { id: r.candidate.id as string, tok: r.token.access_token as string };
+  };
+  const ph = await mkCand("ph-pay@smoke.test", "Philippines");
+  const phCo = (await (
+    await fetch(`${base}/v1/academy/access-passes/checkout`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${ph.tok}` },
+      body: JSON.stringify({ candidate_id: ph.id, sponsor: "avila", session_id: "anon_checkout_ph1" }),
+    })
+  ).json()) as any;
+  assert.equal(phCo.currency, "php");
+  assert.equal(phCo.amount_cents, 570000); // $100 → ₱5,700 at the ₱57 anchor
+  assert.equal(phCo.market.display_price, "₱5,700");
+  assert.ok(phCo.market.methods.includes("GCash"));
+  const ke = await mkCand("ke-pay@smoke.test", "Kenya");
+  const keCo = (await (
+    await fetch(`${base}/v1/academy/access-passes/checkout`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${ke.tok}` },
+      body: JSON.stringify({ candidate_id: ke.id, sponsor: "avila", session_id: "anon_checkout_ke1" }),
+    })
+  ).json()) as any;
+  assert.equal(keCo.currency, "kes");
+  assert.equal(keCo.amount_cents, 1290000); // $100 → KSh12,900
+  assert.ok(keCo.market.methods.includes("M-Pesa"));
+  // Public market probe (pre-signup pricing display; no auth).
+  const pm = (await (await fetch(`${base}/v1/public/market?country=Nigeria&usd_cents=7500`)).json()) as any;
+  assert.equal(pm.currency, "ngn");
+  assert.equal(pm.display_price, "₦115,500"); // $75 at the ₦1540 anchor
+  assert.ok(pm.methods.includes("Bank transfer"));
+  ok("global markets: PH→₱5,700 GCash, KE→KSh12,900 M-Pesa, public probe ₦; default stays USD");
 
   const pays = (await (await fetch(`${base}/v1/payments?candidate_id=${meId}`, { headers: bearer(T) })).json()) as any;
   assert.ok(pays.data.some((p: any) => p.status === "paid" && p.kind === "global_live_access"));
@@ -1706,9 +1752,10 @@ try {
   const co = (await (await fetch(`${base}/v1/academy/access-passes/checkout`, {
     method: "POST", headers: { "content-type": "application/json", ...bearer(CS) }, body: JSON.stringify({ sponsor: "webster", session_id: "anon_school1234" }),
   })).json()) as any;
-  assert.equal(co.amount_cents, 10000);
+  assert.equal(co.amount_cents, 570000); // PH candidate: $100 quote charged as ₱5,700
+  assert.equal(co.quote.student_price_usd, 100);
   assert.equal(co.quote.sponsor_slug, "webster");
-  ok("eligible-school candidate Global Live checkout -> $100 sponsored access");
+  ok("eligible-school candidate Global Live checkout -> $100 quote charged in ₱");
 
   // K-anonymity: with 1 affiliated candidate (< K=10), report is suppressed.
   const rep1 = (await (await fetch(`${base}/v1/schools/FLR-DEMO-A/report`, { headers: bearer(T) })).json()) as any;

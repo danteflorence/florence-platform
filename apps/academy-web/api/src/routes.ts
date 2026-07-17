@@ -117,6 +117,8 @@ import type {
 } from "./types.ts";
 import { isScope } from "./types.ts";
 import { gradeChartNote } from "./charting.ts";
+import { providerByName, providerForMarket } from "./payments.ts";
+import { MARKETS, formatLocal, localAmountCents, marketForCountry } from "./markets.ts";
 
 const PROGRESS_STATUSES: readonly ProgressStatus[] = [
   "not_started",
@@ -1684,18 +1686,27 @@ async function postAccessCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   if (config.requireEmailVerification && !cand.email_verified)
     return err(ctx, 403, "email_not_verified", "please verify your email before starting checkout");
 
-  const { currency } = config.payments;
   const sponsored = await resolveSponsoredAccess(deps, ctx.body);
   if (!sponsored)
     return err(ctx, 404, "sponsorship_not_found", "no active sponsored access program found");
-  const amountCents = sponsored.quote.student_price_usd * 100;
+  // Global signup: the candidate's country picks the currency, price tag, and
+  // payment rail (PH→PayMongo/GCash in ₱, KE/GH/NG→Paystack/M-Pesa-MoMo,
+  // everyone else→the default provider in USD). A market whose regional
+  // provider isn't keyed falls back to the default - never a blocked signup.
+  // Currency/price always follow the market (Stripe cards can present PHP/
+  // KES/GHS/NGN too); the RAIL upgrades to the regional provider when keyed.
+  const market = marketForCountry(cand.country);
+  const provider = providerForMarket(market.provider, deps.payments);
+  const usdCents = sponsored.quote.student_price_usd * 100;
+  const amountCents = market.code === "INTL" ? usdCents : localAmountCents(market, usdCents);
+  const currency = market.code === "INTL" ? config.payments.currency : market.currency;
   const payment = await deps.store.payments.create({
     candidate_id,
     kind: "global_live_access",
     amount_cents: amountCents,
     currency,
     status: "pending",
-    processor: deps.payments.name,
+    processor: provider.name,
     processor_ref: "pending",
   });
   const accessPass = await deps.store.accessPasses.create({
@@ -1723,7 +1734,7 @@ async function postAccessCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   const cancelUrl = `${config.publicAppUrl}/#/academy/account?access=cancelled`;
   let checkout;
   try {
-    checkout = await deps.payments.createCheckout({
+    checkout = await provider.createCheckout({
       paymentId: payment.id,
       candidateId: candidate_id,
       amountCents,
@@ -1731,6 +1742,7 @@ async function postAccessCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
       successUrl,
       cancelUrl,
       productName: ACADEMY_ACCESS_PRODUCT_NAME,
+      customerEmail: cand.email,
     });
   } catch {
     await deps.store.payments.update(payment.id, { status: "failed" });
@@ -1742,36 +1754,70 @@ async function postAccessCheckout(ctx: ReqCtx, deps: Deps): Promise<void> {
   send(ctx, 201, {
     payment_id: payment.id,
     checkout_url: checkout.url,
-    provider: deps.payments.name,
+    provider: provider.name,
     amount_cents: amountCents,
     currency,
+    market: {
+      code: market.code,
+      symbol: market.symbol,
+      display_price: formatLocal(market, amountCents),
+      // Wallet/mobile-money badges only when the regional rail is actually
+      // live; a fallback provider serves cards in the local currency.
+      methods: provider.name === market.provider || provider.isMock ? market.methods : MARKETS.INTL.methods,
+    },
     access_pass_id: accessPass.id,
     quote: sponsored.quote,
   });
 }
 
-// Stripe webhook (public; verified by signature). On checkout.session.completed
-// the sponsored access payment is marked paid and the pass is activated.
-async function postStripeWebhook(ctx: ReqCtx, deps: Deps): Promise<void> {
-  const sig = typeof ctx.headers["stripe-signature"] === "string" ? ctx.headers["stripe-signature"] : undefined;
-  const result = deps.payments.verifyWebhook(ctx.rawBody ?? "", sig);
-  if (!result) return err(ctx, 400, "invalid_webhook", "signature verification failed or event ignored");
-  if (result.paid) await markAccessPaymentPaid(deps, result.paymentId, result.providerRef);
-  ctx.resourceType = "payment";
-  ctx.resourceId = result.paymentId;
-  send(ctx, 200, { received: true });
+// Provider webhooks (public; verified by each provider's signature scheme).
+// One factory serves Stripe / PayMongo / Paystack - on a verified "paid"
+// event the payment is marked paid and the pass activates.
+function paymentWebhook(providerName: string, headerName: string) {
+  return async function postPaymentWebhook(ctx: ReqCtx, deps: Deps): Promise<void> {
+    const provider = providerByName(providerName, deps.payments);
+    if (!provider) return err(ctx, 404, "not_found", `${providerName} is not configured`);
+    const sig = typeof ctx.headers[headerName] === "string" ? (ctx.headers[headerName] as string) : undefined;
+    const result = provider.verifyWebhook(ctx.rawBody ?? "", sig);
+    if (!result) return err(ctx, 400, "invalid_webhook", "signature verification failed or event ignored");
+    if (result.paid) await markAccessPaymentPaid(deps, result.paymentId, result.providerRef);
+    ctx.resourceType = "payment";
+    ctx.resourceId = result.paymentId;
+    send(ctx, 200, { received: true });
+  };
 }
+const postStripeWebhook = paymentWebhook("stripe", "stripe-signature");
+const postPayMongoWebhook = paymentWebhook("paymongo", "paymongo-signature");
+const postPaystackWebhook = paymentWebhook("paystack", "x-paystack-signature");
 
-// Dev-only: completes a MOCK checkout (no real money). Disabled when a real
-// Stripe provider is configured.
+// Dev-only: completes a MOCK checkout (no real money). Guarded by the
+// payment row's own processor, so it can never touch a real-provider payment.
 async function postMockComplete(ctx: ReqCtx, deps: Deps): Promise<void> {
-  if (!deps.payments.isMock) return err(ctx, 404, "not_found", "not available");
   const id = ctx.params["id"] ?? "";
   ctx.resourceType = "payment";
   ctx.resourceId = id;
-  if (!(await deps.store.payments.get(id))) return err(ctx, 404, "not_found", "payment not found");
+  const pay = await deps.store.payments.get(id);
+  if (!pay || pay.processor !== "mock") return err(ctx, 404, "not_found", "payment not found");
   await markAccessPaymentPaid(deps, id, `mock_paid_${id}`);
   send(ctx, 200, { payment_id: id, status: "paid" });
+}
+
+// Public market probe - the signup/deposit UI shows the local currency and
+// methods BEFORE any account exists. ?country=Philippines&usd_cents=7500 →
+// "₱4,280 · GCash / Maya / Card". Display-only; the server re-derives
+// everything at checkout, so this can never change what anyone is charged.
+async function getPublicMarket(ctx: ReqCtx, _deps: Deps): Promise<void> {
+  ctx.resourceType = "public_market";
+  const market = marketForCountry(ctx.query.get("country"));
+  const usdCents = Math.max(0, Math.min(1_000_000, Math.floor(Number(ctx.query.get("usd_cents") ?? "0"))));
+  const amount = usdCents > 0 ? localAmountCents(market, usdCents) : null;
+  send(ctx, 200, {
+    code: market.code,
+    currency: market.currency,
+    symbol: market.symbol,
+    methods: market.methods,
+    ...(amount !== null ? { amount_cents: amount, display_price: formatLocal(market, amount) } : {}),
+  });
 }
 
 async function getMyAccessPasses(ctx: ReqCtx, deps: Deps): Promise<void> {
@@ -4887,6 +4933,9 @@ export const routes: Route[] = [
   compile("POST", "/v1/payments", "payments:write", true, createPayment),
   compile("POST", "/v1/payments/checkout", null, true, postAccessCheckout),
   compile("POST", "/v1/payments/webhook/stripe", null, false, postStripeWebhook),
+  compile("POST", "/v1/payments/webhook/paymongo", null, false, postPayMongoWebhook),
+  compile("POST", "/v1/payments/webhook/paystack", null, false, postPaystackWebhook),
+  compile("GET", "/v1/public/market", null, false, getPublicMarket),
   compile("POST", "/v1/payments/:id/mock-complete", null, false, postMockComplete),
   // Leads (Florence core mirror) - operator-only; never returned to candidates.
   compile("POST", "/v1/leads/import", "leads:write", true, postLeadsImport),
