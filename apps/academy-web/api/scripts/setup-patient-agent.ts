@@ -30,6 +30,8 @@ const BASE = "https://api.elevenlabs.io";
 const H = { "xi-api-key": KEY, "content-type": "application/json" };
 
 const DEFAULT_PATIENT_VOICE = "6AUOG2nbfr0yFEeI0784"; // Filipino, warm (F) - cast patient voice
+const DICT_ID = process.env["ELEVENLABS_DICTIONARY_ID"] ?? "";
+const DICT_VERSION = process.env["ELEVENLABS_DICTIONARY_VERSION_ID"] ?? "";
 
 const PROMPT = `You are playing a hospital patient in a nursing training simulation. Stay in character at all times.
 
@@ -65,6 +67,16 @@ const body = {
     tts: {
       voice_id: DEFAULT_PATIENT_VOICE,
       model_id: "eleven_flash_v2", // English agents require turbo/flash v2
+      // Clinical pronunciation dictionary - the same alias rules the
+      // pre-rendered audio uses, so the live patient says "saline" (SAY-leen),
+      // "edema", "titrate" etc. correctly. Without this the agent does raw TTS.
+      ...(DICT_ID
+        ? {
+            pronunciation_dictionary_locators: [
+              { pronunciation_dictionary_id: DICT_ID, ...(DICT_VERSION ? { version_id: DICT_VERSION } : {}) },
+            ],
+          }
+        : {}),
     },
   },
   platform_settings: {

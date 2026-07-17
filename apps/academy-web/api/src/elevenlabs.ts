@@ -133,6 +133,24 @@ export async function createPronunciationDictionary(
   return { id: String(j.id ?? j.pronunciation_dictionary_id ?? ""), versionId: String(j.version_id ?? "") };
 }
 
+/** Append rules to an EXISTING dictionary → a new version (dict id unchanged,
+ *  so cached clips that don't use the new terms keep matching their hash and
+ *  never re-render). Returns the new version id. */
+export async function addPronunciationRules(
+  dictId: string,
+  rules: PronRule[],
+): Promise<{ versionId: string }> {
+  if (!elevenlabsConfigured()) throw new Error("ELEVENLABS_API_KEY not set");
+  const res = await fetch(`${API}/v1/pronunciation-dictionaries/${dictId}/add-rules`, {
+    method: "POST",
+    headers: headers({ "content-type": "application/json" }),
+    body: JSON.stringify({ rules }),
+  });
+  if (!res.ok) throw new Error(`add rules failed: ${res.status} ${await res.text().catch(() => "")}`);
+  const j = (await res.json()) as { version_id?: string };
+  return { versionId: String(j.version_id ?? "") };
+}
+
 // --- Conversational AI (disabled until Core Model Gateway proxy exists) ------
 
 /** Mint a short-lived signed URL for a learner to open a tutor conversation.

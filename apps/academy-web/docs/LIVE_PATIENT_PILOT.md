@@ -18,6 +18,20 @@ should I give you?", the agent replied "I don't know my diagnosis. You would
 have to ask the doctor.") The tutor keeps its existing non-streaming path;
 tutor hints don't need turn-taking.
 
+## Pronunciation
+
+The agent's TTS is bound to the same clinical pronunciation dictionary the
+pre-rendered audio uses (`conversation_config.tts.pronunciation_dictionary_locators`),
+so the live patient says "saline" (SAY-leen), "edema", "titrate" etc.
+correctly — without it the agent does raw TTS and mispronounces clinical
+terms, which reads as "this software doesn't know medicine." The dictionary is
+all alias-type rules, which every ElevenLabs model honors (flash v2 for the
+agent, multilingual v2 for the pre-rendered clips). Coverage is guarded by
+`npm run audio:coverage`; gaps are closed with `npm run audio:dict:refresh`
+(adds rules to the existing dictionary → new version, and surgically
+invalidates only the cached clips that use the new terms). Re-attach the agent
+after any dictionary version bump: `node --env-file=.env scripts/setup-patient-agent.ts`.
+
 ## Architecture
 
 ```
