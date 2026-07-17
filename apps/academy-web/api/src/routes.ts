@@ -3726,6 +3726,26 @@ async function getMyDailyPlan(ctx: ReqCtx, deps: Deps): Promise<void> {
   });
 }
 
+// Instructor email sign-in - a teacher-shaped door over the SAME client-
+// credentials security model: an instructor account IS an API client whose
+// client_id is the instructor's email (ops creates it via POST /v1/clients
+// with teaching scopes). One auth system to audit, zero new stores. The
+// uniform error message avoids account enumeration; teaching scope is
+// required so ops/service clients can't wander into the console.
+async function postInstructorLogin(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "instructor_login";
+  const email = (str(ctx.body, "email") ?? "").trim().toLowerCase();
+  const password = str(ctx.body, "password") ?? "";
+  if (!email.includes("@") || !password)
+    return err(ctx, 400, "invalid_request", "email and password are required");
+  ctx.resourceId = email;
+  const result = await issueToken(deps.store, email, password);
+  if (!result.ok) return err(ctx, 401, "invalid_login", "email or password is incorrect");
+  if (!result.token.scope.split(/\s+/).includes("cohorts:read"))
+    return err(ctx, 403, "forbidden", "this account does not have teaching access");
+  send(ctx, 200, result.token);
+}
+
 // Field signal - employer feedback on placed graduates, aggregated into a
 // curriculum steer for instructors. Events arrive through the existing
 // outcomes ledger (kind:"employer_feedback", detail {competency, rating
@@ -4821,6 +4841,7 @@ export const routes: Route[] = [
   compile("POST", "/v1/sim/chart-note", "candidates:read", true, postChartNote),
   compile("GET", "/v1/sim/patient-call", "candidates:read", true, getPatientCall),
   compile("GET", "/v1/curriculum/field-signal", "cohorts:read", false, getFieldSignal),
+  compile("POST", "/v1/instructor/login", null, false, postInstructorLogin),
   compile("POST", "/v1/ops/coach/tick", null, false, postCoachTick),
   compile("GET", "/v1/candidates", "candidates:read", true, listCandidates),
   compile("POST", "/v1/candidates", "candidates:write", true, createCandidate),

@@ -10,9 +10,9 @@ export default {
         // ink, royal-purple indigo, and a cyan-teal accent, so the academy reads
         // as the same product as the guide.
         florence: {
-          teal: "#15ABA8", // guide cyan-teal accent (#28B4B4 / #1EAAAA family)
-          "teal-dark": "#0B7E80", // AA text/hover on white
-          "teal-soft": "#E2F5F4", // pale teal tint for selected states
+          teal: "#0ABAB5", // Tiffany Blue - THE brand hue (matches --florence-tiffany)
+          "teal-dark": "#067F7B", // Tiffany dark - AA text/solid buttons on white (4.9:1)
+          "teal-soft": "#E0F7F6", // pale teal tint for selected states
           indigo: "#2A2A8C", // guide royal indigo (#28288C)
           "indigo-dark": "#1B0E54", // guide deep royal purple (#1E0A50 / #1C0A50)
           "indigo-soft": "#EAE8F6",
@@ -25,7 +25,7 @@ export default {
         vital: {
           hr: "#E5484D", // heart rate — red (clinical, unchanged)
           bp: "#2A2A8C", // blood pressure — brand indigo
-          spo2: "#15ABA8", // oxygen saturation — brand teal
+          spo2: "#0ABAB5", // oxygen saturation — brand teal
           warn: "#E8A53D",
           danger: "#E5484D",
           ok: "#2B915F",
@@ -46,7 +46,7 @@ export default {
       backgroundImage: {
         // Jewel-tone hero: cyan-teal into the guide's deep royal purple.
         "florence-gradient":
-          "linear-gradient(135deg, #15ABA8 0%, #0B7E80 45%, #1B0E54 130%)",
+          "linear-gradient(135deg, #0ABAB5 0%, #067F7B 45%, #1B0E54 130%)",
         "indigo-gradient": "linear-gradient(135deg, #2A2A8C 0%, #1B0E54 100%)",
       },
       keyframes: {

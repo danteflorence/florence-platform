@@ -16,6 +16,7 @@ import { approvedScenarios } from "../data/vpatient/registry";
 import { buildReviewPlan } from "../lib/vpatient/nclexReviewPlan";
 import { CLIENT_NEED_LABEL } from "../data/blueprint";
 import type { ClientNeed } from "../types/question";
+import CelebrationOverlay, { celebrateOnce } from "./CelebrationOverlay";
 
 interface DailyPlan {
   today: string;
@@ -29,13 +30,18 @@ interface DailyPlan {
 export default function TodaysPlanCard() {
   const { candidate } = useCandidate();
   const [plan, setPlan] = useState<DailyPlan | null>(null);
+  const [milestone, setMilestone] = useState<7 | 30 | null>(null);
 
   useEffect(() => {
     if (!candidate || !storedToken() || !apiBaseUrl()) return;
     let active = true;
     call<DailyPlan>("/v1/me/daily-plan")
       .then((p) => {
-        if (active) setPlan(p);
+        if (!active) return;
+        setPlan(p);
+        // Streak milestones fire once each - a designed moment, not a toast.
+        if (p.streak_days >= 30 && celebrateOnce("streak30")) setMilestone(30);
+        else if (p.streak_days >= 7 && celebrateOnce("streak7")) setMilestone(7);
       })
       .catch(() => undefined);
     return () => {
@@ -54,12 +60,34 @@ export default function TodaysPlanCard() {
     return days[plan.plan_day_index % days.length];
   }, [plan]);
 
-  if (!plan) return null;
+  // Skeleton while the plan loads: same card shape, no layout jump when the
+  // real content arrives. (Anonymous / API-less sessions render nothing.)
+  if (!plan) {
+    if (!candidate || !storedToken() || !apiBaseUrl()) return null;
+    return (
+      <div className="rounded-2xl border border-florence-line bg-white p-4" aria-busy="true" aria-label="Loading today's plan">
+        <div className="flex items-center justify-between gap-2">
+          <div className="fl-skeleton h-4 w-24" />
+          <div className="fl-skeleton h-6 w-28 rounded-full" />
+        </div>
+        <div className="fl-skeleton mt-2 h-3 w-3/4" />
+        <div className="mt-3 space-y-1.5">
+          <div className="fl-skeleton h-10 w-full rounded-xl" />
+          <div className="fl-skeleton h-10 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   const focus = plan.readiness.focus_areas[0] as ClientNeed | undefined;
   const focusLabel = focus ? (CLIENT_NEED_LABEL[focus] ?? focus) : undefined;
 
   const items: { label: string; detail: string; to: string }[] = [
+    // Before any baseline exists, the plan is ONE thing: the guided
+    // diagnostic. No menus, no choices - signup to items in a single tap.
+    ...(plan.readiness.band === "none"
+      ? [{ label: "Start here", detail: "Baseline diagnostic · 10 items", to: "/academy/practice?mode=baseline" }]
+      : []),
     {
       label: "Review",
       detail: dueCount > 0 ? `${dueCount} card${dueCount === 1 ? "" : "s"} due` : "Nothing due — bank one anyway",
@@ -77,11 +105,11 @@ export default function TodaysPlanCard() {
   ];
 
   return (
-    <div className="rounded-2xl border border-florence-line bg-white p-4">
+    <div className="fl-rise rounded-2xl border border-florence-line bg-white p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-florence-ink">Today's plan</p>
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+          className={`fl-pop rounded-full px-2.5 py-1 text-xs font-bold ${
             plan.streak_days > 0 ? "bg-amber-50 text-amber-800" : "bg-florence-mist text-florence-slate"
           }`}
           title="Consecutive study days"
@@ -95,7 +123,7 @@ export default function TodaysPlanCard() {
           <li key={it.label}>
             <Link
               to={it.to}
-              className="flex items-center justify-between rounded-xl border border-florence-line px-3 py-2 hover:bg-florence-mist/60"
+              className="fl-press flex items-center justify-between rounded-xl border border-florence-line px-3 py-2 hover:bg-florence-mist/60"
             >
               <span className="text-sm font-medium text-florence-ink">{it.label}</span>
               <span className="text-xs text-florence-slate">{it.detail} →</span>
@@ -107,6 +135,23 @@ export default function TodaysPlanCard() {
         <p className="mt-2 text-xs font-medium text-emerald-700">✓ You've studied today — streak safe.</p>
       ) : (
         <p className="mt-2 text-xs font-medium text-amber-700">Nothing yet today — one item keeps the streak.</p>
+      )}
+      {milestone && (
+        <CelebrationOverlay
+          emoji={milestone === 30 ? "🏆" : "🔥"}
+          title={milestone === 30 ? "Thirty days straight." : "A full week, every day."}
+          message={
+            milestone === 30
+              ? "One month of showing up. This is exactly the habit that passes the NCLEX - and the one that makes great nurses."
+              : "Seven days in a row. Consistency beats cramming - you're building the exact habit that passes this exam."
+          }
+          spoken={
+            milestone === 30
+              ? "Thirty days straight. This is the habit that passes the NCLEX. I'm proud of you."
+              : "Seven days in a row. Consistency beats cramming. Keep going."
+          }
+          onClose={() => setMilestone(null)}
+        />
       )}
     </div>
   );

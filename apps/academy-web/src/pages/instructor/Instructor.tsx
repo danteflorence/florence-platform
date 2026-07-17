@@ -6,6 +6,7 @@ import {
   fetchCopilot,
   fetchRoster,
   instructorConnect,
+  instructorConnectEmail,
   instructorDisconnect,
   instructorSession,
   InstructorError,
@@ -253,6 +254,9 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
   const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Email is the default door; the raw teaching-ID (client-credentials) path
+  // lives behind the advanced disclosure for ops/legacy setups.
+  const [advanced, setAdvanced] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -260,7 +264,8 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await instructorConnect(base.trim(), clientId.trim(), secret);
+      if (advanced) await instructorConnect(base.trim(), clientId.trim(), secret);
+      else await instructorConnectEmail(base.trim(), clientId.trim(), secret);
       onConnected();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
@@ -278,22 +283,22 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
       <p className="text-sm font-medium">Instructor Console</p>
       <h1 className="mt-2 font-serif text-2xl font-semibold">Sign in to teach</h1>
       <p className="mt-2 text-sm text-florence-slate">
-        Use the teaching ID and passcode from your Florence onboarding email.
+        Sign in with the email and password from your Florence onboarding.
         Your session lives only in this tab and is never saved to this device.
       </p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl border border-florence-line bg-white p-6">
-        <Field label="Teaching ID">
+        <Field label={advanced ? "Teaching ID" : "Email"}>
           <input
-            type="text"
+            type={advanced ? "text" : "email"}
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             className="fl-input"
-            placeholder="e.g. instructor-bootcamp"
+            placeholder={advanced ? "e.g. instructor-bootcamp" : "you@school.edu"}
             autoComplete="username"
             required
           />
         </Field>
-        <Field label="Passcode">
+        <Field label="Password">
           <input
             type="password"
             value={secret}
@@ -316,13 +321,22 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
             />
           </Field>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowServer(true)}
-            className="text-xs font-medium text-florence-slate hover:text-florence-ink"
-          >
-            Connecting to {base || "the default server"} · change
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowServer(true)}
+              className="text-xs font-medium text-florence-slate hover:text-florence-ink"
+            >
+              Connecting to {base || "the default server"} · change
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdvanced((a) => !a)}
+              className="text-xs font-medium text-florence-slate hover:text-florence-ink"
+            >
+              {advanced ? "Use email instead" : "Use a teaching ID"}
+            </button>
+          </div>
         )}
         {error && (
           <p className="rounded-lg border border-vital-danger/30 bg-vital-danger/5 px-3 py-2 text-sm text-vital-danger">
@@ -411,6 +425,7 @@ function CohortConsole({
   const [bumpError, setBumpError] = useState<string | null>(null);
   const [copilotMemo, setCopilotMemo] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => loadChecklist(cohort.code));
+  const [consoleTab, setConsoleTab] = useState<"today" | "signals">("today");
 
   useEffect(() => {
     setRoster(null);
@@ -509,60 +524,91 @@ function CohortConsole({
   }
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
-      {/* LEFT column: today's class */}
-      <div className="space-y-6">
-        <CohortHeader cohort={cohort} nextSection={nextSection} watermark={watermark} />
+    <div className="mt-6">
+      <CohortHeader cohort={cohort} nextSection={nextSection} watermark={watermark} />
 
-        <PreClassChecklist
-          checklist={checklist}
-          onChange={updateChecklist}
-          nextSection={nextSection}
-          rosterSize={activeRoster.length}
-          activeAccess={activeAccess}
-        />
-
-        <StartSessionPane cohort={cohort} nextSection={nextSection} />
-
-        <RunbookPane nextSection={nextSection} copilot={copilot} />
-
-        <RosterPane
-          roster={roster === null ? null : activeRoster}
-          attendanceMarks={attendanceMarks}
-          busyRows={busyRows}
-          onMark={toggleAttendance}
-        />
-
-        {formerRoster.length > 0 && (
-          <FormerStudents members={formerRoster} />
-        )}
+      {/* Three-tab IA: a first-time teacher's day reads top to bottom in
+          TODAY; the analytics live in SIGNALS; authoring is the STUDIO.
+          One decision per screen instead of one long everything-page. */}
+      <div className="sticky top-0 z-20 -mx-1 mt-6 flex items-center gap-1 border-b border-florence-line bg-florence-mist/95 px-1 py-2 backdrop-blur">
+        {(
+          [
+            ["today", "Today's class"],
+            ["signals", "Class signals"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setConsoleTab(key)}
+            aria-current={consoleTab === key ? "page" : undefined}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              consoleTab === key
+                ? "bg-white text-florence-ink shadow-card"
+                : "text-florence-slate hover:text-florence-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <Link
+          to="/instructor/studio"
+          className="rounded-lg px-3 py-1.5 text-sm font-medium text-florence-slate transition-colors hover:text-florence-ink"
+        >
+          Scenario Studio →
+        </Link>
       </div>
 
-      {/* RIGHT column: stand-by / post-class wrap */}
-      <div className="space-y-6">
-        <CopilotPane copilot={copilot} cohort={cohort} />
+      {consoleTab === "today" && (
+        <div className="mx-auto mt-6 max-w-3xl space-y-6">
+          <PreClassChecklist
+            checklist={checklist}
+            onChange={updateChecklist}
+            nextSection={nextSection}
+            rosterSize={activeRoster.length}
+            activeAccess={activeAccess}
+          />
 
-        <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
+          <StartSessionPane cohort={cohort} nextSection={nextSection} />
 
-        <ClassSimDebrief debrief={simDebrief} />
+          <RunbookPane nextSection={nextSection} copilot={copilot} />
 
-        <ReviewPlannerPane />
+          <RosterPane
+            roster={roster === null ? null : activeRoster}
+            attendanceMarks={attendanceMarks}
+            busyRows={busyRows}
+            onMark={toggleAttendance}
+          />
 
-        <TopMissedPane />
+          {formerRoster.length > 0 && <FormerStudents members={formerRoster} />}
 
-        <FieldSignalPane />
+          <PostClassWrap
+            cohort={cohort}
+            nextSection={nextSection}
+            nextSectionN={nextSectionN}
+            bumpBusy={bumpBusy}
+            bumpError={bumpError}
+            onBump={onBump}
+            memo={copilotMemo}
+            onRegenerateMemo={regenerateMemo}
+          />
+        </div>
+      )}
 
-        <PostClassWrap
-          cohort={cohort}
-          nextSection={nextSection}
-          nextSectionN={nextSectionN}
-          bumpBusy={bumpBusy}
-          bumpError={bumpError}
-          onBump={onBump}
-          memo={copilotMemo}
-          onRegenerateMemo={regenerateMemo}
-        />
-      </div>
+      {consoleTab === "signals" && (
+        <div className="mx-auto mt-6 max-w-3xl space-y-6">
+          <CopilotPane copilot={copilot} cohort={cohort} />
+
+          <TomorrowsPlan copilot={copilot} roster={roster ?? []} nextTitle={nextSection?.title} />
+
+          <ClassSimDebrief debrief={simDebrief} />
+
+          <ReviewPlannerPane />
+
+          <TopMissedPane />
+
+          <FieldSignalPane />
+        </div>
+      )}
     </div>
   );
 }

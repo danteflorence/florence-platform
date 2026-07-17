@@ -3,6 +3,7 @@ import QuestionBody from "./QuestionBody";
 import LabDrawer from "./LabDrawer";
 import Calculator from "./Calculator";
 import Results from "./Results";
+import CelebrationOverlay, { celebrateOnce } from "../CelebrationOverlay";
 import { useCatSession } from "../../lib/useCatSession";
 import { useFocusTrap } from "../../lib/useFocusTrap";
 import { pacing, type CatConfig } from "../../lib/cat";
@@ -43,6 +44,13 @@ export default function QuizRunner({
   const [marked, setMarked] = useState<Set<string>>(new Set());
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [now, setNow] = useState(Date.now());
+  // First-ever baseline completion gets the celebration beat (once, guarded).
+  const [showBaselineBeat, setShowBaselineBeat] = useState(false);
+  useEffect(() => {
+    if (s.phase === "finished" && title === "Baseline diagnostic" && celebrateOnce("baseline")) {
+      setShowBaselineBeat(true);
+    }
+  }, [s.phase, title]);
 
   useEffect(() => {
     if (s.phase !== "active") return;
@@ -71,17 +79,30 @@ export default function QuizRunner({
 
   if (s.phase === "finished") {
     return (
-      <Results
-        history={s.history}
-        ability={s.ability}
-        outcome={s.outcome}
-        stopReason={s.stopReason}
-        config={config}
-        elapsedMs={(s.finishedAt ?? Date.now()) - s.startedAt - s.pausedMs}
-        markedCount={marked.size}
-        onRestart={onRestart}
-        onExit={onExit}
-      />
+      <>
+        {/* First baseline complete = the biggest moment in a learner's first
+            five minutes. One designed beat, once ever, then the reveal. */}
+        {title === "Baseline diagnostic" && showBaselineBeat && (
+          <CelebrationOverlay
+            emoji="🩺"
+            title="Your baseline is in."
+            message="Now Florence knows where you stand - your readiness band, your focus areas, and tomorrow's plan are built from what you just did."
+            spoken="Your baseline is in. From here, every session is aimed at exactly what you need."
+            onClose={() => setShowBaselineBeat(false)}
+          />
+        )}
+        <Results
+          history={s.history}
+          ability={s.ability}
+          outcome={s.outcome}
+          stopReason={s.stopReason}
+          config={config}
+          elapsedMs={(s.finishedAt ?? Date.now()) - s.startedAt - s.pausedMs}
+          markedCount={marked.size}
+          onRestart={onRestart}
+          onExit={onExit}
+        />
+      </>
     );
   }
 

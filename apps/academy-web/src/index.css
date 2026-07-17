@@ -52,6 +52,41 @@
     @apply rounded-2xl border border-florence-line bg-white shadow-card;
   }
 
+  /* ── Motion system - ONE curve, meaningful moments only ──────────────────
+     Every animation in the product uses these two tokens. 150-250ms, an
+     ease-out that settles rather than bounces. Anything longer or springier
+     needs a reason. All of it disappears under prefers-reduced-motion. */
+  .fl-rise {
+    animation: fl-rise 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  .fl-pop {
+    animation: fl-pop 250ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  /* Bars that fill (readiness, pace) glide to their value instead of jumping. */
+  .fl-bar-fill {
+    transition: width 600ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  /* Rows/buttons acknowledge the tap - presses should feel physical. */
+  .fl-press {
+    @apply transition-transform duration-150;
+  }
+  .fl-press:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Skeletons - the shape of content while it loads, never a spinner ──── */
+  .fl-skeleton {
+    @apply rounded-lg bg-florence-line/60;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.65) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: fl-shimmer 1.4s ease-in-out infinite;
+  }
+
   .fl-pill {
     @apply inline-flex items-center gap-1.5 rounded-full border border-florence-line bg-white px-3 py-1 text-xs font-medium text-florence-slate;
   }
@@ -75,5 +110,55 @@
   /* "Skip to content" - visible only on keyboard focus */
   .fl-skip {
     @apply absolute left-4 -top-12 z-50 rounded-md bg-florence-indigo px-4 py-2 text-sm font-semibold text-white transition-all focus:top-4;
+  }
+}
+
+/* ── Motion keyframes + the reduced-motion kill switch ─────────────────────── */
+@keyframes fl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fl-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes fl-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-rise,
+  .fl-pop {
+    animation: none;
+  }
+  .fl-skeleton {
+    animation: none;
+    background-image: none;
+  }
+  .fl-bar-fill {
+    transition: none;
+  }
+  .fl-press:active {
+    transform: none;
   }
 }

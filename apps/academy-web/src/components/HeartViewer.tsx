@@ -82,7 +82,7 @@ function HeartSchematic({
 
       {HEART_HOTSPOTS.map((h, i) => {
         const active = activeId === h.id;
-        const fill = h.accent === "teal" ? "#15ABA8" : "#2A2A8C";
+        const fill = h.accent === "teal" ? "#0ABAB5" : "#2A2A8C";
         return (
           <g
             key={h.id}

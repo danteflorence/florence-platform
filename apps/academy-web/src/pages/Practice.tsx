@@ -106,6 +106,10 @@ export default function Practice() {
   const deepCases = params.get("mode") === "cases";
   const reviewMode = params.get("mode") === "review";
   const englishMode = params.get("mode") === "english";
+  // First-five-minutes: ?mode=baseline auto-starts a short adaptive diagnostic
+  // with zero decisions - no mode menu, no level chooser. A brand-new learner
+  // goes signup → one tap → items, and Results becomes the readiness reveal.
+  const baselineMode = params.get("mode") === "baseline";
 
   const [kind, setKind] = useState<SessionKind | null>(deepCases ? "cases" : null);
   // A focus drill auto-picks its difficulty (medium) so it starts in one tap.
@@ -116,12 +120,29 @@ export default function Practice() {
     setKind(null);
     setLevel(null);
     // Drop the deep-link params so "Start another session" returns to the menu.
-    if (focus || deepCases || reviewMode || englishMode) setParams({}, { replace: true });
+    if (focus || deepCases || reviewMode || englishMode || baselineMode) setParams({}, { replace: true });
   };
 
   // NCLEX-language drill: decode the exam's own phrasing (the IEN point-saver).
   if (englishMode) {
     return <MedicalEnglishDrill onExit={reset} />;
+  }
+
+  if (baselineMode) {
+    return (
+      <SessionGate load={loadQuestionBank} cached={loadedQuestionBank} onExit={reset}>
+        {(pool) => (
+          <QuizRunner
+            key={runKey}
+            pool={pool}
+            config={applyLevel(CAT_MODES.tutor, "adaptive")}
+            title="Baseline diagnostic"
+            onExit={reset}
+            onRestart={() => setRunKey((k) => k + 1)}
+          />
+        )}
+      </SessionGate>
+    );
   }
 
   // Spaced re-practice: a session on exactly the items whose review is due.

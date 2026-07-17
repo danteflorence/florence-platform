@@ -52,6 +52,35 @@ export function instructorDisconnect(): void {
 }
 
 /** Exchange instructor client credentials for an instructor-scoped token. */
+/** The teacher-shaped door: email + password → the same instructor token.
+ *  (Server-side, an instructor account is an API client keyed by email.) */
+export async function instructorConnectEmail(
+  base: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  const root = base.replace(/\/$/, "");
+  let res: Response;
+  try {
+    res = await fetch(`${root}/v1/instructor/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new InstructorError(0, "Could not reach Florence. Check your connection.");
+  }
+  const j = (await res.json().catch(() => null)) as { access_token?: string } | null;
+  if (!res.ok || !j?.access_token)
+    throw new InstructorError(res.status, "Email or password is incorrect.");
+  try {
+    sessionStorage.setItem(TOKEN_KEY, j.access_token);
+    sessionStorage.setItem(BASE_KEY, root);
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function instructorConnect(
   base: string,
   clientId: string,

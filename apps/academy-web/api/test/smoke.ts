@@ -1028,6 +1028,49 @@ try {
   assert.equal(pcj.error.code, "not_configured");
   ok("live patient call: 503 not_configured without agent env (fail closed)");
 
+  // Instructor email sign-in: an instructor account is an api client whose
+  // id is the email; the friendly door mints the same token.
+  const mkInstr = await fetch(`${base}/v1/clients`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({
+      client_id: "ana.reyes@florence.test",
+      name: "Ana Reyes (instructor)",
+      secret: "Vv9!teachManila26",
+      scopes: ["cohorts:read", "cohorts:write", "performance:read", "candidates:read", "enrollment:read"],
+    }),
+  });
+  assert.equal(mkInstr.status, 201);
+  const badLogin = await fetch(`${base}/v1/instructor/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "ana.reyes@florence.test", password: "wrong" }),
+  });
+  assert.equal(badLogin.status, 401);
+  const goodLogin = await fetch(`${base}/v1/instructor/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "Ana.Reyes@florence.test ", password: "Vv9!teachManila26" }),
+  });
+  const glj = (await goodLogin.json()) as any;
+  assert.equal(goodLogin.status, 200);
+  assert.ok(glj.access_token);
+  const asInstr = await fetch(`${base}/v1/cohorts`, { headers: { authorization: `Bearer ${glj.access_token}` } });
+  assert.equal(asInstr.status, 200);
+  // A non-teaching client (no cohorts:read) is refused at this door.
+  await fetch(`${base}/v1/clients`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...bearer(T) },
+    body: JSON.stringify({ client_id: "svc@florence.test", name: "svc", secret: "Vv9!svcOnly26", scopes: ["schools:read"] }),
+  });
+  const svcLogin = await fetch(`${base}/v1/instructor/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "svc@florence.test", password: "Vv9!svcOnly26" }),
+  });
+  assert.equal(svcLogin.status, 403);
+  ok("instructor email sign-in: 401 wrong password, 200 + cohorts access, 403 non-teaching client");
+
   // Field signal: employer feedback aggregates per competency at K>=3.
   for (const rating of [2, 3, 2]) {
     const fb = await fetch(`${base}/v1/outcomes`, {

@@ -64,7 +64,7 @@ export default function ReadinessCard({
         </div>
         <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-florence-mist">
           <div
-            className={`h-full rounded-full ${v.presentation.barClass}`}
+            className={`fl-bar-fill h-full rounded-full ${v.presentation.barClass}`}
             style={{ width: `${Math.max(v.sectionsPct, v.sectionsPct > 0 ? 3 : 0)}%` }}
           />
         </div>
@@ -72,8 +72,8 @@ export default function ReadinessCard({
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
-          to="/academy/practice"
-          className="rounded-xl bg-florence-teal px-4 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-teal-dark"
+          to={v.band === "none" ? "/academy/practice?mode=baseline" : "/academy/practice"}
+          className="fl-press rounded-xl bg-florence-teal px-4 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-florence-teal-dark"
         >
           {v.band === "none" ? "Take a baseline diagnostic →" : "Practice what's next →"}
         </Link>
