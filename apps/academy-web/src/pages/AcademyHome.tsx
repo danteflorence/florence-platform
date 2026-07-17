@@ -142,8 +142,8 @@ export default function AcademyHome() {
             <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-florence-indigo-soft/70 blur-3xl" />
             <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-16">
               <FlorenceBadge tone="accent">Florence Academy</FlorenceBadge>
-              <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
-                Pass the NCLEX - one clinical section at a time.
+              <h1 className="mt-3 max-w-3xl font-serif text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
+                You&apos;re already a nurse. The NCLEX is the last door.
               </h1>
               <p className="mt-3 max-w-2xl text-base text-florence-slate sm:text-lg">
                 An interactive bootcamp for internationally educated nurses: real

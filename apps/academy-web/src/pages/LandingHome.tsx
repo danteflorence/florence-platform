@@ -105,17 +105,15 @@ function Hero() {
     <section className="border-b border-florence-line/70">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.15fr_1fr] lg:py-24">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">NCLEX-RN bootcamp for internationally educated nurses</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">NCLEX-RN preparation</p>
           <h1 className="mt-3 font-serif text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">
-            A live cohort, an adaptive question bank, and a readiness band that
-            tells you the truth.
+            You&apos;re already a nurse. The NCLEX is the last door.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-florence-slate sm:text-lg">
-            Twenty sections taught live, in order, by an instructor who works
-            with internationally educated nurses every week. Between sessions
-            you train on a content-balanced bank built to the 2026 NCSBN test
-            plan. We tell you where you stand - green, yellow, orange, red -
-            and we don&apos;t move on until the band moves.
+            Live classes, patients who talk back, and a readiness band that
+            tells you the truth &mdash; built for internationally educated
+            nurses crossing into U.S. practice. We tell you where you stand,
+            green to red, and we don&apos;t move on until the band moves.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
