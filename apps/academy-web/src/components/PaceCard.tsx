@@ -36,9 +36,9 @@ export default function PaceCard() {
                 {profile.medianSec}s
                 <span className="ml-1 text-xs font-medium text-florence-slate">/ item</span>
               </p>
-              <p className="text-[11px] text-florence-slate">median · exam budget {budgetSec}s</p>
+              <p className="text-xs text-florence-slate">median · exam budget {budgetSec}s</p>
             </div>
-            <div className="text-[11px] leading-relaxed text-florence-slate">
+            <div className="text-xs leading-relaxed text-florence-slate">
               <p>
                 Slowest 10%: <span className="font-semibold text-florence-ink">{profile.p90Sec}s</span>
               </p>
@@ -58,7 +58,7 @@ export default function PaceCard() {
               style={{ width: `${Math.min(100, ((profile.medianSec ?? 0) / (budgetSec * 1.5)) * 100)}%` }}
             />
           </div>
-          <p className="mt-0.5 text-right text-[10px] text-florence-slate/70">|— {budgetSec}s budget at {Math.round((budgetSec / (budgetSec * 1.5)) * 100)}% —|</p>
+          <p className="mt-0.5 text-right text-[11px] text-florence-slate/70">|— {budgetSec}s budget at {Math.round((budgetSec / (budgetSec * 1.5)) * 100)}% —|</p>
         </>
       ) : null}
       <p className="mt-2 text-xs leading-relaxed text-florence-slate">{profile.advice}</p>

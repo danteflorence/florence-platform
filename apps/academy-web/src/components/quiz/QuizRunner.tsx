@@ -207,7 +207,7 @@ export default function QuizRunner({
 
       {/* Body */}
       <div className="mx-auto max-w-4xl px-4 py-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-florence-slate">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-florence-slate">
           {title}
         </p>
 
@@ -215,11 +215,18 @@ export default function QuizRunner({
           <span className="fl-pill border-florence-teal/40 bg-florence-teal-soft text-florence-teal-dark">
             {QUESTION_TYPE_LABELS[question.type]}
           </span>
-          <span className="fl-pill">{CLIENT_NEED_LABEL[question.clientNeed]}</span>
-          {question.cjmm && (
-            <span className="fl-pill border-florence-indigo/30 text-florence-indigo-dark">
-              {CJMM_LABEL[question.cjmm]}
-            </span>
+          {/* Exam realism: the blueprint category and clinical-judgment step
+              are the answer's shadow - the real NCLEX never shows them before
+              you answer. They appear WITH the rationale, where they teach. */}
+          {s.revealed && (
+            <>
+              <span className="fl-pill">{CLIENT_NEED_LABEL[question.clientNeed]}</span>
+              {question.cjmm && (
+                <span className="fl-pill border-florence-indigo/30 text-florence-indigo-dark">
+                  {CJMM_LABEL[question.cjmm]}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -263,12 +270,16 @@ export default function QuizRunner({
       {/* Action bar */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-florence-line bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+          {/* Coach on the first item only - after that the bar stays quiet
+              and the phone's vertical space goes back to the question. */}
           <p className="text-xs text-florence-slate">
             {s.revealed
               ? "Review the rationale, then continue."
-              : config.immediateFeedback
-                ? "Answer, then submit to see the rationale."
-                : "Answer, then submit. Difficulty adapts to your performance."}
+              : s.answeredCount === 0
+                ? config.immediateFeedback
+                  ? "Answer, then submit to see the rationale."
+                  : "Answer, then submit. Difficulty adapts to your performance."
+                : ""}
           </p>
           {!s.submitted ? (
             <button

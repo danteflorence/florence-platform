@@ -254,7 +254,7 @@ function OfferPanel({ data }: { data: ActivationLookup }) {
                 Activate {data.org_name} →
               </button>
             </form>
-            <p className="mt-2 text-[11px] text-florence-slate">
+            <p className="mt-2 text-xs text-florence-slate">
               Sends an email to partners@florenceedu.com so a human at Florence can confirm and
               open the dashboard for you. We do this manually for the first batch on purpose.
             </p>

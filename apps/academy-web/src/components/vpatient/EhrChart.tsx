@@ -69,7 +69,7 @@ export default function EhrChart({
         <p className="text-sm font-semibold text-florence-ink">
           {scenario.patient.name}, {scenario.patient.age} {scenario.patient.sex}
         </p>
-        <p className="mt-0.5 text-[11px] text-florence-slate">
+        <p className="mt-0.5 text-xs text-florence-slate">
           Allergies: <span className="font-semibold text-red-700">{scenario.patient.allergies.join(", ")}</span>
         </p>
       </div>
@@ -111,7 +111,7 @@ export default function EhrChart({
         {tab === "mar" && (
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-florence-slate">Home medications</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">Home medications</p>
               <ul className="mt-1 space-y-1">
                 {scenario.patient.meds.map((m) => (
                   <li key={m} className="flex items-center justify-between rounded-lg bg-florence-mist/40 px-2.5 py-1.5 text-xs text-florence-ink">
@@ -122,7 +122,7 @@ export default function EhrChart({
               </ul>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-florence-slate">Administered this shift</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">Administered this shift</p>
               {administered.length === 0 ? (
                 <p className="mt-1 text-xs text-florence-slate">Nothing administered yet.</p>
               ) : (
@@ -130,7 +130,7 @@ export default function EhrChart({
                   {administered.map(({ e, action }) => (
                     <li key={`${e.actionId}-${e.atSec}`} className="flex items-center justify-between rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-900">
                       <span>{action!.label}</span>
-                      <span className="font-mono text-[10px]">{mmss(e.atSec)}</span>
+                      <span className="font-mono text-[11px]">{mmss(e.atSec)}</span>
                     </li>
                   ))}
                 </ul>
@@ -143,7 +143,7 @@ export default function EhrChart({
           <div className="space-y-3">
             {newOrders.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-florence-slate">New orders this shift</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">New orders this shift</p>
                 <ul className="mt-1 space-y-1">
                   {newOrders.map((a) => {
                     const done = state.actionLog.some((e) => e.actionId === a.id);
@@ -161,7 +161,7 @@ export default function EhrChart({
             )}
             {standingOrders.map((t) => (
               <div key={t.id}>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-florence-slate">{t.label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">{t.label}</p>
                 <p className="mt-1 whitespace-pre-line rounded-lg bg-florence-mist/40 px-2.5 py-1.5 text-xs leading-relaxed text-florence-ink/85">{t.body}</p>
               </div>
             ))}
@@ -178,7 +178,7 @@ export default function EhrChart({
             ) : (
               <table className="w-full text-left text-xs tabular-nums">
                 <thead>
-                  <tr className="text-[10px] font-bold uppercase tracking-wide text-florence-slate">
+                  <tr className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">
                     <th className="py-1 pr-2">Time</th>
                     <th className="py-1 pr-2">HR</th>
                     <th className="py-1 pr-2">SBP</th>
@@ -190,7 +190,7 @@ export default function EhrChart({
                 <tbody className="text-florence-ink/90">
                   {rows.map((s) => (
                     <tr key={s.atSec} className="border-t border-florence-line/60">
-                      <td className="py-1 pr-2 font-mono text-[11px]">{mmss(s.atSec)}</td>
+                      <td className="py-1 pr-2 font-mono text-xs">{mmss(s.atSec)}</td>
                       <td className="py-1 pr-2">{Math.round(s.hr)}</td>
                       <td className="py-1 pr-2">{Math.round(s.sbp)}</td>
                       <td className="py-1 pr-2">{Math.round(s.spo2)}</td>

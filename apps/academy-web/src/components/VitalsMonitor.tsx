@@ -49,7 +49,7 @@ function Readout({
         alarm ? "animate-pulse-dot" : ""
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">
         {label}
       </p>
       <p
@@ -59,7 +59,7 @@ function Readout({
         {value}
         {/* Unit stacks under the value on narrow phones so the tightest card
             (NIBP "98/64 mmHg") never clips; sits inline from sm: upward. */}
-        <span className="mt-0.5 block text-[10px] font-medium leading-none text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-xs">
+        <span className="mt-0.5 block text-[11px] font-medium leading-none text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-xs">
           {unit}
         </span>
       </p>
@@ -276,7 +276,7 @@ export default function VitalsMonitor() {
               {phase.detail}
             </p>
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-florence-slate/80">
+          <p className="mt-3 text-xs leading-relaxed text-florence-slate/80">
             Illustrative trace for teaching the adenosine response - not a real
             patient recording.
           </p>

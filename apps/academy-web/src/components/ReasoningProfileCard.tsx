@@ -60,7 +60,7 @@ export default function ReasoningProfileCard() {
             className="inline-flex items-center gap-1.5 rounded-full bg-florence-mist px-2.5 py-1 text-xs font-medium text-florence-ink"
           >
             {ERROR_TYPE_LABEL[s.tag].label}
-            <span className="rounded-full bg-white px-1.5 font-mono text-[10px] text-florence-slate">
+            <span className="rounded-full bg-white px-1.5 font-mono text-[11px] text-florence-slate">
               ×{s.count}
             </span>
           </span>

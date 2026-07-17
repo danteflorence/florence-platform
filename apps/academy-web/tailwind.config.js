@@ -32,7 +32,7 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['"Newsreader"', "Georgia", "serif"],
+        serif: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
         sans: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
       },
       borderRadius: {

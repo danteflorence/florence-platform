@@ -198,7 +198,7 @@ export default function CaseRunner({
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-florence-slate">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-florence-slate">
           NGN Unfolding Case
         </p>
         <h2 className="mt-1 text-xl font-semibold text-florence-ink">

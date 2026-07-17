@@ -163,7 +163,7 @@ function InstructorShell({ children }: { children: React.ReactNode }) {
             </span>
             <div className="flex flex-col leading-tight">
               <span className="font-serif text-base font-semibold">Florence Academy</span>
-              <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-florence-slate">
+              <span className="text-xs font-medium uppercase tracking-[0.16em] text-florence-slate">
                 Instructor Console
               </span>
             </div>
@@ -269,38 +269,31 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
     }
   }
 
+  // The server address is configuration, not something a teacher should ever
+  // have to know. It stays prefilled and tucked behind a disclosure.
+  const [showServer, setShowServer] = useState(false);
+
   return (
     <div className="mx-auto max-w-md">
       <p className="text-sm font-medium">Instructor Console</p>
       <h1 className="mt-2 font-serif text-2xl font-semibold">Sign in to teach</h1>
       <p className="mt-2 text-sm text-florence-slate">
-        Enter your operator API client credentials. The token is held only in
-        this tab&apos;s memory - never bundled with the app and never saved to
-        disk.
+        Use the teaching ID and passcode from your Florence onboarding email.
+        Your session lives only in this tab and is never saved to this device.
       </p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl border border-florence-line bg-white p-6">
-        <Field label="API base URL">
-          <input
-            type="url"
-            value={base}
-            onChange={(e) => setBase(e.target.value)}
-            className="fl-input"
-            placeholder="http://localhost:8788"
-            required
-          />
-        </Field>
-        <Field label="Client ID">
+        <Field label="Teaching ID">
           <input
             type="text"
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             className="fl-input"
-            placeholder="instructor-bootcamp"
+            placeholder="e.g. instructor-bootcamp"
             autoComplete="username"
             required
           />
         </Field>
-        <Field label="Client secret">
+        <Field label="Passcode">
           <input
             type="password"
             value={secret}
@@ -311,6 +304,26 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
             required
           />
         </Field>
+        {showServer ? (
+          <Field label="Florence server (advanced)">
+            <input
+              type="url"
+              value={base}
+              onChange={(e) => setBase(e.target.value)}
+              className="fl-input"
+              placeholder="http://localhost:8788"
+              required
+            />
+          </Field>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowServer(true)}
+            className="text-xs font-medium text-florence-slate hover:text-florence-ink"
+          >
+            Connecting to {base || "the default server"} · change
+          </button>
+        )}
         {error && (
           <p className="rounded-lg border border-vital-danger/30 bg-vital-danger/5 px-3 py-2 text-sm text-vital-danger">
             {error}
@@ -321,7 +334,7 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
           disabled={busy}
           className="w-full rounded-xl bg-florence-indigo px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-florence-indigo-dark disabled:bg-florence-slate/40"
         >
-          {busy ? "Connecting…" : "Connect"}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
     </div>
@@ -590,7 +603,7 @@ function CohortHeader({
       {/* Curriculum progress strip - visual at-a-glance of cohort cadence. */}
       <div className="mt-3" aria-label={`Cohort curriculum progress: ${pctCovered}% covered`}>
         <div className="flex items-baseline justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-florence-slate">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-florence-slate">
             Curriculum progress
           </span>
           <span className="font-mono text-xs font-semibold text-florence-ink">
@@ -912,7 +925,7 @@ function CopilotPane({ copilot, cohort }: { copilot: CohortCopilot | null; cohor
             <div key={b} className="rounded-lg bg-florence-mist/40 p-2 text-center">
               <p className={`mx-auto h-2 w-2 rounded-full ${BAND_DOT[b]}`} />
               <p className="mt-1 font-mono text-lg font-semibold">{n}</p>
-              <p className="text-[10px] uppercase tracking-wider text-florence-slate">{b}</p>
+              <p className="text-[11px] uppercase tracking-wider text-florence-slate">{b}</p>
             </div>
           );
         })}
@@ -939,7 +952,7 @@ function CopilotPane({ copilot, cohort }: { copilot: CohortCopilot | null; cohor
           </ul>
         </div>
       )}
-      <p className="mt-4 text-[11px] text-florence-slate/80">
+      <p className="mt-4 text-xs text-florence-slate/80">
         Cohort {cohort.code} · refreshed live
       </p>
     </div>
@@ -977,7 +990,7 @@ function TomorrowsPlan({
     <div className="rounded-2xl border border-florence-line bg-white p-6">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Tomorrow's plan</p>
-        <span className="rounded-full bg-florence-teal-soft/60 px-2.5 py-0.5 text-[11px] font-semibold text-florence-teal-dark">
+        <span className="rounded-full bg-florence-teal-soft/60 px-2.5 py-0.5 text-xs font-semibold text-florence-teal-dark">
           Auto-drafted
         </span>
       </div>
@@ -1025,7 +1038,7 @@ function TomorrowsPlan({
               <p className="text-xs font-bold uppercase tracking-wide text-florence-slate">
                 Group the room
               </p>
-              <p className="mt-1 text-[11px] text-florence-slate/80">
+              <p className="mt-1 text-xs text-florence-slate/80">
                 Run these as small-group stations - each group drills its weakest area.
               </p>
               <div className="mt-2 space-y-2">
@@ -1033,7 +1046,7 @@ function TomorrowsPlan({
                   <div key={g.client_need} className="rounded-xl border border-florence-line bg-florence-mist/30 p-3">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-florence-ink">{label(g.client_need)}</p>
-                      <span className="text-[11px] font-medium text-florence-slate">
+                      <span className="text-xs font-medium text-florence-slate">
                         {g.candidate_ids.length} {g.candidate_ids.length === 1 ? "student" : "students"}
                       </span>
                     </div>
@@ -1073,7 +1086,7 @@ function TomorrowsPlan({
           </div>
         </>
       )}
-      <p className="mt-4 text-[11px] text-florence-slate/80">Cohort {copilot.cohort} · you can follow this line by line</p>
+      <p className="mt-4 text-xs text-florence-slate/80">Cohort {copilot.cohort} · you can follow this line by line</p>
     </div>
   );
 }
@@ -1116,15 +1129,15 @@ function RunbookPane({
         {/* Section coaching */}
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="rounded-xl bg-florence-teal-soft/40 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-florence-teal-dark">Focus</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-florence-teal-dark">Focus</p>
             <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.focus}</p>
           </div>
           <div className="rounded-xl bg-amber-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Watch for</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">Watch for</p>
             <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.watchFor}</p>
           </div>
           <div className="rounded-xl bg-florence-indigo-soft/40 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-florence-indigo-dark">Opening hook</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-florence-indigo-dark">Opening hook</p>
             <p className="mt-1 text-xs leading-relaxed text-florence-ink/90">{notes.hook}</p>
           </div>
         </div>
@@ -1140,7 +1153,7 @@ function RunbookPane({
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-florence-ink">{beat.title}</p>
                   {beat.surface && beat.surface !== "none" && (
-                    <span className="rounded bg-florence-mist px-1.5 py-0.5 text-[10px] font-bold uppercase text-florence-slate">
+                    <span className="rounded bg-florence-mist px-1.5 py-0.5 text-[11px] font-bold uppercase text-florence-slate">
                       {beat.surface}
                     </span>
                   )}
@@ -1157,7 +1170,7 @@ function RunbookPane({
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[11px] text-florence-slate/80">
+        <p className="mt-3 text-xs text-florence-slate/80">
           The frame is yours to bend - the beats matter more than the exact minutes.
         </p>
       </div>
@@ -1324,7 +1337,7 @@ function TopMissedPane() {
                 </div>
               );
             })}
-            <p className="text-[11px] text-florence-slate/80">
+            <p className="text-xs text-florence-slate/80">
               Put the top one on screen tomorrow and ask the room why the popular wrong answer
               tempts - that IS the reteach.
             </p>
@@ -1362,7 +1375,7 @@ function ClassSimDebrief({ debrief }: { debrief: CohortSimDebrief | null }) {
     <div className="rounded-2xl border border-florence-line bg-white p-6">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Class sim debrief</p>
-        <span className="text-[11px] font-medium text-florence-slate">
+        <span className="text-xs font-medium text-florence-slate">
           {debrief.participants}/{debrief.enrolled} students · {debrief.runs}{" "}
           {debrief.runs === 1 ? "run" : "runs"}
         </span>
@@ -1431,7 +1444,7 @@ function ReviewPlannerPane() {
     <div className="rounded-2xl border border-florence-line bg-white p-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">Sim-of-the-day planner</p>
-        <label className="flex items-center gap-1.5 text-[11px] text-florence-slate">
+        <label className="flex items-center gap-1.5 text-xs text-florence-slate">
           Review days
           <input
             type="number"
@@ -1455,7 +1468,7 @@ function ReviewPlannerPane() {
           return (
             <span
               key={s.clientNeed}
-              className="rounded-full border border-florence-line bg-florence-mist/50 px-2.5 py-1 text-[11px] text-florence-ink"
+              className="rounded-full border border-florence-line bg-florence-mist/50 px-2.5 py-1 text-xs text-florence-ink"
             >
               {CLIENT_NEED_LABEL[s.clientNeed]} · {n}d
             </span>
@@ -1467,9 +1480,9 @@ function ReviewPlannerPane() {
       <ol className="mt-3 max-h-64 space-y-1 overflow-y-auto">
         {plan.map((d) => (
           <li key={d.day} className="flex items-center gap-2 rounded-lg bg-florence-mist/40 px-3 py-1.5">
-            <span className="w-12 shrink-0 text-[11px] font-semibold text-florence-slate">Day {d.day}</span>
+            <span className="w-12 shrink-0 text-xs font-semibold text-florence-slate">Day {d.day}</span>
             <span className="min-w-0 flex-1 truncate text-sm text-florence-ink">{d.simTitle ?? "—"}</span>
-            <span className="shrink-0 text-[10px] uppercase tracking-wide text-florence-slate">
+            <span className="shrink-0 text-[11px] uppercase tracking-wide text-florence-slate">
               {CLIENT_NEED_LABEL[d.clientNeed]}
             </span>
           </li>
@@ -1565,7 +1578,7 @@ function SkeletonCard({ title }: { title: string }) {
 function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "good" }) {
   return (
     <span
-      className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${
+      className={`rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-wider ${
         tone === "good"
           ? "border-vital-ok/40 bg-vital-ok/10 text-vital-ok"
           : "border-florence-line bg-florence-mist/60 text-florence-slate"

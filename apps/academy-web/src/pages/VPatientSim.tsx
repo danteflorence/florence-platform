@@ -378,7 +378,7 @@ export function SimRunner({
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-florence-ink">{scenario.title}</p>
-            <p className="truncate text-[11px] text-florence-slate">{scenario.setting}</p>
+            <p className="truncate text-xs text-florence-slate">{scenario.setting}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -432,7 +432,7 @@ export function SimRunner({
             <p className="mt-1 text-sm font-medium text-florence-ink">Watch, assess, and act. The clock runs in real time.</p>
 
             <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-florence-slate">Difficulty</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-florence-slate">Difficulty</p>
               <div className="mt-1.5 inline-flex flex-wrap justify-center gap-1.5">
                 {DIFFICULTIES.map((d) => (
                   <button
@@ -448,7 +448,7 @@ export function SimRunner({
                   </button>
                 ))}
               </div>
-              <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-florence-slate">
+              <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-florence-slate">
                 {DIFFICULTY_BLURB[difficulty]}
               </p>
             </div>
@@ -466,7 +466,7 @@ export function SimRunner({
         {started && (
           <>
             <div className="rounded-2xl border border-florence-line bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-florence-slate">What you notice</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-florence-slate">What you notice</p>
               {/* aria-live: screen readers hear new findings as they land. */}
               <div className="mt-2 space-y-2" aria-live="polite">
                 {state.narrationLog.slice(-4).map((n, i, arr) => (
@@ -523,7 +523,7 @@ export function SimRunner({
               {/* Safe-to-fail tutor: a Socratic nudge, never the answer. */}
               <div className="mt-3 border-t border-florence-line pt-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] text-florence-slate">
+                  <p className="text-xs text-florence-slate">
                     Stuck? The tutor will nudge your thinking, not give the answer.
                   </p>
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -551,7 +551,7 @@ export function SimRunner({
                 {tutorHint && (
                   <div className="mt-2 rounded-lg bg-florence-teal-soft/40 px-3 py-2">
                     <p className="text-sm leading-relaxed text-florence-ink">{tutorHint}</p>
-                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-florence-slate">
+                    <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-florence-slate">
                       Hint used · this run won't be scored
                     </p>
                   </div>
@@ -591,7 +591,7 @@ export function SimRunner({
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-florence-line bg-white/97 px-3 pb-4 pt-2.5 backdrop-blur">
           <div className="relative mx-auto max-w-2xl">
             {lastAction && state.clockSec - lastAction.atSec < 4 && (
-              <p className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-florence-ink px-3 py-1 text-[11px] font-semibold text-white/95 shadow-card">
+              <p className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-florence-ink px-3 py-1 text-xs font-semibold text-white/95 shadow-card">
                 ✓ {lastAction.label}
               </p>
             )}
@@ -600,7 +600,7 @@ export function SimRunner({
                 In progress… ({state.busyUntilSec - state.clockSec}s)
               </p>
             ) : (
-              <p className="pb-2 text-center text-[11px] text-florence-slate">Tap what you do next</p>
+              <p className="pb-2 text-center text-xs text-florence-slate">Tap what you do next</p>
             )}
             <div className="max-h-52 space-y-2 overflow-y-auto">
               {CATEGORY_ORDER.map((cat) => {
@@ -608,7 +608,7 @@ export function SimRunner({
                 if (inCat.length === 0) return null;
                 return (
                   <div key={cat}>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-florence-slate">
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-florence-slate">
                       {CATEGORY_LABEL[cat]}
                     </p>
                     <div className="flex flex-wrap gap-1.5">

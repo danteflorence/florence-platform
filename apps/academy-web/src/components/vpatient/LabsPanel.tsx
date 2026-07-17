@@ -36,7 +36,7 @@ export default function LabsPanel({ panels, compact = false }: { panels: LabPane
             <div className="flex items-center justify-between gap-2 border-b border-florence-line px-3 py-2">
               <p className="text-sm font-semibold text-florence-ink">{panel.label}</p>
               {criticalCount > 0 && (
-                <span className="rounded-full bg-vital-danger px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                <span className="rounded-full bg-vital-danger px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
                   {criticalCount} critical
                 </span>
               )}
@@ -57,14 +57,14 @@ export default function LabsPanel({ panels, compact = false }: { panels: LabPane
                     </span>
                     <span className="flex items-center gap-2 tabular-nums">
                       {!compact && refText(v) && (
-                        <span className="text-[10px] text-florence-slate/70">{refText(v)}</span>
+                        <span className="text-[11px] text-florence-slate/70">{refText(v)}</span>
                       )}
                       <span className={`text-sm ${isAbnormal(flag) ? "font-semibold text-florence-ink" : "text-florence-ink/80"}`}>
                         {v.value}
-                        {v.unit ? <span className="ml-0.5 text-[10px] font-normal text-florence-slate">{v.unit}</span> : null}
+                        {v.unit ? <span className="ml-0.5 text-[11px] font-normal text-florence-slate">{v.unit}</span> : null}
                       </span>
                       {chip && (
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${chip.cls}`} aria-label={flag}>
+                        <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${chip.cls}`} aria-label={flag}>
                           {chip.label}
                         </span>
                       )}

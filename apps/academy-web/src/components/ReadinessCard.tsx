@@ -38,7 +38,7 @@ export default function ReadinessCard({
 
       {v.focusAreas.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-florence-slate">
+          <span className="text-xs font-medium uppercase tracking-wide text-florence-slate">
             Focus areas
           </span>
           {v.focusAreas.map((label) => (
@@ -53,7 +53,7 @@ export default function ReadinessCard({
       )}
 
       <div className="mt-4">
-        <div className="flex items-center justify-between text-[11px] text-florence-slate">
+        <div className="flex items-center justify-between text-xs text-florence-slate">
           <span>
             {v.sectionsCompleted} of {v.sectionsTotal} sections completed
           </span>

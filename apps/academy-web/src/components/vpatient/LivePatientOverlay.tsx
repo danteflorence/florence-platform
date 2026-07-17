@@ -131,7 +131,7 @@ export default function LivePatientOverlay({
       <div className="w-full max-w-md rounded-t-3xl bg-white p-4 shadow-2xl sm:rounded-3xl">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-florence-ink">
-            🗣 Talk with {scenario.patient.name} <span className="ml-1 rounded bg-florence-indigo-soft px-1.5 py-0.5 text-[10px] font-bold uppercase text-florence-indigo">beta</span>
+            🗣 Talk with {scenario.patient.name} <span className="ml-1 rounded bg-florence-indigo-soft px-1.5 py-0.5 text-[11px] font-bold uppercase text-florence-indigo">beta</span>
           </p>
           <button onClick={phase === "live" ? hangUp : onClose} className="text-xs font-semibold text-florence-slate hover:text-florence-ink">
             {phase === "live" ? "End call" : "Close"}

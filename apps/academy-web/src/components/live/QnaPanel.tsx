@@ -37,7 +37,7 @@ export default function QnaPanel({
         <span className="inline-flex items-center gap-2">
           Live Q&amp;A
           {pending > 0 && (
-            <span className="rounded-full bg-florence-teal px-1.5 py-0.5 text-[10px] font-bold text-white">{pending}</span>
+            <span className="rounded-full bg-florence-teal px-1.5 py-0.5 text-[11px] font-bold text-white">{pending}</span>
           )}
         </span>
         <span aria-hidden className="text-white/60">{open ? "▾" : "▸"}</span>
@@ -55,7 +55,7 @@ export default function QnaPanel({
                   <p className="min-w-0 break-words">{q.text}</p>
                   {q.answered && <span aria-hidden className="shrink-0 text-vital-ok">✓</span>}
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[11px] text-white/40">
+                <div className="mt-1 flex items-center justify-between text-xs text-white/40">
                   <span>{q.name}</span>
                   {isInstructor && !q.answered && (
                     <button type="button" onClick={() => onAnswer(q.id)} className="font-medium text-florence-teal hover:underline">

@@ -104,9 +104,9 @@ export default function TodaysPlanCard() {
         ))}
       </ul>
       {plan.active_today ? (
-        <p className="mt-2 text-[11px] font-medium text-emerald-700">✓ You've studied today — streak safe.</p>
+        <p className="mt-2 text-xs font-medium text-emerald-700">✓ You've studied today — streak safe.</p>
       ) : (
-        <p className="mt-2 text-[11px] font-medium text-amber-700">Nothing yet today — one item keeps the streak.</p>
+        <p className="mt-2 text-xs font-medium text-amber-700">Nothing yet today — one item keeps the streak.</p>
       )}
     </div>
   );

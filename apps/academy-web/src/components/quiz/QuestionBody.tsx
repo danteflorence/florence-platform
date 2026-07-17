@@ -230,7 +230,7 @@ function Media({ asset, className }: { asset: MediaAsset; className?: string }) 
               <p className="text-3xl" aria-hidden>
                 🖼️
               </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-florence-slate">
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-florence-slate">
                 {modality ? `${modality} · ` : ""}media pending
               </p>
               <p className="mt-1 text-xs leading-snug text-florence-slate/80">
@@ -240,7 +240,7 @@ function Media({ asset, className }: { asset: MediaAsset; className?: string }) 
           </div>
         )}
         {modality && asset.src && (
-          <span className="absolute left-2 top-2 rounded-md bg-florence-ink/75 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+          <span className="absolute left-2 top-2 rounded-md bg-florence-ink/75 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
             {modality}
           </span>
         )}

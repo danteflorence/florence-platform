@@ -52,7 +52,7 @@ export default function LabDrawer({
               </table>
             </div>
           ))}
-          <p className="text-[11px] leading-relaxed text-florence-slate/70">
+          <p className="text-xs leading-relaxed text-florence-slate/70">
             Reference ranges vary by laboratory and assay. Teaching reference
             only - not a substitute for institutional values.
           </p>

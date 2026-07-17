@@ -184,7 +184,7 @@ function Funnel({ label, value, accent }: { label: string; value: number; accent
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-center">
       <p className={`text-2xl font-semibold tabular-nums ${accent ? "text-florence-teal" : "text-white"}`}>{value}</p>
-      <p className="text-[11px] text-white/50">{label}</p>
+      <p className="text-xs text-white/50">{label}</p>
     </div>
   );
 }

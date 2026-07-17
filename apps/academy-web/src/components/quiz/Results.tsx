@@ -262,11 +262,11 @@ export default function Results({
                   {h.question.stem}
                 </span>
                 {h.spentMs != null && (
-                  <span className="hidden shrink-0 tabular-nums text-[11px] text-florence-slate/80 sm:block">
+                  <span className="hidden shrink-0 tabular-nums text-xs text-florence-slate/80 sm:block">
                     {Math.round(h.spentMs / 1000)}s
                   </span>
                 )}
-                <span className="hidden shrink-0 text-[11px] text-florence-slate sm:block">
+                <span className="hidden shrink-0 text-xs text-florence-slate sm:block">
                   {QUESTION_TYPE_LABELS[h.question.type]}
                 </span>
               </summary>
@@ -308,7 +308,7 @@ export default function Results({
         </button>
       </div>
 
-      <p className="mt-6 text-[11px] leading-relaxed text-florence-slate/70">
+      <p className="mt-6 text-xs leading-relaxed text-florence-slate/70">
         Pass probability is an estimate from a Rasch ability model on this
         practice pool - a study signal, not a prediction of your actual NCLEX
         result.
@@ -339,7 +339,7 @@ function Metric({
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[11px] leading-tight text-florence-slate">
+      <p className="mt-0.5 text-xs leading-tight text-florence-slate">
         {label}
       </p>
     </div>

@@ -136,7 +136,7 @@ function TutorWidget() {
             )}
           </div>
 
-          <p className="mt-3 text-[10px] leading-snug text-florence-slate">
+          <p className="mt-3 text-[11px] leading-snug text-florence-slate">
             Teaches NCLEX reasoning. Not medical advice. Microphone access required.
           </p>
         </div>

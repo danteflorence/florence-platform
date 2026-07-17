@@ -138,7 +138,7 @@ export default function SimDebrief({
             const label = CJMM_STEPS.find((s) => s.key === row.step)?.label ?? row.step;
             return (
               <div key={row.step} className="flex items-center gap-3">
-                <span className="w-7 shrink-0 text-center font-mono text-[11px] text-florence-slate">{row.order}</span>
+                <span className="w-7 shrink-0 text-center font-mono text-xs text-florence-slate">{row.order}</span>
                 <span className="w-40 shrink-0 truncate text-sm text-florence-ink">{label}</span>
                 <span className="h-2 flex-1 overflow-hidden rounded-full bg-florence-mist">
                   {row.score !== null && (
@@ -216,7 +216,7 @@ export default function SimDebrief({
                   </span>
                 </div>
                 {delta !== undefined && optimalEntry && (
-                  <p className="mt-1 font-mono text-[11px] text-florence-slate">
+                  <p className="mt-1 font-mono text-xs text-florence-slate">
                     you {mmss(d.atSec!)} · optimal {mmss(optimalEntry.atSec)}
                     {delta > 15 && <span className="ml-1 font-sans font-semibold text-amber-700">({Math.round(delta)}s behind)</span>}
                     {delta <= 15 && <span className="ml-1 font-sans font-semibold text-emerald-700">(on pace)</span>}
@@ -224,14 +224,14 @@ export default function SimDebrief({
                 )}
                 {err && (
                   <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="rounded bg-vital-danger/10 px-2 py-0.5 text-[11px] font-semibold text-red-800">
+                    <span className="rounded bg-vital-danger/10 px-2 py-0.5 text-xs font-semibold text-red-800">
                       {err.label}
                     </span>
                     <span className="text-xs text-florence-slate">{err.meaning}</span>
                   </div>
                 )}
                 {d.citation && (
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-florence-slate/80">{d.citation}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-florence-slate/80">{d.citation}</p>
                 )}
               </div>
             );
@@ -345,7 +345,7 @@ export default function SimDebrief({
           </Link>
         </div>
         {!candidate && (
-          <p className="mt-4 text-[11px] text-florence-slate/70">
+          <p className="mt-4 text-xs text-florence-slate/70">
             Sign in to save this run to your readiness profile.
           </p>
         )}

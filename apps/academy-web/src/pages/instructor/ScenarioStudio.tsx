@@ -269,7 +269,7 @@ function Studio() {
               {/* Completeness checklist */}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(["title", "setting", "patient", "presentation", "vitals", "priority", "escalation"] as AuthorSlot[]).map((s) => (
-                  <span key={s} className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${filled.includes(s) ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>
+                  <span key={s} className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${filled.includes(s) ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>
                     {filled.includes(s) ? "✓ " : ""}{s}
                   </span>
                 ))}
@@ -335,7 +335,7 @@ function Studio() {
               </label>
             </div>
             {ingestNotes.length > 0 && (
-              <ul className="mt-2 space-y-1 rounded-lg bg-florence-mist/60 p-2 text-[11px] text-florence-slate">
+              <ul className="mt-2 space-y-1 rounded-lg bg-florence-mist/60 p-2 text-xs text-florence-slate">
                 {ingestNotes.map((n, i) => <li key={i}>• {n}</li>)}
               </ul>
             )}
@@ -352,14 +352,14 @@ function Studio() {
                 {mine.map((s) => (
                   <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-florence-line px-3 py-2 text-sm">
                     <span className="min-w-0 flex-1 truncate">{s.title}</span>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.status === "approved" ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>{s.status}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${s.status === "approved" ? "bg-vital-ok/15 text-emerald-800" : "bg-florence-mist text-florence-slate"}`}>{s.status}</span>
                     <button onClick={() => setJson(JSON.stringify(s.scenario, null, 2))} className="shrink-0 text-xs font-semibold text-florence-teal-dark">Load</button>
                     {s.status !== "approved" ? (
                       <button onClick={() => approve(s.id)} className="shrink-0 text-xs font-semibold text-florence-indigo">Approve</button>
                     ) : s.render_state === "ready" ? (
-                      <span className="shrink-0 text-[10px] font-bold uppercase text-emerald-700">3D ready</span>
+                      <span className="shrink-0 text-[11px] font-bold uppercase text-emerald-700">3D ready</span>
                     ) : s.render_state === "queued" ? (
-                      <span className="shrink-0 text-[10px] font-bold uppercase text-amber-700">3D queued</span>
+                      <span className="shrink-0 text-[11px] font-bold uppercase text-amber-700">3D queued</span>
                     ) : (
                       <button onClick={() => requestRenderFor(s)} className="shrink-0 text-xs font-semibold text-florence-indigo">Build 3D</button>
                     )}
@@ -391,11 +391,11 @@ function Studio() {
               placeholder="Draft a scenario on the left, or paste scenario JSON here…"
               rows={18}
               spellCheck={false}
-              className="mt-2 w-full rounded-md border border-florence-line px-3 py-2 font-mono text-[11px] leading-relaxed"
+              className="mt-2 w-full rounded-md border border-florence-line px-3 py-2 font-mono text-xs leading-relaxed"
             />
             {parseError && <p className="mt-2 text-xs text-vital-danger">JSON: {parseError}</p>}
             {!parseError && errors.length > 0 && (
-              <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-lg bg-amber-50 p-2 text-[11px] text-amber-900">
+              <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
                 {errors.map((e, i) => <li key={i}>• {e}</li>)}
               </ul>
             )}
@@ -416,7 +416,7 @@ function Studio() {
                 Submit for review
               </button>
             </div>
-            <p className="mt-2 text-[11px] text-florence-slate/80">
+            <p className="mt-2 text-xs text-florence-slate/80">
               Learners only ever run <strong>approved</strong> scenarios. Play-test as much as you like - it never saves.
             </p>
           </div>

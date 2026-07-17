@@ -70,7 +70,7 @@ export default function LevelChooser({
         })}
       </div>
 
-      <p className="mt-6 text-[11px] leading-relaxed text-florence-slate/70">
+      <p className="mt-6 text-xs leading-relaxed text-florence-slate/70">
         Your choice only sets the first question's difficulty. From there the
         session adapts to your performance, and you'll always see the rationale -
         whether you got it right or wrong.

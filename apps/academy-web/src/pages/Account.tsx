@@ -107,7 +107,7 @@ function RemediationCard({ candidateId }: { candidateId: string }) {
       <ul className="mt-3 divide-y divide-florence-line">
         {open.map((r) => (
           <li key={`${r.dim}:${r.key}`} className="flex items-center gap-3 py-2.5">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-600">
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-600">
               {Math.round(r.pass_prob * 100)}
             </span>
             <div className="flex-1">
@@ -812,7 +812,7 @@ function ProgressList({ candidateId }: { candidateId: string }) {
           {sorted.map((r) => (
             <li key={r.section_slug} className="flex items-center gap-3 py-2.5">
               <span
-                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
                   r.status === "completed"
                     ? "bg-vital-ok/15 text-vital-ok"
                     : "bg-florence-mist text-florence-slate"

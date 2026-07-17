@@ -165,7 +165,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xl font-semibold tabular-nums text-white">{value}</p>
-      <p className="text-[11px] text-white/50">{label}</p>
+      <p className="text-xs text-white/50">{label}</p>
     </div>
   );
 }
@@ -173,12 +173,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 function ChipRow({ label, items, accent }: { label: string; items: string[]; accent?: boolean }) {
   return (
     <div className="mt-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-white/50">{label}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {items.map((x) => (
           <span
             key={x}
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               accent ? "bg-florence-teal/15 text-florence-teal" : "bg-white/[0.06] text-white/75"
             }`}
           >

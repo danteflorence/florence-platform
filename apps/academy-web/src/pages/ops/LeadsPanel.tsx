@@ -409,7 +409,7 @@ function Metric({
         accent ? "border-florence-teal/40 bg-florence-teal/10" : "border-white/10 bg-white/[0.03]"
       }`}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/50">{label}</p>
       <p className="mt-1 font-mono text-xl font-semibold text-white">{value}</p>
       {sub && <p className="mt-0.5 text-xs text-white/50">{sub}</p>}
     </div>
@@ -419,7 +419,7 @@ function Metric({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">{label}</span>
       {children}
     </label>
   );
@@ -458,7 +458,7 @@ const PILL_TONE: Record<string, string> = {
 
 function Pill({ children, tone = "muted" }: { children: React.ReactNode; tone?: keyof typeof PILL_TONE }) {
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${PILL_TONE[tone]}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${PILL_TONE[tone]}`}>
       {children}
     </span>
   );

@@ -78,7 +78,7 @@ export default function InstructorVideo({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="flex cursor-move items-center justify-between bg-white/10 px-2 py-1 text-[11px] font-medium text-white/80"
+        className="flex cursor-move items-center justify-between bg-white/10 px-2 py-1 text-xs font-medium text-white/80"
       >
         <span className="inline-flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${status === "live" ? "bg-vital-ok" : status === "connecting" ? "bg-amber-400 animate-pulse" : "bg-white/40"}`} />
@@ -86,7 +86,7 @@ export default function InstructorVideo({
         </span>
         <span className="inline-flex items-center gap-1.5">
           {recording && (
-            <span className="inline-flex items-center gap-1 rounded bg-vital-danger px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="inline-flex items-center gap-1 rounded bg-vital-danger px-1.5 py-0.5 text-[11px] font-bold text-white">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />REC
             </span>
           )}
@@ -96,7 +96,7 @@ export default function InstructorVideo({
       {track ? (
         <div ref={videoRef} className="aspect-video w-full bg-black" />
       ) : (
-        <div className="grid aspect-video w-full place-items-center bg-black px-3 text-center text-[11px] text-white/55">
+        <div className="grid aspect-video w-full place-items-center bg-black px-3 text-center text-xs text-white/55">
           {isHost
             ? status === "connecting"
               ? "Connecting…"
@@ -115,14 +115,14 @@ export default function InstructorVideo({
           <button
             type="button"
             onClick={onToggleCam}
-            className={`rounded-md px-2 py-1 text-[11px] font-medium ${camOn ? "bg-white/10 text-white/80" : "bg-vital-danger/80 text-white"}`}
+            className={`rounded-md px-2 py-1 text-xs font-medium ${camOn ? "bg-white/10 text-white/80" : "bg-vital-danger/80 text-white"}`}
           >
             {camOn ? "Cam on" : "Cam off"}
           </button>
           <button
             type="button"
             onClick={onToggleMic}
-            className={`rounded-md px-2 py-1 text-[11px] font-medium ${micOn ? "bg-white/10 text-white/80" : "bg-vital-danger/80 text-white"}`}
+            className={`rounded-md px-2 py-1 text-xs font-medium ${micOn ? "bg-white/10 text-white/80" : "bg-vital-danger/80 text-white"}`}
           >
             {micOn ? "Mic on" : "Mic off"}
           </button>
@@ -131,7 +131,7 @@ export default function InstructorVideo({
               type="button"
               onClick={onToggleRecording}
               title={recording ? "Stop recording" : "Record this class to the cloud"}
-              className={`rounded-md px-2 py-1 text-[11px] font-medium ${recording ? "bg-vital-danger text-white" : "bg-white/10 text-white/80"}`}
+              className={`rounded-md px-2 py-1 text-xs font-medium ${recording ? "bg-vital-danger text-white" : "bg-white/10 text-white/80"}`}
             >
               {recording ? "■ Stop" : "● Rec"}
             </button>
@@ -143,7 +143,7 @@ export default function InstructorVideo({
           <button
             type="button"
             onClick={onToggleVideo}
-            className={`w-full rounded-md px-2 py-1 text-[11px] font-medium ${videoRequested ? "bg-white/10 text-white/80" : "bg-florence-teal text-white"}`}
+            className={`w-full rounded-md px-2 py-1 text-xs font-medium ${videoRequested ? "bg-white/10 text-white/80" : "bg-florence-teal text-white"}`}
           >
             {videoRequested ? "Hide video · save data" : "▶ Show instructor video"}
           </button>

@@ -92,7 +92,7 @@ function Readout({
         style={{ color }}
       >
         {value}
-        <span className="mt-0.5 block text-[9px] font-medium leading-none text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-[11px]">
+        <span className="mt-0.5 block text-[9px] font-medium leading-none text-white/50 sm:ml-1 sm:mt-0 sm:inline sm:text-xs">
           {unit}
         </span>
       </p>
@@ -116,7 +116,7 @@ export default function VitalsDisplay({
   return (
     <div className="rounded-2xl border border-florence-line bg-florence-ink/[0.03] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-florence-ink px-2.5 py-1 text-[11px] font-medium text-white/80">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-florence-ink px-2.5 py-1 text-xs font-medium text-white/80">
           <span className="h-2 w-2 rounded-full bg-vital-ok animate-pulse-dot motion-reduce:animate-none" />
           {vitals.rhythm}
         </span>

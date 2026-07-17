@@ -104,7 +104,7 @@ export default function LivePoll({
         {/* Body */}
         <div className="max-h-[46vh] overflow-y-auto px-5 py-4">
           {step && (
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-florence-indigo/20 bg-florence-indigo/5 px-3 py-1 text-[11px] font-semibold text-florence-indigo-dark">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-florence-indigo/20 bg-florence-indigo/5 px-3 py-1 text-xs font-semibold text-florence-indigo-dark">
               <span aria-hidden>🧠</span>
               Clinical Judgment · Step {step.order} of 6 · {step.label}
             </div>
@@ -180,7 +180,7 @@ export default function LivePoll({
                       </span>
                       {opt}
                       {isMine && (
-                        <span className="ml-2 rounded-full bg-florence-ink/5 px-2 py-0.5 text-[11px] font-semibold text-florence-slate">
+                        <span className="ml-2 rounded-full bg-florence-ink/5 px-2 py-0.5 text-xs font-semibold text-florence-slate">
                           your answer
                         </span>
                       )}
@@ -216,7 +216,7 @@ export default function LivePoll({
                 </p>
               )}
               {poll.reference && (
-                <p className="mt-2 text-[11px] font-medium text-florence-slate/80">
+                <p className="mt-2 text-xs font-medium text-florence-slate/80">
                   {poll.reference}
                 </p>
               )}

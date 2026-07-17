@@ -89,14 +89,14 @@ export default function LiveRoster({ roster }: { roster: RosterView | null }) {
 function StatusChip({ s, live }: { s: StudentStatus; live: boolean }) {
   if (!live) {
     return (
-      <span className="shrink-0 rounded-full bg-florence-mist px-2 py-0.5 text-[11px] font-medium text-florence-slate">
+      <span className="shrink-0 rounded-full bg-florence-mist px-2 py-0.5 text-xs font-medium text-florence-slate">
         present
       </span>
     );
   }
   if (!s.answered) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-florence-mist px-2 py-0.5 text-[11px] font-medium text-florence-slate/70">
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-florence-mist px-2 py-0.5 text-xs font-medium text-florence-slate/70">
         <span className="h-1.5 w-1.5 rounded-full border border-florence-slate/40" />
         waiting
       </span>
@@ -113,7 +113,7 @@ function StatusChip({ s, live }: { s: StudentStatus; live: boolean }) {
     s.correct === true ? "Correct" : s.correct === false ? "Incorrect" : "Answered";
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${tone}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${tone}`}
       title={word}
       aria-label={s.choices.length ? `${word}, picked ${picks}` : word}
     >

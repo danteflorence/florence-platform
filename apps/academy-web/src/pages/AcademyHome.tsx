@@ -52,10 +52,21 @@ const STATE_TONE: Record<CoverageState, FlorenceTone> = {
   not_published: "neutral",
 };
 
+// Quiet exploration tiles for everything that is NOT today's work. Frequency
+// of use sets visual weight: one primary continue action, then these.
+const EXPLORE: { to: string; label: string; hint: string }[] = [
+  { to: "/academy/library", label: "Library", hint: "PDFs, handouts, visuals" },
+  { to: "/academy/practice", label: "Practice", hint: "Adaptive bank · 10,792 items" },
+  { to: "/academy/sims", label: "Virtual patients", hint: "Bedside simulations" },
+  { to: "/academy/tutor", label: "Tutor", hint: "Explain, quiz, coach" },
+  { to: "/academy/grants", label: "Grants", hint: "Funding support" },
+  { to: "/academy/residency", label: "Residency reserve", hint: "Plan your start" },
+];
+
 export default function AcademyHome() {
   // Signed-in learners see their readiness band + next study action up top -
   // the same snapshot the API already computes for remediation dispatch.
-  const { status, readiness } = useCandidate();
+  const { status, readiness, candidate } = useCandidate();
   // Per-cohort coverage watermark. Falls back to the build-time env var when
   // the student isn't enrolled / isn't signed in / no API. Once /v1/me/cohort
   // resolves, the grid + hero CTA reflect the live cohort's actual progress.
@@ -71,101 +82,123 @@ export default function AcademyHome() {
   }, []);
   const watermark = cohort?.covered_through_section ?? COVERED_THROUGH_SECTION;
 
-  // The "next live section" the hero deep-links to. If the cohort hasn't started,
-  // surface the curriculum entry point instead.
+  // The "next live section" the continue action deep-links to. If the cohort
+  // hasn't started, surface the curriculum entry point instead.
   const current = SECTIONS.find((s) => coverageOf(s, watermark) === "current");
   const heroTarget = current?.slug;
+  const authed = status === "authenticated";
+  const firstName = candidate?.full_name?.split(" ")[0];
+
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-florence-line bg-white">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-florence-teal-soft/70 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-florence-indigo-soft/70 blur-3xl" />
-        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-16">
-          <FlorenceBadge tone="accent">Florence Academy</FlorenceBadge>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
-            Pass the NCLEX - one clinical section at a time.
-          </h1>
-          <p className="mt-3 max-w-2xl text-base text-florence-slate sm:text-lg">
-            An interactive bootcamp for internationally educated nurses: real
-            clinical content, 3D anatomy you can explore, bedside simulations,
-            and a computer-adaptive question bank that works exactly like the
-            exam.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            {heroTarget ? (
-              <Link
-                to={`/academy/${heroTarget}`}
-                className={buttonClassName({ variant: "accent", size: "lg" })}
-              >
-                Resume current section →
-              </Link>
-            ) : (
-              <a
-                href="#sections"
-                className={buttonClassName({ variant: "accent", size: "lg" })}
-              >
-                Open the Curriculum Navigator →
-              </a>
-            )}
-            <Link
-              to="/academy/library"
-              className={buttonClassName({ variant: "secondary", size: "lg" })}
-            >
-              Open study library
-            </Link>
-            <Link
-              to="/academy/practice"
-              className={buttonClassName({ variant: "secondary", size: "lg" })}
-            >
-              Nightly practice · 150 adaptive →
-            </Link>
-            <Link
-              to="/academy/sims"
-              className={buttonClassName({ variant: "secondary", size: "lg" })}
-            >
-              Virtual patients →
-            </Link>
-            <Link
-              to="/academy/tutor"
-              className={buttonClassName({ variant: "secondary", size: "lg" })}
-            >
-              Open Florence Tutor →
-            </Link>
-            <Link
-              to="/academy/grants"
-              className={buttonClassName({ variant: "secondary", size: "lg" })}
-            >
-              Grant center →
-            </Link>
-            <Link
-              to="/academy/residency"
-              className={buttonClassName({ variant: "ghost", size: "lg" })}
-            >
-              Residency reserve →
-            </Link>
-          </div>
-          <ApplyProgramsCta placement="academy_home" compact className="mt-5 max-w-2xl" />
-        </div>
-      </section>
-
-      {status === "authenticated" && readiness ? (
+      {authed ? (
+        /* ── Signed in: the day's work leads. No pitch, no button ladder -
+              the plan, the band, then one continue action and quiet tiles. ── */
         <section className="border-b border-florence-line bg-florence-mist/60">
           <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:px-8">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-slate">
+                  Florence Academy
+                </p>
+                <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">
+                  {firstName ? `Welcome back, ${firstName}.` : "Welcome back."}
+                </h1>
+              </div>
+              {heroTarget && (
+                <Link
+                  to={`/academy/${heroTarget}`}
+                  className={`whitespace-nowrap ${buttonClassName({ variant: "primary", size: "md" })}`}
+                >
+                  Resume section →
+                </Link>
+              )}
+            </div>
             <TodaysPlanCard />
-            <ReadinessCard snapshot={readiness} />
+            {readiness && <ReadinessCard snapshot={readiness} />}
             <DailyReviewCard />
             <RemediationPanel />
             <ReasoningProfileCard />
+            <nav aria-label="Explore" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {EXPLORE.map((t) => (
+                <Link
+                  key={t.to}
+                  to={t.to}
+                  className="rounded-2xl border border-florence-line bg-white px-4 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg"
+                >
+                  <p className="text-sm font-semibold text-florence-ink">{t.label}</p>
+                  <p className="mt-0.5 text-xs text-florence-slate">{t.hint}</p>
+                </Link>
+              ))}
+            </nav>
           </div>
         </section>
       ) : (
-        /* The spaced-review queue is device-local, so anonymous learners keep
-           their daily review too. Renders nothing when the queue is empty. */
-        <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-8">
-          <DailyReviewCard />
-        </section>
+        /* ── Signed out: the pitch, with ONE primary action and quiet tiles
+              instead of the seven-button ladder. ── */
+        <>
+          <section className="relative overflow-hidden border-b border-florence-line bg-white">
+            <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-florence-teal-soft/70 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-florence-indigo-soft/70 blur-3xl" />
+            <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-16">
+              <FlorenceBadge tone="accent">Florence Academy</FlorenceBadge>
+              <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
+                Pass the NCLEX - one clinical section at a time.
+              </h1>
+              <p className="mt-3 max-w-2xl text-base text-florence-slate sm:text-lg">
+                An interactive bootcamp for internationally educated nurses: real
+                clinical content, 3D anatomy you can explore, bedside simulations,
+                and a computer-adaptive question bank that works exactly like the
+                exam.
+              </p>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                {heroTarget ? (
+                  <Link
+                    to={`/academy/${heroTarget}`}
+                    className={buttonClassName({ variant: "primary", size: "lg" })}
+                  >
+                    Start studying free →
+                  </Link>
+                ) : (
+                  <a
+                    href="#sections"
+                    className={buttonClassName({ variant: "primary", size: "lg" })}
+                  >
+                    Open the Curriculum Navigator →
+                  </a>
+                )}
+                <Link
+                  to="/academy/account"
+                  className={buttonClassName({ variant: "secondary", size: "lg" })}
+                >
+                  Sign in
+                </Link>
+              </div>
+              <nav aria-label="Explore" className="mt-6 grid max-w-2xl grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {EXPLORE.map((t) => (
+                  <Link
+                    key={t.to}
+                    to={t.to}
+                    className="rounded-2xl border border-florence-line bg-white/80 px-4 py-3 transition-colors hover:bg-florence-mist"
+                  >
+                    <p className="text-sm font-semibold text-florence-ink">{t.label}</p>
+                    <p className="mt-0.5 text-xs text-florence-slate">{t.hint}</p>
+                  </Link>
+                ))}
+              </nav>
+              <ApplyProgramsCta placement="academy_home" compact className="mt-6 max-w-2xl" />
+            </div>
+          </section>
+          {/* The spaced-review queue is device-local, so anonymous learners keep
+              their daily review too. Renders nothing when the queue is empty. */}
+          <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-8">
+            <DailyReviewCard />
+          </section>
+        </>
       )}
 
+      {!authed && (
+      <>
       <section className="border-b border-florence-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 sm:px-8 lg:grid-cols-[0.95fr_1.05fr]">
           <div>
@@ -227,6 +260,8 @@ export default function AcademyHome() {
           </div>
         </div>
       </section>
+      </>
+      )}
 
       <section id="sections" className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-12">
         <div className="mb-6 flex items-end justify-between gap-4">

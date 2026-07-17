@@ -275,7 +275,7 @@ export default function Practice() {
             interval clears the passing standard.
           </li>
         </ol>
-        <p className="mt-3 text-[11px] text-florence-slate/70">
+        <p className="mt-3 text-xs text-florence-slate/70">
           Pool: {BANK_SIZE} items - the original seed set plus your imported
           NCLEX question bank. All Florence-owned.
         </p>

@@ -240,7 +240,7 @@ export default function HeartViewer() {
           )}
 
           {status === "error" && view === "diagram" && (
-            <p className="absolute bottom-2 left-4 right-4 text-center text-[11px] text-florence-slate/80">
+            <p className="absolute bottom-2 left-4 right-4 text-center text-xs text-florence-slate/80">
               Showing the labelled schematic. Drop a heart{" "}
               <code>.glb</code> into <code>public/models/</code> to enable the 3D
               model.
@@ -277,7 +277,7 @@ export default function HeartViewer() {
           </a>
 
           {HEART_MODEL.attribution.author && (
-            <p className="mt-5 border-t border-florence-line pt-3 text-[11px] text-florence-slate/80">
+            <p className="mt-5 border-t border-florence-line pt-3 text-xs text-florence-slate/80">
               3D model: “{HEART_MODEL.attribution.title}” by{" "}
               {HEART_MODEL.attribution.author} ·{" "}
               {HEART_MODEL.attribution.license}

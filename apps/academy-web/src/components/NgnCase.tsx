@@ -383,7 +383,7 @@ function Bowtie({
         onToggle={(id) => toggle("actions", id, item.actions.pick)}
       />
       <div className="mx-auto rounded-2xl bg-indigo-gradient px-5 py-4 text-center text-white shadow-card-lg">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
           Priority condition
         </p>
         <p className="font-serif text-lg">{item.center}</p>

@@ -59,7 +59,7 @@ function MarketingHeader() {
             </span>
             {/* Mobile drops the "NCLEX-RN Bootcamp" subline - header has to
                 fit the wordmark, sign-in, and reserve CTA on one row. */}
-            <span className="hidden whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.16em] text-florence-slate sm:block">
+            <span className="hidden whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em] text-florence-slate sm:block">
               NCLEX-RN Bootcamp
             </span>
           </span>
@@ -154,7 +154,7 @@ function CurriculumPreview() {
     <div className="self-start rounded-2xl border border-florence-line bg-florence-mist/40 p-5 shadow-sm">
       <div className="flex items-baseline justify-between">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal-dark">Curriculum Navigator</p>
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-florence-slate">
+        <span className="text-xs font-medium uppercase tracking-[0.14em] text-florence-slate">
           20 sections · taught live
         </span>
       </div>
@@ -170,11 +170,14 @@ function CurriculumPreview() {
             <span className="truncate text-florence-ink/90">{s.title}</span>
           </li>
         ))}
+        {/* Computed from the source of truth so the count and names can never
+            drift from the sections shown above. */}
         <li className="px-1 pt-1 text-xs text-florence-slate">
-          + 11 more (Cardiac, Respiratory, Endocrine, Renal &amp; GI, Neuro &amp;
-          MSK, Maternity, Pediatrics, Mental Health, Infection Control,
-          Management of Care, NGN Cases, Full Simulation, Targeted Review,
-          Exam Day)
+          + {SECTIONS.length - sample.length} more (
+          {SECTIONS.slice(sample.length)
+            .map((s) => s.title)
+            .join(", ")}
+          )
         </li>
       </ul>
     </div>

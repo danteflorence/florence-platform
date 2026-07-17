@@ -314,7 +314,7 @@ function CampaignDetail({ id, onChanged }: { id: string; onChanged: () => void }
       {/* Targets table */}
       <div className="overflow-hidden rounded-xl border border-white/10">
         <table className="w-full text-sm">
-          <thead className="bg-white/[0.03] text-left text-[11px] uppercase tracking-wider text-white/40">
+          <thead className="bg-white/[0.03] text-left text-xs uppercase tracking-wider text-white/40">
             <tr>
               <th className="px-3 py-2">Organization</th>
               <th className="px-3 py-2">City</th>
@@ -439,7 +439,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-md border border-white/10 px-3 py-2">
       <p className="font-mono text-lg font-semibold text-white">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-white/40">{label}</p>
+      <p className="text-[11px] uppercase tracking-wider text-white/40">{label}</p>
     </div>
   );
 }
@@ -652,7 +652,7 @@ function LaunchModal({
               autoComplete="off"
               className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-sm text-white"
             />
-            <p className="mt-1 text-[11px] text-white/40">
+            <p className="mt-1 text-xs text-white/40">
               Held only in this tab. Never persisted server-side. {" "}
               <span className={mode === "live" ? "font-semibold text-vital-danger" : "text-vital-ok"}>
                 {mode === "live"
@@ -794,7 +794,7 @@ function StatusPill({ status, mode }: { status: string; mode?: "test" | "live" }
           ? "bg-vital-danger/15 text-vital-danger border-vital-danger/30"
           : "bg-white/5 text-white/60 border-white/10";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${tone}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${tone}`}>
       {status.replace("_", " ")}
       {mode === "test" && <span className="rounded bg-white/10 px-1 text-[9px]">test</span>}
     </span>
@@ -804,7 +804,7 @@ function StatusPill({ status, mode }: { status: string; mode?: "test" | "live" }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
         {label}
       </span>
       {children}

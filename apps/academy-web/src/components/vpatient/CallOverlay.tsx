@@ -86,7 +86,7 @@ export default function CallOverlay({
           <p className="mt-2 rounded-xl bg-florence-indigo-soft/40 px-3 py-2 text-sm italic text-florence-ink">
             "OK - {orders[0]}. Read that back to me."
           </p>
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-florence-slate">
+          <p className="mt-3 text-xs font-bold uppercase tracking-wide text-florence-slate">
             Your read-back
           </p>
           <div className="mt-1.5 space-y-2">
@@ -160,7 +160,7 @@ export default function CallOverlay({
         <div className="mt-3 space-y-2">
           {SBAR_FIELDS.map((f) => (
             <div key={f.key}>
-              <label className="text-[11px] font-bold uppercase tracking-wide text-florence-slate" htmlFor={`sbar-${f.key}`}>
+              <label className="text-xs font-bold uppercase tracking-wide text-florence-slate" htmlFor={`sbar-${f.key}`}>
                 {f.label}
               </label>
               <textarea
@@ -175,7 +175,7 @@ export default function CallOverlay({
           ))}
         </div>
 
-        <p className="mt-2 text-[11px] text-florence-slate">
+        <p className="mt-2 text-xs text-florence-slate">
           Fill at least two sections, then deliver. Your handoff isn't graded — making it is the practice.
         </p>
 

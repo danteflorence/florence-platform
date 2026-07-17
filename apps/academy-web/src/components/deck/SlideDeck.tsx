@@ -274,7 +274,7 @@ export default function SlideDeck({
                   }`}
                 >
                   <span className="mt-1 flex shrink-0 items-center gap-1.5">
-                    <span className="w-5 text-right font-mono text-[11px] text-white/50">
+                    <span className="w-5 text-right font-mono text-xs text-white/50">
                       {s.index + 1}
                     </span>
                     <span

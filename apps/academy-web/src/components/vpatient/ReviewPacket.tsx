@@ -95,7 +95,7 @@ export default function ReviewPacket({ scenario }: { scenario: VPatientScenario 
         </summary>
         <div className="mt-2 space-y-3">
           <div>
-            <p className="text-[11px] font-semibold text-florence-slate">Interventions → BioGears physiology</p>
+            <p className="text-xs font-semibold text-florence-slate">Interventions → BioGears physiology</p>
             <ul className="mt-1 space-y-0.5 text-xs">
               {interventions.map((a) => {
                 const ref = bioGearsRefFor(a.label);
@@ -108,12 +108,12 @@ export default function ReviewPacket({ scenario }: { scenario: VPatientScenario 
             </ul>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-florence-slate">Scored decisions</p>
+            <p className="text-xs font-semibold text-florence-slate">Scored decisions</p>
             <ul className="mt-1 space-y-0.5 text-xs">
               {scenario.rubric.map((d) => (
                 <li key={d.decisionId} className="text-florence-ink/85">
                   {d.label} <span className="text-florence-slate">· {d.ncjmmStep} · weight {d.weight}</span>
-                  {d.citation ? <span className="block text-[11px] text-florence-slate/80">{d.citation}</span> : null}
+                  {d.citation ? <span className="block text-xs text-florence-slate/80">{d.citation}</span> : null}
                 </li>
               ))}
             </ul>

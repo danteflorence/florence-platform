@@ -65,7 +65,7 @@ export default function SimLibrary() {
         <div className="mt-6 space-y-7">
           {groups.map((g) => (
             <section key={g.cat}>
-              <h2 className="text-[11px] font-bold uppercase tracking-wide text-florence-slate">{g.label}</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-florence-slate">{g.label}</h2>
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 {g.items.map((sc) => {
                   const setting = sc.careSettingId ? CARE_SETTING_BY_ID.get(sc.careSettingId) : undefined;
@@ -80,14 +80,14 @@ export default function SimLibrary() {
                           {sc.title}
                         </p>
                         {setting && (
-                          <span className="shrink-0 rounded-full bg-florence-mist px-2 py-0.5 text-[10px] font-medium text-florence-slate">
+                          <span className="shrink-0 rounded-full bg-florence-mist px-2 py-0.5 text-[11px] font-medium text-florence-slate">
                             {setting.label}
                           </span>
                         )}
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-florence-slate">{sc.setting}</p>
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="text-[11px] text-florence-slate">
+                        <span className="text-xs text-florence-slate">
                           {CLIENT_NEED_LABEL[sc.clientNeed]}
                         </span>
                         <span className="text-xs font-semibold text-florence-teal-dark">Start →</span>

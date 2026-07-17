@@ -67,7 +67,7 @@ function LessonReader({ lesson, slug }: { lesson: Lesson; slug: string }) {
               <ul className="space-y-2">
                 {objectives.map((o, i) => (
                   <li key={i} className="flex gap-2.5 text-sm text-florence-ink/90">
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-florence-teal-soft text-[11px] font-bold text-florence-teal-dark">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-florence-teal-soft text-xs font-bold text-florence-teal-dark">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{o}</span>
