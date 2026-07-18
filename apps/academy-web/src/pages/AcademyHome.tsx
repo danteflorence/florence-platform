@@ -146,10 +146,10 @@ export default function AcademyHome() {
                 You&apos;re already a nurse. The NCLEX is the last door.
               </h1>
               <p className="mt-3 max-w-2xl text-base text-florence-slate sm:text-lg">
-                An interactive bootcamp for internationally educated nurses: real
-                clinical content, 3D anatomy you can explore, bedside simulations,
-                and a computer-adaptive question bank that works exactly like the
-                exam.
+                Real clinical content, intelligent patient simulation, and a
+                computer-adaptive question bank that works exactly like the
+                exam. Built for internationally educated nurses, and you stay
+                in class until you pass.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 {heroTarget ? (

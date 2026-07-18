@@ -3144,14 +3144,14 @@ async function publishCohortReport(ctx: ReqCtx, deps: Deps): Promise<void> {
  *  honored only for org-less internal tokens (trusted proxies, e.g. the ops console). */
 function employerConsentAllows(consent: { employer_sharing?: boolean; employer_org_ids?: string[] }, callerOrgId?: string): boolean {
   if (consent.employer_sharing !== true) return false;
-  if (!callerOrgId) return true; // internal (org-less) caller — boolean consent suffices
+  if (!callerOrgId) return true; // internal (org-less) caller: boolean consent suffices
   return Array.isArray(consent.employer_org_ids) && consent.employer_org_ids.includes(callerOrgId);
 }
 
 async function getEmployerCandidates(ctx: ReqCtx, deps: Deps): Promise<void> {
   const all = await allCandidateSnapshots(deps);
   // Only readiness-cleared candidates who have ALSO consented to employer sharing
-  // appear in the partner-facing packet list — and an org-bound partner sees ONLY
+  // appear in the partner-facing packet list, and an org-bound partner sees ONLY
   // candidates who named its org (H03 tenant isolation). Revocation removes them.
   const callerOrg = ctx.auth?.orgId;
   const data = all

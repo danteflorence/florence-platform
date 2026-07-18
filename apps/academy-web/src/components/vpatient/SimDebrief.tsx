@@ -122,7 +122,7 @@ export default function SimDebrief({
             </span>
             {state.hinted && (
               <span className="rounded-full bg-florence-mist px-2.5 py-0.5 text-xs font-medium text-florence-slate">
-                Practice run (hints on) — not scored
+                Practice run (hints on) · not scored
               </span>
             )}
           </div>
@@ -151,7 +151,7 @@ export default function SimDebrief({
                   )}
                 </span>
                 <span className="w-10 shrink-0 text-right font-mono text-xs text-florence-slate">
-                  {row.score === null ? "—" : `${Math.round(row.score * 100)}%`}
+                  {row.score === null ? "·" : `${Math.round(row.score * 100)}%`}
                 </span>
               </div>
             );
@@ -275,7 +275,7 @@ export default function SimDebrief({
             <ul className="mt-1.5 space-y-1">
               {missedLabPanels.map((p) => (
                 <li key={p.id} className="text-sm text-amber-900/90">
-                  • {p.label} — it would have shown a critical value. Sending it earlier sharpens the picture.
+                  • {p.label}: it would have shown a critical value. Sending it earlier sharpens the picture.
                 </li>
               ))}
             </ul>
@@ -301,7 +301,7 @@ export default function SimDebrief({
           <div className="mt-6 rounded-xl border border-florence-indigo/25 bg-florence-indigo-soft/25 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-florence-slate">Your cohort</p>
             <p className="mt-1 text-sm text-florence-ink">
-              {benchmark.participants} nurses in your cohort have run sims — cohort average{" "}
+              {benchmark.participants} nurses in your cohort have run sims. Cohort average{" "}
               <span className="font-semibold">{Math.round(benchmark.cohort_mean * 100)}%</span>
               {benchmark.my_mean !== null && (
                 <>

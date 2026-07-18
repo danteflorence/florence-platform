@@ -90,7 +90,7 @@ export default function TodaysPlanCard() {
       : []),
     {
       label: "Review",
-      detail: dueCount > 0 ? `${dueCount} card${dueCount === 1 ? "" : "s"} due` : "Nothing due — bank one anyway",
+      detail: dueCount > 0 ? `${dueCount} card${dueCount === 1 ? "" : "s"} due` : "Nothing due. Bank one anyway",
       to: "/academy/practice",
     },
     ...(focusLabel
@@ -132,9 +132,9 @@ export default function TodaysPlanCard() {
         ))}
       </ul>
       {plan.active_today ? (
-        <p className="mt-2 text-xs font-medium text-emerald-700">✓ You've studied today — streak safe.</p>
+        <p className="mt-2 text-xs font-medium text-emerald-700">✓ You've studied today. Streak safe.</p>
       ) : (
-        <p className="mt-2 text-xs font-medium text-amber-700">Nothing yet today — one item keeps the streak.</p>
+        <p className="mt-2 text-xs font-medium text-amber-700">Nothing yet today. One item keeps the streak.</p>
       )}
       {milestone && (
         <CelebrationOverlay

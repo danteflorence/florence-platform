@@ -110,10 +110,10 @@ function Hero() {
             You&apos;re already a nurse. The NCLEX is the last door.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-florence-slate sm:text-lg">
-            Live classes, patients who talk back, and a readiness band that
-            tells you the truth &mdash; built for internationally educated
-            nurses crossing into U.S. practice. We tell you where you stand,
-            green to red, and we don&apos;t move on until the band moves.
+            Live classes, intelligent patient simulation, and a readiness band
+            that tells you the truth. Built for internationally educated
+            nurses stepping into U.S. practice. And you stay in class until
+            you pass.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -129,7 +129,7 @@ function Hero() {
               See the schedule
             </a>
             <p className="text-xs text-florence-slate">
-              $200 value, $100 university sponsorship, $100 student price.
+              $200 value, $100 university sponsorship, $100 student price. Stay in class until you pass.
             </p>
           </div>
           <ApplyProgramsCta placement="landing" compact className="mt-5 max-w-xl" />
@@ -259,7 +259,7 @@ function HowItWorks() {
     {
       n: "01",
       title: "Start Global Live access",
-      body: "$200 value, $100 university sponsorship, $100 student price for 12 months of scheduled live online classes.",
+      body: "$200 value, $100 university sponsorship, $100 student price. Your seat in the live classes stays yours until you pass.",
     },
     {
       n: "02",
@@ -418,9 +418,9 @@ function SponsoredAccessSection() {
             Global Live NCLEX Access for $100.
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-florence-slate">
-            Free Academy stays free. The paid product is 12 months of scheduled
+            Free Academy stays free. The paid product is scheduled
             live online NCLEX and clinical judgment classes, supported by a
-            $100 university sponsorship.
+            $100 university sponsorship. And you stay in class until you pass.
           </p>
           <p className="mt-4 max-w-md text-sm text-florence-slate">
             Your card data never touches our servers. Checkout runs through a
@@ -439,7 +439,7 @@ function SponsoredAccessSection() {
             </div>
             <p className="mt-2 text-sm leading-relaxed text-florence-ink/90">
               Full access to scheduled live online NCLEX and clinical judgment
-              classes for 12 months.
+              classes, and your seat stays yours until you pass.
             </p>
           </div>
           <div className="rounded-2xl border border-florence-line bg-white p-6">
@@ -616,7 +616,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What does the $100 Global Live access include?",
-    a: "It includes 12 months of scheduled live online NCLEX and clinical judgment classes. The listed value is $200, university sponsorship covers $100, and the student price is $100.",
+    a: "It includes scheduled live online NCLEX and clinical judgment classes, and you stay in class until you pass. The listed value is $200, university sponsorship covers $100, and the student price is $100.",
   },
   {
     q: "How is my school being on \"the eligible list\" decided?",

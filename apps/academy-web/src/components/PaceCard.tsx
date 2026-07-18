@@ -58,7 +58,7 @@ export default function PaceCard() {
               style={{ width: `${Math.min(100, ((profile.medianSec ?? 0) / (budgetSec * 1.5)) * 100)}%` }}
             />
           </div>
-          <p className="mt-0.5 text-right text-[11px] text-florence-slate/70">|— {budgetSec}s budget at {Math.round((budgetSec / (budgetSec * 1.5)) * 100)}% —|</p>
+          <p className="mt-0.5 text-right text-[11px] text-florence-slate/70">{budgetSec}s budget at {Math.round((budgetSec / (budgetSec * 1.5)) * 100)}%</p>
         </>
       ) : null}
       <p className="mt-2 text-xs leading-relaxed text-florence-slate">{profile.advice}</p>

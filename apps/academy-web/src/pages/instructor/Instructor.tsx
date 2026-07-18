@@ -1261,7 +1261,7 @@ function FieldSignalPane() {
       }}
     >
       <summary className="cursor-pointer p-6">
-        <span className="text-sm font-medium">Field signal — what employers see</span>
+        <span className="text-sm font-medium">Field signal: what employers see</span>
         <span className="ml-2 text-xs text-florence-slate group-open:hidden">Open</span>
       </summary>
       <div className="border-t border-florence-line p-6 pt-4">
@@ -1527,7 +1527,7 @@ function ReviewPlannerPane() {
         {plan.map((d) => (
           <li key={d.day} className="flex items-center gap-2 rounded-lg bg-florence-mist/40 px-3 py-1.5">
             <span className="w-12 shrink-0 text-xs font-semibold text-florence-slate">Day {d.day}</span>
-            <span className="min-w-0 flex-1 truncate text-sm text-florence-ink">{d.simTitle ?? "—"}</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-florence-ink">{d.simTitle ?? "·"}</span>
             <span className="shrink-0 text-[11px] uppercase tracking-wide text-florence-slate">
               {CLIENT_NEED_LABEL[d.clientNeed]}
             </span>

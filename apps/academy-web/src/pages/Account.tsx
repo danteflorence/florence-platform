@@ -461,9 +461,9 @@ function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
       ) : (
         <>
           <p className="mt-1 text-sm text-florence-slate">
-            Get 12 months of scheduled live online NCLEX and clinical judgment
-            classes. Free Academy stays free. Hosted checkout keeps card details
-            outside this app.
+            Scheduled live online NCLEX and clinical judgment classes, and you
+            stay in class until you pass. Free Academy stays free. Hosted
+            checkout keeps card details outside this app.
           </p>
           <div className="mt-4 divide-y divide-florence-line rounded-lg border border-florence-line bg-white">
             <PriceRow label="Program value" value="$200" />
@@ -476,7 +476,7 @@ function SponsoredAccessCard({ candidateId }: { candidateId: string }) {
           </div>
           {market && market.methods.length > 0 && (
             <p className="mt-2 text-xs text-florence-slate">
-              Pay with {market.methods.join(" · ")} — charged in your local currency.
+              Pay with {market.methods.join(" · ")}, in your local currency.
             </p>
           )}
           {error && (
@@ -972,7 +972,7 @@ function AuthForms() {
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-florence-slate">
                   Free Academy stays free. Sponsored Global Live access is $100
-                  for 12 months of scheduled online NCLEX and clinical judgment classes.
+                  for scheduled online NCLEX and clinical judgment classes. You stay in class until you pass.
                 </p>
               </>
             )}

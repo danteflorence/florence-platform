@@ -428,7 +428,7 @@ function Studio() {
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
           <div className="mx-auto max-w-2xl rounded-2xl bg-white p-5 shadow-card-lg">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold">Review packet — for the SME</span>
+              <span className="text-sm font-semibold">Review packet for the SME</span>
               <button onClick={() => setReviewing(false)} className="rounded-md border border-florence-line px-3 py-1.5 text-sm font-semibold text-florence-ink hover:bg-florence-mist">Close</button>
             </div>
             <ReviewPacket scenario={parsed} />

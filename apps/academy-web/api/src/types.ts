@@ -91,7 +91,7 @@ export interface Consent {
   /** Allow sharing an interview-ready packet with employer partners. */
   employer_sharing?: boolean;
   /** H03: the NAMED employer tenants this candidate consents to share with. An
-   *  org-bound employer caller sees the candidate ONLY if its org is listed —
+   *  org-bound employer caller sees the candidate ONLY if its org is listed;
    *  the bare boolean alone no longer exposes the candidate to org-bound
    *  partners (org-less internal service tokens keep the boolean behavior). */
   employer_org_ids?: string[];

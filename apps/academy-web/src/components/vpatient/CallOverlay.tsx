@@ -27,10 +27,10 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 const SBAR_FIELDS: { key: "s" | "b" | "a" | "r"; label: string; hint: string }[] = [
-  { key: "s", label: "S — Situation", hint: "Who you are, the patient, and the problem in one sentence." },
-  { key: "b", label: "B — Background", hint: "Relevant history, meds, and what changed." },
-  { key: "a", label: "A — Assessment", hint: "The vitals and findings that worry you." },
-  { key: "r", label: "R — Recommendation", hint: "What you need from them, and how fast." },
+  { key: "s", label: "S · Situation", hint: "Who you are, the patient, and the problem in one sentence." },
+  { key: "b", label: "B · Background", hint: "Relevant history, meds, and what changed." },
+  { key: "a", label: "A · Assessment", hint: "The vitals and findings that worry you." },
+  { key: "r", label: "R · Recommendation", hint: "What you need from them, and how fast." },
 ];
 
 export default function CallOverlay({
@@ -144,7 +144,7 @@ export default function CallOverlay({
             <p className="text-xs text-florence-slate">
               {connected ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-vital-ok" /> On the line — clock is running
+                  <span className="h-1.5 w-1.5 rounded-full bg-vital-ok" /> On the line. Clock is running
                 </span>
               ) : (
                 "Calling…"
@@ -176,7 +176,7 @@ export default function CallOverlay({
         </div>
 
         <p className="mt-2 text-xs text-florence-slate">
-          Fill at least two sections, then deliver. Your handoff isn't graded — making it is the practice.
+          Fill at least two sections, then deliver. Your handoff isn't graded. Making it is the practice.
         </p>
 
         <div className="mt-3 flex gap-2">

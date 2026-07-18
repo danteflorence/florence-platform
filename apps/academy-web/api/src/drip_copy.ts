@@ -67,7 +67,7 @@ const STAGES: StageSpec[] = [
   {
     subject: () => "A live cohort, not another video library",
     paragraphs: (c) => [
-      "Here is how the Florence Academy bootcamp works. You join a live cohort with set class times, an instructor who knows your name, and adaptive practice between sessions.",
+      "Here is how the Florence Academy bootcamp works. You join a live cohort with set class times, an instructor who knows your name, intelligent patient simulation, and adaptive practice between sessions.",
       "Most learners tell us the live format is what finally made the material stick.",
       `See the schedule and what a week looks like: ${c.learnUrl}`,
     ],
@@ -82,11 +82,11 @@ const STAGES: StageSpec[] = [
       c.isPartnerSchool
         ? [
             `Good news. Because you trained at ${c.schoolName ?? "your school"}, we can personalize your Florence Academy profile and show the sponsored Global Live access offer.`,
-            "Florence Academy Global Live NCLEX Access has a $200 value, a $100 university sponsorship, and a $100 student price.",
+            "Florence Academy Global Live NCLEX Access has a $200 value, a $100 university sponsorship, and a $100 student price. You stay in class until you pass.",
             `Start Global Live access: ${c.signupUrl}`,
           ]
         : [
-            "Florence Academy Global Live NCLEX Access has a $200 value, a $100 university sponsorship, and a $100 student price.",
+            "Florence Academy Global Live NCLEX Access has a $200 value, a $100 university sponsorship, and a $100 student price. You stay in class until you pass.",
             `Start Global Live access: ${c.signupUrl}`,
           ],
   },
