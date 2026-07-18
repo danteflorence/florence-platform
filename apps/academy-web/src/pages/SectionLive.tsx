@@ -6,6 +6,7 @@ import SlideDeck from "../components/deck/SlideDeck";
 import InstructorVideo from "../components/live/InstructorVideo";
 import QnaPanel from "../components/live/QnaPanel";
 import { useLiveAv } from "../lib/useLiveAv";
+import { isoToFlag } from "../lib/flags";
 import { buildDeck, pollFromPracticeItem } from "../lib/deck";
 import { useLesson } from "../lib/useLesson";
 import type { Lesson } from "../data/lessonTypes";
@@ -183,6 +184,22 @@ function LiveStatusBadge({
         <span aria-hidden>👥</span>
         <span className="tabular-nums">{presence.total}</span>
       </span>
+
+      {/* Where the class is right now: one flag per country in the room.
+          Flags only by design; per-country counts arrive when the numbers
+          themselves become the story. */}
+      {(presence.countries?.length ?? 0) > 0 && (
+        <span
+          className="hidden items-center gap-0.5 rounded-full bg-white/10 px-2.5 py-1 text-base leading-none md:inline-flex"
+          title={`In the room: ${presence.countries!.join(", ")}`}
+          aria-label={`Countries in the room: ${presence.countries!.join(", ")}`}
+        >
+          {presence.countries!.map((iso) => {
+            const flag = isoToFlag(iso);
+            return flag ? <span key={iso}>{flag}</span> : null;
+          })}
+        </span>
+      )}
 
       {isInstructor ? (
         <button

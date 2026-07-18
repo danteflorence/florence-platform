@@ -26,6 +26,7 @@ import { pushSpacedQueue } from "../../lib/spacedSync";
 import { recordPaceSamples } from "../../lib/pacing";
 import PaceCard from "../PaceCard";
 import ReadinessCard from "../ReadinessCard";
+import { estimateWeeksToGreen, doorDistancePhrase } from "../../lib/distance";
 import { CLIENT_NEED_LABEL } from "../../data/blueprint";
 import { QUESTION_TYPE_LABELS, type ClientNeed } from "../../types/question";
 import { ApplyProgramsCta } from "../ApplyProgramsCta";
@@ -204,6 +205,14 @@ export default function Results({
       {readiness && (
         <div className="mt-5">
           <ReadinessCard snapshot={readiness} heading="Where you stand overall" />
+          {(() => {
+            const dist = estimateWeeksToGreen(readiness.readiness);
+            return dist ? (
+              <p className="mt-2 text-sm leading-relaxed text-florence-slate">
+                {doorDistancePhrase(dist)}
+              </p>
+            ) : null;
+          })()}
         </div>
       )}
 

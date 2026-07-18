@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionDef, TeamMember } from "../../data/vpatient/types";
 import { readbackQuiz } from "../../lib/vpatient/readback";
+import WhyThisDrill from "../WhyThisDrill";
 
 const ROLE_LABEL: Record<string, string> = {
   charge_nurse: "Charge nurse",
@@ -178,6 +179,7 @@ export default function CallOverlay({
         <p className="mt-2 text-xs text-florence-slate">
           Fill at least two sections, then deliver. Your handoff isn't graded. Making it is the practice.
         </p>
+        <WhyThisDrill keywords={["sbar", "communication", "escalation", "handoff", "read-back"]} />
 
         <div className="mt-3 flex gap-2">
           <button

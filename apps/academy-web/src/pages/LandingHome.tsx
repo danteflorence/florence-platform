@@ -8,6 +8,7 @@ import {
   type PublicSchool,
 } from "../lib/academyAuth";
 import { SECTIONS, CLIENT_NEEDS } from "../data/blueprint";
+import { DESTINATION, PARTNER_OPEN_ROLES } from "../data/destination";
 import manifest from "../data/bankManifest.json";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 
@@ -32,6 +33,7 @@ export default function LandingHome() {
     <div className="min-h-screen bg-white text-florence-ink">
       <MarketingHeader />
       <Hero />
+      <OtherSideSection />
       <ProofRow />
       <WhatYouGet />
       <HowItWorks />
@@ -181,6 +183,74 @@ function CurriculumPreview() {
 }
 
 // ── Proof row (real numbers, no fluff) ──────────────────────────────────────
+// ── The other side of the door ──────────────────────────────────────────────
+function OtherSideSection() {
+  const tiles: { value: string; label: string; soft?: boolean }[] = [
+    {
+      value: `$${DESTINATION.medianHourly}/hr`,
+      label: `median RN wage across ${DESTINATION.hospitalsTracked.toLocaleString()} U.S. hospitals we track`,
+    },
+    {
+      value: `$${DESTINATION.topStateAnnual.toLocaleString()}`,
+      label: `median annual RN pay in ${DESTINATION.topStateName} hospitals`,
+    },
+    {
+      value: DESTINATION.annualOpenings,
+      label: "U.S. RN openings projected every year",
+    },
+    PARTNER_OPEN_ROLES === null
+      ? {
+          value: "Counting soon",
+          label: "live openings with Florence employer partners",
+          soft: true,
+        }
+      : {
+          value: PARTNER_OPEN_ROLES.toLocaleString(),
+          label: "live openings with Florence employer partners",
+        },
+  ];
+  return (
+    <section className="border-b border-florence-line/70 bg-florence-ink text-white">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-8 sm:py-16">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-florence-teal">
+          The other side of the door
+        </p>
+        <h2 className="mt-2 max-w-2xl font-serif text-3xl font-semibold sm:text-4xl">
+          On the other side: USRN.
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/80">
+          A U.S. registered nurse license changes what your work pays,
+          {" "}{DESTINATION.medianAnnualApprox}. These figures come from our own
+          labor-economics engine, the same one we use to price nursing labor for
+          U.S. health systems.
+        </p>
+        <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-white/15 bg-white/15 sm:grid-cols-4">
+          {tiles.map((t) => (
+            <div key={t.label} className="bg-florence-ink px-5 py-6 text-center sm:py-7">
+              <p
+                className={
+                  t.soft
+                    ? "font-serif text-2xl font-semibold text-white/50"
+                    : "font-serif text-3xl font-semibold text-white"
+                }
+              >
+                {t.value}
+              </p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">
+                {t.label}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-white/40">
+          Wages: Florence Workforce Economist hospital universe, 2025 cost-report
+          blend. Openings: U.S. Bureau of Labor Statistics employment projections.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function ProofRow() {
   const items = useMemo(() => {
     const bankTotal =

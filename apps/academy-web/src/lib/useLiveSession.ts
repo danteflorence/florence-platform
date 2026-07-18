@@ -10,7 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import { storedToken } from "./academyAuth";
+import { storedCandidate, storedToken } from "./academyAuth";
+import { countryToIso } from "./flags";
 import {
   liveServerUrl,
   type ClientToServerEvents,
@@ -100,7 +101,13 @@ export function useLiveSession(opts: {
       // poll answers persist to their record (server verifies via /v1/me;
       // anonymous participation still works exactly as before).
       const token = role === "student" ? storedToken() : null;
-      socket.emit("join", { room, role, name, ...(token ? { token } : {}) }, (ack) => {
+      // Presence flag: signed-in learners contribute their profile country
+      // (normalized to ISO client-side; the room shows flags, never counts).
+      const country = countryToIso(storedCandidate()?.country);
+      socket.emit(
+        "join",
+        { room, role, name, ...(token ? { token } : {}), ...(country ? { country } : {}) },
+        (ack) => {
         if (ack?.ok) {
           everJoined = true;
           setSnapshot(ack.snapshot);

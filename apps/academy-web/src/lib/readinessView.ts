@@ -7,6 +7,10 @@ import type { ReadinessBand, ReadinessSnapshot } from "./academyAuth";
 import { CLIENT_NEED_LABEL } from "../data/blueprint";
 import type { ClientNeed } from "../types/question";
 
+/** Green-band pass-probability threshold. Mirrors bandFromReadiness in
+ *  api/src/readiness.ts; change both together. */
+export const GREEN_THRESHOLD = 0.8;
+
 export interface BandPresentation {
   /** Short badge text, e.g. "Exam-ready". */
   label: string;

@@ -190,14 +190,19 @@ function getRoom(code) {
   return room;
 }
 
+// Cap the presence flag row so a hostile client can't bloat every broadcast.
+const MAX_PRESENCE_COUNTRIES = 24;
+
 function presence(room) {
   let instructors = 0;
   let students = 0;
+  const countries = new Set();
   for (const m of room.members.values()) {
     if (m.role === "instructor") instructors += 1;
     else students += 1;
+    if (m.country && countries.size < MAX_PRESENCE_COUNTRIES) countries.add(m.country);
   }
-  return { instructors, students, total: room.members.size };
+  return { instructors, students, total: room.members.size, countries: [...countries].sort() };
 }
 
 /** Public, serialisable view of a room sent to every client on each change. */
@@ -429,8 +434,12 @@ io.on("connection", (socket) => {
       ack?.({ ok: false, error: "This class is full." });
       return;
     }
+    // Presence flag country: cosmetic, shape-validated, never trusted further.
+    const country = /^[A-Za-z]{2}$/.test(String(payload?.country ?? ""))
+      ? String(payload.country).toUpperCase()
+      : undefined;
     joined = { code, role, name };
-    room.members.set(socket.id, { role, name });
+    room.members.set(socket.id, { role, name, ...(country ? { country } : {}) });
     // Signed-in students: resolve their candidate id from the session token
     // they handed us (verified against the Data API - never self-asserted).
     // Async on purpose: the join ack never waits on an HTTP round-trip, and

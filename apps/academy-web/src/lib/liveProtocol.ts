@@ -25,6 +25,9 @@ export interface Presence {
   instructors: number;
   students: number;
   total: number;
+  /** Unique ISO alpha-2 codes of countries in the room (flags-only display;
+   *  per-country counts come later, Peloton-style, when volume justifies). */
+  countries?: string[];
 }
 
 /** Aggregate, student-safe view of the active poll (no per-respondent data). */
@@ -118,6 +121,9 @@ export interface JoinPayload {
    *  poll answers can persist as kind:"live_poll" assessment results.
    *  Absent/invalid → the student participates anonymously, as before. */
   token?: string;
+  /** ISO alpha-2 country for the presence flag row. Optional and cosmetic;
+   *  the server validates the shape and never trusts it for anything else. */
+  country?: string;
 }
 
 export interface NavPayload {

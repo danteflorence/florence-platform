@@ -10,6 +10,7 @@ import { fetchMyCohort, type MyCohort } from "../lib/academyAuth";
 import { useCandidate } from "../lib/CandidateContext";
 import { ApplyProgramsCta } from "../components/ApplyProgramsCta";
 import ReadinessCard from "../components/ReadinessCard";
+import { estimateWeeksToGreen, doorDistancePhrase } from "../lib/distance";
 import RemediationPanel from "../components/RemediationPanel";
 import DailyReviewCard from "../components/DailyReviewCard";
 import TodaysPlanCard from "../components/TodaysPlanCard";
@@ -116,6 +117,14 @@ export default function AcademyHome() {
             </div>
             <TodaysPlanCard />
             {readiness && <ReadinessCard snapshot={readiness} />}
+            {readiness && (() => {
+              const dist = estimateWeeksToGreen(readiness.readiness);
+              return dist ? (
+                <p className="px-1 text-sm leading-relaxed text-florence-slate">
+                  {doorDistancePhrase(dist)}
+                </p>
+              ) : null;
+            })()}
             <DailyReviewCard />
             <RemediationPanel />
             <ReasoningProfileCard />

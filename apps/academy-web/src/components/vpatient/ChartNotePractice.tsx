@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { call } from "../../lib/academyAuth";
+import WhyThisDrill from "../WhyThisDrill";
 
 interface Feedback {
   score: number;
@@ -57,6 +58,7 @@ export default function ChartNotePractice({ expected }: { expected: string[] }) 
       <p className="mt-1 text-xs text-florence-slate">
         Objective, complete, timed, closed-loop. Chart what you found, what you did, and who you told. Your note is graded, not stored.
       </p>
+      <WhyThisDrill keywords={["chart", "documentation", "note"]} />
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}

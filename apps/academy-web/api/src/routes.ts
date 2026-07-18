@@ -3751,8 +3751,9 @@ async function postInstructorLogin(ctx: ReqCtx, deps: Deps): Promise<void> {
 // outcomes ledger (kind:"employer_feedback", detail {competency, rating
 // 1-5}); only competency-level means with n>=3 leave here - no nurse is ever
 // identifiable, no free-text note is surfaced.
-async function getFieldSignal(ctx: ReqCtx, deps: Deps): Promise<void> {
-  ctx.resourceType = "field_signal";
+async function computeFieldSignal(
+  deps: Deps,
+): Promise<{ total: number; rows: { competency: string; n: number; mean_rating: number }[] }> {
   const byCompetency = new Map<string, { sum: number; n: number }>();
   let cursor: string | undefined;
   let total = 0;
@@ -3780,7 +3781,26 @@ async function getFieldSignal(ctx: ReqCtx, deps: Deps): Promise<void> {
       mean_rating: Math.round((v.sum / v.n) * 100) / 100,
     }))
     .sort((a, b) => a.mean_rating - b.mean_rating); // weakest first = teach this
+  return { total, rows };
+}
+
+async function getFieldSignal(ctx: ReqCtx, deps: Deps): Promise<void> {
+  ctx.resourceType = "field_signal";
+  const { total, rows } = await computeFieldSignal(deps);
   send(ctx, 200, { total_feedback: total, by_competency: rows });
+}
+
+// Learner-facing provenance: which competencies real employer reports have
+// flagged (count only; ratings stay instructor-side). Empty until actual
+// employer feedback exists - the SPA renders nothing rather than a claim
+// we cannot back.
+async function getMyFieldProvenance(ctx: ReqCtx, deps: Deps): Promise<void> {
+  const bound = ctx.auth?.candidateId;
+  if (!bound) return err(ctx, 400, "invalid_request", "candidate session required");
+  ctx.resourceType = "field_provenance";
+  ctx.resourceId = bound;
+  const { rows } = await computeFieldSignal(deps);
+  send(ctx, 200, { rows: rows.map((r) => ({ competency: r.competency, n: r.n })) });
 }
 
 // Live conversational patient (pilot) - mints a short-lived SIGNED session
@@ -4838,6 +4858,7 @@ export const routes: Route[] = [
   compile("GET", "/v1/me/daily-plan", "candidates:read", true, getMyDailyPlan),
   compile("POST", "/v1/me/nclex-outcome", "candidates:read", true, postMyNclexOutcome),
   compile("GET", "/v1/me/sim-benchmark", "candidates:read", true, getMySimBenchmark),
+  compile("GET", "/v1/me/field-provenance", "candidates:read", true, getMyFieldProvenance),
   compile("POST", "/v1/sim/chart-note", "candidates:read", true, postChartNote),
   compile("GET", "/v1/sim/patient-call", "candidates:read", true, getPatientCall),
   compile("GET", "/v1/curriculum/field-signal", "cohorts:read", false, getFieldSignal),
